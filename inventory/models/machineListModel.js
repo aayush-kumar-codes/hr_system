@@ -90,6 +90,20 @@ function machinelist(database, type) {
 		}
 	};
 
+	
+
+	MachineList.GetMachineById = async (reqBody) => {
+		try {
+			let all_machine = await MachineList.findAll({
+				where: {
+					id: reqBody.id
+				}});
+			return all_machine;
+		} catch (error) {
+			throw new Error('Unable to locate all users');
+		}
+	};
+
 	return MachineList;
 }
 
