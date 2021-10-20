@@ -160,3 +160,18 @@ exports.deleteMachineStatusController = async (req, res, next) => {
 		return next();
 	}
 };
+
+
+exports.getMachineCountController = async (req, res, next) => {
+	try {
+		let machine_count = await db.MachineList.getMachineCount();
+		res.status_code = 200;
+		res.data = machine_count;
+		return next();
+	} catch (error) {														
+		res.status_code = 500;
+		res.message = error.message;
+		return next();
+	}
+};
+
