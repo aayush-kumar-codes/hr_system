@@ -20,6 +20,7 @@ function inventoryauditmonthwise(database, type) {
         models.inventoryauditmonthwise.hasOne(models.InventoryCommentsModel, { foreignKey: 'inventory_comment_id',as:"inventory_comment"});
 	}
 	return inventory_audit_month_wise;
+
 }
 
 module.exports = inventoryauditmonthwise;
