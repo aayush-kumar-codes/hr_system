@@ -146,7 +146,7 @@ function machinelist(database, type) {
           },
           { where: { id: reqBody.id } }
         );
-		console.log(update);
+        console.log(update);
         return machine_to_update;
       } else {
         throw new Error("Unable to find machine with the given id");
@@ -156,6 +156,16 @@ function machinelist(database, type) {
     }
   };
 
+  MachineList.getUnassignedInventory = async (reqBody) => {
+    try {
+      let unassignedInventory = await MachineList.findAll({
+        where: { user_id: null },
+      });
+	  return unassignedInventory;
+    } catch (error) {
+      throw new Error(error);
+    }
+  };
   return MachineList;
 }
 
