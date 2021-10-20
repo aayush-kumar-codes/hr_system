@@ -30,15 +30,17 @@ function machineuser(database, type) {
 
 	machines_user.AssignMachine = async (reqBody) => {
 		try {
-			let find_machine = await machines_user.findOne({machine_id : reqBody.body.machine_id});
-            
+			let find_machine = await machines_user.findOne({where:{machine_id : reqBody.body.machine_id}});
 			if (!find_machine) {
                 const details = await machines_user.create({machine_id:reqBody.body.machine_id,
 					user_Id:reqBody.body.user_id,
 					updated_by_userid:reqBody.userData.user_id.id 
 				}); 
             } else {
-                const details = await machines_user.update(reqBody.body, {
+                const details = await machines_user.update({machine_id:reqBody.body.machine_id,
+					user_Id:reqBody.body.user_id,
+					updated_by_userid:reqBody.userData.user_id.id 
+				}, {
                     where: {
                         id: find_machine.id
                     }

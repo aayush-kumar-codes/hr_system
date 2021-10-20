@@ -73,6 +73,23 @@ function machinelist(database, type) {
 		}
 	};
 
+	MachineList.GetMachine = async (reqBody,models) => {
+		try {
+			let machine_ids = await models.MachineUser.findAll({
+				where: {
+					user_Id: reqBody.userData.user_id.id 
+				},attributes: ["id"]});
+			machine_ids = machine_ids.map((doc)=> doc.id)
+			let all_machine = await MachineList.findAll({
+				where: {
+					id: machine_ids
+				}});
+			return all_machine;
+		} catch (error) {
+			throw new Error('Unable to locate all users');
+		}
+	};
+
 	return MachineList;
 }
 
