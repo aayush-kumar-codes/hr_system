@@ -25,6 +25,13 @@ router.post(
   inventoryControllers.AssignUserMachineController,
   handlers.responseHandle
 );
+router.get(
+  "/get_my_inventories",
+  middleware.Auth,
+  inventoryControllers.getMyInventoryController,
+  handlers.responseHandle
+);
+
 router.post(
   "/add_inventory_audit",
   middleware.Auth,

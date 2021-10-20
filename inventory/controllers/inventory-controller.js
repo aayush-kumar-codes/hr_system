@@ -60,3 +60,17 @@ exports.inventoryAuditController = async (req, res, next) => {
     return next();
   }
 };
+
+exports.getMyInventoryController = async (req, res, next) => {
+	try {
+		let machine_list = await db.MachineList.GetMachine(req,db);
+		res.status_code = 200;
+		res.data = machine_list;
+		return next();
+	} catch (error) {														
+		res.status_code = 500;
+		res.message = error.message;
+		return next();
+	}
+};
+
