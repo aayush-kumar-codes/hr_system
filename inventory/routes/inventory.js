@@ -40,4 +40,12 @@ router.post(
   handlers.responseHandle
 );
 
+router.post(
+  "/update_office_machine",
+  middleware.Auth,
+  validators.UpdateMachineValidator,
+  inventoryControllers.inventoryUpdateMachineController,
+  handlers.responseHandle
+);
+
 module.exports = router;
