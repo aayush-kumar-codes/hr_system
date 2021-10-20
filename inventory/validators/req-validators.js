@@ -24,8 +24,12 @@ const inventoryAuditValidator = [
 ];
 
 const AssignUserMachineValidator = [
-	check('user_id', 'user_id must not be empty').not().isEmpty(),
-	check('machine_id', 'machine_id must not be empty').not().isEmpty()
+  check("user_id", "user_id must not be empty").not().isEmpty(),
+  check("machine_id", "machine_id must not be empty").not().isEmpty(),
+];
+
+const UpdateMachineValidator = [
+  check("serial_no", "serial_no must not be empty").not().isEmpty(),
 ];
 
 const MachineStatusValidator = [
@@ -43,6 +47,7 @@ module.exports = {
   machineCreationValidator,
   inventoryAuditValidator,
   AssignUserMachineValidator,
+  UpdateMachineValidator,
   MachineStatusValidator,
   MachineStatusDeleteValidator
 };

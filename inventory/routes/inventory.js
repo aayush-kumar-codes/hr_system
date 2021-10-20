@@ -14,5 +14,8 @@ router.post("/add_inventory_audit",middleware.Auth,validators.inventoryAuditVali
 router.post("/add_machine_status",middleware.Auth,validators.MachineStatusValidator,inventoryControllers.addMachineStatusController,handlers.responseHandle);
 router.get("/get_machine_status_list",middleware.Auth,inventoryControllers.getMachineStatusController,handlers.responseHandle);
 router.post("/delete_machine_status",middleware.Auth,validators.MachineStatusDeleteValidator,inventoryControllers.deleteMachineStatusController,handlers.responseHandle);
+router.post("/update_office_machine",middleware.Auth,validators.UpdateMachineValidator,inventoryControllers.inventoryUpdateMachineController,handlers.responseHandle);
+router.get("/get_unassigned_inventories",middleware.Auth,inventoryControllers.getUnassignedInventoryController,handlers.responseHandle);
+
 
 module.exports = router;
