@@ -7,6 +7,7 @@ const middleware = require("../middleware/Auth");
 
 router.post('/add_office_machine', middleware.Auth, validators.machineCreationValidator, inventoryControllers.inventoryController, handlers.responseHandle);
 router.get('/get_office_machine', middleware.Auth,inventoryControllers.inventoryGetController, handlers.responseHandle);
+router.post('/assign_user_machine', middleware.Auth, validators.AssignUserMachineValidator,inventoryControllers.AssignUserMachineController, handlers.responseHandle);
 
 module.exports = router;
  

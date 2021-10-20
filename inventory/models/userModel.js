@@ -2,11 +2,6 @@ function user(database, type) {
 	const User = database.define(
 		'detail',
 		{
-			id: {
-				type: type.UUID,
-				defaultValue: type.UUIDV4,
-				primaryKey: true
-			},
 			first_name: type.STRING,
 			username: type.STRING,
 			last_name: type.STRING,

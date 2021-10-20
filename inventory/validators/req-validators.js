@@ -20,4 +20,9 @@ const machineCreationValidator = [
 	check('status', 'status must not be empty').not().isEmpty()
 ];
 
-module.exports = { userCreationValidator, userLoginValidator, machineCreationValidator };
+const AssignUserMachineValidator = [
+	check('user_id', 'user_id must not be empty').not().isEmpty(),
+	check('machine_id', 'machine_id must not be empty').not().isEmpty()
+];
+
+module.exports = { userCreationValidator, userLoginValidator, machineCreationValidator, AssignUserMachineValidator };

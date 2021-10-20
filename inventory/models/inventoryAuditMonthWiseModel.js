@@ -2,10 +2,6 @@ function inventoryauditmonthwise(database, type) {
 	const inventory_audit_month_wise = database.define(
 		'inventory_audit_month_wise',
 		{
-			id: {
-				type: type.INTEGER,
-				primaryKey: true
-			},
 			inventory_id: type.INTEGER,
             month: type.INTEGER,
             year: type.INTEGER,

@@ -2,10 +2,6 @@ function inventorycomments(database, type) {
 	const inventory_comments = database.define(
 		'inventory_comments',
 		{
-			id: {
-				type: type.INTEGER,
-				primaryKey: true
-			},
 			inventory_id: type.INTEGER,
             updated_by_user_id: type.INTEGER,
             assign_unassign_user_id: type.INTEGER,

@@ -2,11 +2,6 @@ function address(database, type) {
 	const Address = database.define(
 		'address',
 		{
-			id: {
-				type: type.UUID,
-				defaultValue: type.UUIDV4,
-				primaryKey: true
-			},
 			city: type.STRING,
 			state: type.STRING
 		},

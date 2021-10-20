@@ -2,10 +2,6 @@ function files(database, type) {
 	const files = database.define(
 		'files',
 		{
-			id: {
-				type: type.INTEGER,
-				primaryKey: true
-			},
 			updated_by_user_id: type.INTEGER,
             file_name: type.STRING,
             google_drive_path:type.STRING,
