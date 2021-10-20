@@ -5,6 +5,7 @@ const MachineUser = require('./machineUserModel');
 const InventoryAuditMonthWise = require('./inventoryAuditMonthWiseModel');
 const InventoryCommentsModel = require('./inventoryCommentsModel');
 const FilesModel = require('./filesModel');
+const MachineStatus = require('./machineStatusModel');
 
 
-module.exports = { User, Address, MachineList, MachineUser, InventoryAuditMonthWise, InventoryCommentsModel, FilesModel };
+module.exports = { User, Address, MachineList, MachineUser, InventoryAuditMonthWise, InventoryCommentsModel, FilesModel, MachineStatus };
