@@ -11,5 +11,8 @@ router.post('/assign_user_machine', middleware.Auth, validators.AssignUserMachin
 router.get('/get_my_inventories', middleware.Auth,inventoryControllers.getMyInventoryController, handlers.responseHandle);
 router.post('/get_machine', middleware.Auth,inventoryControllers.getMachineController, handlers.responseHandle);
 router.post("/add_inventory_audit",middleware.Auth,validators.inventoryAuditValidator,inventoryControllers.inventoryAuditController,handlers.responseHandle);
+router.post("/add_machine_status",middleware.Auth,validators.MachineStatusValidator,inventoryControllers.addMachineStatusController,handlers.responseHandle);
+router.get("/get_machine_status_list",middleware.Auth,inventoryControllers.getMachineStatusController,handlers.responseHandle);
+router.post("/delete_machine_status",middleware.Auth,validators.MachineStatusDeleteValidator,inventoryControllers.deleteMachineStatusController,handlers.responseHandle);
 
 module.exports = router;
