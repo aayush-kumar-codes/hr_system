@@ -19,6 +19,13 @@ router.get(
   handlers.responseHandle
 );
 router.post(
+  "/assign_user_machine",
+  middleware.Auth,
+  validators.AssignUserMachineValidator,
+  inventoryControllers.AssignUserMachineController,
+  handlers.responseHandle
+);
+router.post(
   "/add_inventory_audit",
   middleware.Auth,
   validators.inventoryAuditValidator,

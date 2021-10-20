@@ -2,12 +2,6 @@ function inventorycomments(database, type) {
   const inventory_comments = database.define(
     "inventory_comments",
     {
-      id: {
-        type: type.INTEGER,
-        // type: type.UUID,
-        // defaultValue: type.UUIDV4,
-        primaryKey: true,
-      },
       inventory_id: type.INTEGER,
       updated_by_user_id: type.INTEGER,
       assign_unassign_user_id: type.INTEGER,
@@ -34,11 +28,9 @@ function inventorycomments(database, type) {
       as: "assign_unassign_user",
     });
   };
-
   inventory_comments.createAudit = async (reqBody) => {
     try {
       let creation = await inventory_comments.create({
-        // id: reqBody.id,
         inventory_id: reqBody.inventory_id,
         comment: reqBody.comment,
         comment_type: reqBody.comment_type,

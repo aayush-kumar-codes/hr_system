@@ -32,16 +32,29 @@ exports.inventoryGetController = async (req, res, next) => {
   }
 };
 
+exports.AssignUserMachineController = async (req, res, next) => {
+  try {
+    let request_Validate = await reqValidate(req);
+    let machine_create = await db.MachineUser.AssignMachine(req);
+    res.status_code = 200;
+    res.message = "Updated";
+    return next();
+  } catch (error) {
+    console.log(error);
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+};
+
 exports.inventoryAuditController = async (req, res, next) => {
   try {
-    let audit_create = await db.InventoryCommentsModel.createAudit(
-      req.body
-    );
+    let audit_create = await db.InventoryCommentsModel.createAudit(req.body);
     res.status_code = 201;
     res.message = "Created";
     return next();
   } catch (error) {
-	  console.log(error);
+    console.log(error);
     res.status_code = 500;
     res.message = error.message;
     return next();
