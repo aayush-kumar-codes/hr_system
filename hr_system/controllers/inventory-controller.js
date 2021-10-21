@@ -169,22 +169,9 @@ exports.getMachineCountController = async (req, res, next) => {
   }
 };
 
-exports.getMachineTypeController = async (req, res, next) => {
-  try {
-    let machine_type_list = await db.MachineList.getMachineTypeList(req.body);
-    res.status_code = 200;
-    res.data = machine_type_list;
-    return next();
-  } catch (error) {
-    res.status_code = 500;
-    res.message = error.message;
-    return next();
-  }
-};
-
 exports.addMachineTypeController = async(req,res,next) => {
   try {
-    let machineType = await db.MachineList.addMachineType(req.body);
+    let machineType = await db.MachineType.addMachineType(req.body);
     res.status_code = 200;
     res.message = "Created";
     return next();
@@ -194,6 +181,19 @@ exports.addMachineTypeController = async(req,res,next) => {
     return next();
   }
 }
+
+exports.getMachineTypeController = async (req, res, next) => {
+  try {
+    let machine_type_list = await db.MachineType.getMachineTypeList();
+    res.status_code = 200;
+    res.data = machine_type_list;
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+};
 
 exports.getMachinesDetailController = async(req, res, next) => {
   try {
@@ -209,5 +209,5 @@ exports.getMachinesDetailController = async(req, res, next) => {
 }
 
 exports.getUnapprovedInventoryControllers = async(req,res,next) => {
-  
+
 }

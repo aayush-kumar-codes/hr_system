@@ -176,66 +176,6 @@ function machinelist(database, type) {
     }
   };
 
-  MachineList.getMachineTypeList = async (reqBody) => {
-    try {
-      let machineTypeList = await MachineList.findAll({
-        where: { type: reqBody },
-      });
-      return machineTypeList;
-    } catch (error) {
-      throw new Error("Unable to locate all machine types");
-    }
-  };
-
-  MachineList.addMachineType = async (reqBody) => {
-    try {
-      let value = [
-        "Desktop",
-        "mobile phone ",
-        "Camera",
-        "Mouse2018",
-        "access card",
-        "mouse",
-        "Chargers",
-        "Lights",
-        "fans",
-        "Pen Drive",
-        "Landline Phone",
-        "Wifi Modem",
-        "LAN cable",
-        "tv cable",
-        "Multiplug extension",
-        "Biometric Machine",
-        "HDMI cable",
-        "Desktop Cable",
-        "Power Connector",
-        "LAN adapter",
-        "CCTV Camera",
-        "Scissors",
-        "Suraj Peon Inventory",
-        "asdasdasd",
-        "Hard Disk",
-        "AC",
-        "usb charging cable",
-        "laptop",
-        "keyboard",
-        "CPU",
-        "Laptop Charger",
-      ];
-      value.forEach(async (el) => {
-        if (el == reqBody.type) {
-          let machineType = await MachineList.update(
-            { type: el },
-            { where: { id: reqBody.id } }
-          );
-          return machineType;
-        }
-      });
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
-
   MachineList.getMachinesDetail = async () => {
     try {
       let machinesDetail = await MachineList.findAll({});
