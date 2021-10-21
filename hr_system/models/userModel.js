@@ -2,22 +2,21 @@ function user(database, type) {
 	const User = database.define(
 		'detail',
 		{
-			first_name: type.STRING,
-			username: type.STRING,
-			last_name: type.STRING,
-			email: {
+			username: {
 				type: type.STRING,
 				unique: true
 			},
-			password: type.STRING
+			type: type.STRING,
+			password: type.STRING,
+			status: type.STRING,
 		},
 		{
 			hooks: {
 				beforeCreate: (user, options) => {
 					return new Promise((resolve, reject) => {
-						User.findOne({ where: { email: user.email } }).then((found) => {
+						User.findOne({ where: { username: user.username } }).then((found) => {
 							if (found) {
-								reject(new Error('Email already exist'));
+								reject(new Error('username already exist'));
 							} else {
 								resolve();
 							}
@@ -26,15 +25,13 @@ function user(database, type) {
 
 				}
 			},
-			timestamps: true,
-			freezeTableName: true
 		}
 	);
 
 
 	User.getMine = async (reqBody) => {
 		try {
-			let user = await User.findOne({ where: { email: reqBody.email } });
+			let user = await User.findOne({ where: { username: reqBody.username } });
 			return user;
 		} catch (error) {
 			throw new Error('Unable to find your profile');
@@ -55,9 +52,8 @@ function user(database, type) {
 	User.createUser = async (reqBody) => {
 		try {
 			let creation = await User.create({
-				first_name: reqBody.first_name,
-				last_name: reqBody.last_name,
-				email: reqBody.email,
+				status: reqBody.status,
+				type: reqBody.type,
 				password: reqBody.password,
 				username: reqBody.username
 			});
