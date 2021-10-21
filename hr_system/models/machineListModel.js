@@ -156,7 +156,7 @@ function machinelist(database, type) {
     }
   };
 
-  MachineList.getUnassignedInventory = async (reqBody) => {
+  MachineList.getUnassignedInventory = async (reqBody, models) => {
     try {
       let machineWithUser = await models.MachineUser.findAll({});
       if (machineWithUser) {

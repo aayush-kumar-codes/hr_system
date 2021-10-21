@@ -248,6 +248,33 @@ exports.inventoryUnassignRequestController =async(req,res,next) => {
   }
 }
 
+exports.getTempFilesController = async(req,res,next) => {
+  try {
+    let tempFiles = await db.InventoryTempFiles.getTempFiles();
+    res.status_code = 200;
+    res.data = tempFiles;
+    res.message = "temp files found";
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+}
+
+exports.deleteTempFilesControllers = async(req,res, next) => {
+  try {
+    let deletedTempFiles = await db.InventoryTempFiles.deleteTempFiles(req.body);
+    res.status_code = 200;
+    res.message = "temp file removed";
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+}
+
 exports.removeMachineController = async(req,res,next) => {
   try {
     let removedMachine = await db.MachineList.removeMachine(req.body);

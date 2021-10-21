@@ -2,6 +2,7 @@ const User = require("./userModel");
 const Address = require("./addressModel");
 const MachineList = require("./machineListModel");
 const MachineUser = require("./machineUserModel");
+const InventoryTempFiles = require("./inventoryTempFilesModel")
 const InventoryAuditMonthWise = require("./inventoryAuditMonthWiseModel");
 const InventoryCommentsModel = require("./inventoryCommentsModel");
 const FilesModel = require("./filesModel");
@@ -18,4 +19,5 @@ module.exports = {
   FilesModel,
   MachineStatus,
   Config,
+  InventoryTempFiles,
 };
