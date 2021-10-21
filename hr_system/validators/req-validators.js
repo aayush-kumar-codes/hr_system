@@ -1,14 +1,14 @@
 const { check } = require("express-validator");
 
 const userCreationValidator = [
-  check("email", "email must not be empty").not().isEmpty(),
+  check("password", "password must not be empty").not().isEmpty(),
   check("username", "username must not be empty").not().isEmpty(),
-  check("city", "city must not be empty").not().isEmpty(),
-  check("state", "state must not be empty").not().isEmpty(),
+  check("type", "type must not be empty").not().isEmpty(),
+  check("status", "status must not be empty").not().isEmpty(),
 ];
 
 const userLoginValidator = [
-  check("email", "email must not be empty").not().isEmpty(),
+  check("password", "password must not be empty").not().isEmpty(),
   check("username", "username must not be empty").not().isEmpty(),
 ];
 
@@ -48,6 +48,12 @@ const unassignRequestValidator = [
   check("inventory_id", "inventory_id must not be empty").not().isEmpty(),
 ];
 
+const addRoleValidator = [
+	check('name', 'name must not be empty').not().isEmpty(),
+	check('description', 'description must not be empty').not().isEmpty()
+];
+
+
 module.exports = {
   userCreationValidator,
   userLoginValidator,
@@ -59,4 +65,5 @@ module.exports = {
   MachineStatusDeleteValidator,
   addMachineTypeValidator,
   unassignRequestValidator,
+  addRoleValidator
 };

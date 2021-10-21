@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
 exports.validateCreation = async (body) => {
-	if (body.username.length < 6) {
+	if (body.username.length < 3) {
 		throw new Error('username too short');
 	}
 	if (body.password == body.confirmpassword) {

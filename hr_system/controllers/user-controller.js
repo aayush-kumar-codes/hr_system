@@ -10,7 +10,6 @@ exports.userRegister = async (req, res, next) => {
 		let user_details = await providers.validateCreation(req.body);
 		let user_create = await db.User.createUser(req.body);
 		req.body.user_id = user_create;
-		let address_create = await db.Address.createData(req.body);
 		const token = await jwt.sign({ user_id:user_create, email:user_create.email },secret.jwtSecret,{ expiresIn: "2hr" })
 		res.token = token;
 		res.status_code = 201;
@@ -30,10 +29,39 @@ exports.userLogin = async (req, res, next) => {
 		const token = await jwt.sign({ user_id: user, email: user.email },secret.jwtSecret,{ expiresIn: "2hr" })
 		res.token = token;
 		res.status_code = 200;
-		res.message = user;
 		return next();
 	} catch (error) {
 		console.log(error);
+		res.status_code = 500;
+		res.message = error.message;
+		return next();
+	}
+};
+
+
+exports.addUserRole = async (req, res, next) => {
+	try {
+		let request_Validate = await reqUser(req);
+		let role_create = await db.Role.AddUserRole(req.body);
+		res.status_code = 201;
+		res.message = 'Created';
+		return next();
+	} catch (error) {														
+		res.status_code = 500;
+		res.message = error.message;
+		return next();
+	}
+};
+
+
+
+exports.getUserRole = async (req, res, next) => {
+	try {
+		let machine_count = await db.Role.getUserRoles();
+		res.status_code = 200;
+		res.data = machine_count;
+		return next();
+	} catch (error) {														
 		res.status_code = 500;
 		res.message = error.message;
 		return next();
