@@ -33,13 +33,16 @@ const UpdateMachineValidator = [
 ];
 
 const MachineStatusValidator = [
-	check('status', 'status must not be empty').not().isEmpty()
+  check("status", "status must not be empty").not().isEmpty(),
 ];
 
 const MachineStatusDeleteValidator = [
-	check('id', 'id must not be empty').not().isEmpty()
+  check("id", "id must not be empty").not().isEmpty(),
 ];
 
+const addMachineTypeValidator = [
+  check("type", "type must not be empty").not().isEmpty(),
+];
 
 module.exports = {
   userCreationValidator,
@@ -49,5 +52,6 @@ module.exports = {
   AssignUserMachineValidator,
   UpdateMachineValidator,
   MachineStatusValidator,
-  MachineStatusDeleteValidator
+  MachineStatusDeleteValidator,
+  addMachineTypeValidator,
 };
