@@ -33,13 +33,20 @@ const UpdateMachineValidator = [
 ];
 
 const MachineStatusValidator = [
-	check('status', 'status must not be empty').not().isEmpty()
+  check("status", "status must not be empty").not().isEmpty(),
 ];
 
 const MachineStatusDeleteValidator = [
-	check('id', 'id must not be empty').not().isEmpty()
+  check("id", "id must not be empty").not().isEmpty(),
 ];
 
+const addMachineTypeValidator = [
+  check("type", "type must not be empty").not().isEmpty(),
+];
+
+const unassignRequestValidator = [
+  check("inventory_id", "inventory_id must not be empty").not().isEmpty(),
+];
 
 const addRoleValidator = [
 	check('name', 'name must not be empty').not().isEmpty(),
@@ -56,5 +63,7 @@ module.exports = {
   UpdateMachineValidator,
   MachineStatusValidator,
   MachineStatusDeleteValidator,
+  addMachineTypeValidator,
+  unassignRequestValidator,
   addRoleValidator
 };

@@ -116,62 +116,174 @@ exports.getUnassignedInventoryController = async (req, res, next) => {
   }
 };
 
-
-
 exports.addMachineStatusController = async (req, res, next) => {
-	try {
-	  let audit_create = await db.MachineStatus.AddMachineStatus(req.body);
-	  res.status_code = 201;
-	  res.message = "Created";
-	  return next();
-	} catch (error) {
-	  console.log(error);
-	  res.status_code = 500;
-	  res.message = error.message;
-	  return next();
-	}
-  };
-  
+  try {
+    let audit_create = await db.MachineStatus.AddMachineStatus(req.body);
+    res.status_code = 201;
+    res.message = "Created";
+    return next();
+  } catch (error) {
+    console.log(error);
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+};
 
 exports.getMachineStatusController = async (req, res, next) => {
-	try {
-		let machine_list = await db.MachineStatus.getAllStatus();
-		res.status_code = 200;
-		res.data = machine_list;
-		return next();
-	} catch (error) {														
-		res.status_code = 500;
-		res.message = error.message;
-		return next();
-	}
+  try {
+    let machine_list = await db.MachineStatus.getAllStatus();
+    res.status_code = 200;
+    res.data = machine_list;
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
 };
-
-
 
 exports.deleteMachineStatusController = async (req, res, next) => {
-	try {
-		let machine_list = await db.MachineStatus.DeleteStatus(req.body);
-		res.status_code = 204;
-		res.data = machine_list;
-		return next();
-	} catch (error) {														
-		res.status_code = 500;
-		res.message = error.message;
-		return next();
-	}
+  try {
+    let machine_list = await db.MachineStatus.DeleteStatus(req.body);
+    res.status_code = 204;
+    res.data = machine_list;
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
 };
-
 
 exports.getMachineCountController = async (req, res, next) => {
-	try {
-		let machine_count = await db.MachineList.getMachineCount();
-		res.status_code = 200;
-		res.data = machine_count;
-		return next();
-	} catch (error) {														
-		res.status_code = 500;
-		res.message = error.message;
-		return next();
-	}
+  try {
+    let machine_count = await db.MachineList.getMachineCount();
+    res.status_code = 200;
+    res.data = machine_count;
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
 };
 
+exports.addMachineTypeController = async (req, res, next) => {
+  try {
+    let machineType = await db.Config.addMachineType(req.body);
+    res.status_code = 200;
+    res.message = "Created";
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+};
+
+exports.getMachineTypeController = async (req, res, next) => {
+  try {
+    let machine_type_list = await db.Config.getMachineTypeList();
+    res.status_code = 200;
+    res.data = machine_type_list;
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+};
+
+exports.getMachinesDetailController = async (req, res, next) => {
+  try {
+    let machineDetails = await db.MachineList.getMachinesDetail();
+    res.status_code = 200;
+    res.data = machineDetails;
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+};
+
+exports.getUnapprovedInventoryControllers = async (req, res, next) => {
+  try {
+    let unapprovedInventory = await db.MachineList.getUnapprovedInventory();
+    res.status_code = 200;
+    res.data = unapprovedInventory;
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+};
+
+exports.monthwiseAuditStatusController =async(req,res,next) => {
+  try {
+    let monthwiseAuditStatus = await db.InventoryAuditMonthWise.getStatus(req.body);
+    res.status_code = 200;
+    res.data = monthwiseAuditStatus;
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+}
+
+exports.inventoryUnassignRequestController =async(req,res,next) => {
+  try {
+    let inventoryUnassignRequest = await db.InventoryCommentsModel.unassignRequest(req.body);
+    res.status_code = 200;
+    res.data = inventoryUnassignRequest;
+    res.message = "request Made";
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message= error.message;
+    return next();
+  }
+}
+
+exports.getTempFilesController = async(req,res,next) => {
+  try {
+    let tempFiles = await db.InventoryTempFiles.getTempFiles();
+    res.status_code = 200;
+    res.data = tempFiles;
+    res.message = "temp files found";
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+}
+
+exports.deleteTempFilesControllers = async(req,res, next) => {
+  try {
+    let deletedTempFiles = await db.InventoryTempFiles.deleteTempFiles(req.body);
+    res.status_code = 200;
+    res.message = "temp file removed";
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+}
+
+exports.removeMachineController = async(req,res,next) => {
+  try {
+    let removedMachine = await db.MachineList.removeMachine(req.body);
+    res.status_code = 200;
+    res.message = "Removed";
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+}

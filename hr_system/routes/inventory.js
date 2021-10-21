@@ -17,6 +17,14 @@ router.post("/delete_machine_status",middleware.Auth,validators.MachineStatusDel
 router.post("/update_office_machine",middleware.Auth,validators.UpdateMachineValidator,inventoryControllers.inventoryUpdateMachineController,handlers.responseHandle);
 router.get("/get_unassigned_inventories",middleware.Auth,inventoryControllers.getUnassignedInventoryController,handlers.responseHandle);
 router.get("/get_machine_count",middleware.Auth,inventoryControllers.getMachineCountController,handlers.responseHandle);
-
+router.get("/get_machine_type_list", middleware.Auth,inventoryControllers.getMachineTypeController, handlers.responseHandle);
+router.post("/add_machine_type",middleware.Auth, validators.addMachineTypeValidator,inventoryControllers.addMachineTypeController, handlers.responseHandle)
+router.get("/get_machines_detail", middleware.Auth, inventoryControllers.getMachinesDetailController, handlers.responseHandle);
+router.get("/get_unapproved_inventories", middleware.Auth, inventoryControllers.getUnapprovedInventoryControllers, handlers.responseHandle);
+router.get("/get_inventory_audit_status_month_wise", middleware.Auth, inventoryControllers.monthwiseAuditStatusController, handlers.responseHandle);
+router.get("/get_temp_uploaded_inventory_files", middleware.Auth, inventoryControllers.getTempFilesController, handlers.responseHandle);
+router.post("/delete_temp_uploaded_inventory_file", middleware.Auth, inventoryControllers.deleteTempFilesControllers, handlers.responseHandle);
+router.post("/inventory_unassign_request", middleware.Auth, validators.unassignRequestValidator, inventoryControllers.inventoryUnassignRequestController, handlers.responseHandle);
+router.post("/remove_machine_detail", middleware.Auth, inventoryControllers.removeMachineController, handlers.responseHandle);
 
 module.exports = router;
