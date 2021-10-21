@@ -6,7 +6,7 @@ const InventoryAuditMonthWise = require("./inventoryAuditMonthWiseModel");
 const InventoryCommentsModel = require("./inventoryCommentsModel");
 const FilesModel = require("./filesModel");
 const MachineStatus = require("./machineStatusModel");
-const Config = require("./config");
+const Config = require("./configModel");
 
 module.exports = {
   User,

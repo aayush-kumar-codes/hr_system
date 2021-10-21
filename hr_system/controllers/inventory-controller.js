@@ -169,7 +169,7 @@ exports.getMachineCountController = async (req, res, next) => {
   }
 };
 
-exports.addMachineTypeController = async(req,res,next) => {
+exports.addMachineTypeController = async (req, res, next) => {
   try {
     let machineType = await db.Config.addMachineType(req.body);
     res.status_code = 200;
@@ -177,10 +177,10 @@ exports.addMachineTypeController = async(req,res,next) => {
     return next();
   } catch (error) {
     res.status_code = 500;
-    res.message= error.message;
+    res.message = error.message;
     return next();
   }
-}
+};
 
 exports.getMachineTypeController = async (req, res, next) => {
   try {
@@ -195,7 +195,7 @@ exports.getMachineTypeController = async (req, res, next) => {
   }
 };
 
-exports.getMachinesDetailController = async(req, res, next) => {
+exports.getMachinesDetailController = async (req, res, next) => {
   try {
     let machineDetails = await db.MachineList.getMachinesDetail();
     res.status_code = 200;
@@ -206,8 +206,30 @@ exports.getMachinesDetailController = async(req, res, next) => {
     res.message = error.message;
     return next();
   }
-}
+};
 
-exports.getUnapprovedInventoryControllers = async(req,res,next) => {
+exports.getUnapprovedInventoryControllers = async (req, res, next) => {
+  try {
+    let unapprovedInventory = await db.MachineList.getUnapprovedInventory();
+    res.status_code = 200;
+    res.data = unapprovedInventory;
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+};
 
+exports.removeMachineController = async(req,res,next) => {
+  try {
+    let removedMachine = await db.MachineList.removeMachine(req.body);
+    res.status_code = 200;
+    res.message = "Removed";
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
 }

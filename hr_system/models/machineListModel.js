@@ -158,10 +158,16 @@ function machinelist(database, type) {
 
   MachineList.getUnassignedInventory = async (reqBody) => {
     try {
-      let unassignedInventory = await MachineList.findAll({
-        where: { user_id: null },
-      });
-      return unassignedInventory;
+      let machineWithUser = await models.MachineUser.findAll({});
+      if (machineWithUser) {
+        let machineWithUserIds = machineWithUser.map((doc) => doc.machine_id);
+        let unassignedInventory = await MachineList.findAll({
+          where: { id: { [Op.ne]: machineWithUserIds } },
+        });
+        return unassignedInventory;
+      } else {
+        return "nothing found";
+      }
     } catch (error) {
       throw new Error(error);
     }
@@ -184,7 +190,30 @@ function machinelist(database, type) {
       throw new Error(error);
     }
   };
-
+  MachineList.getUnapprovedInventory = async () => {
+    try {
+      let unapprovedInventory = await MachineList.findAll({
+        where: { approval_status: 0 },
+      });
+      if (unapprovedInventory != "") {
+        return unapprovedInventory;
+      } else {
+        return "unable to locate all unapproved inventories";
+      }
+    } catch (error) {
+      throw new Error(error);
+    }
+  };
+  MachineList.removeMachine = async (reqBody) => {
+    try {
+      let machineToRemove = await MachineList.destroy({
+        where: { id: reqBody.id },
+      });
+      return "removed";
+    } catch (error) {
+      throw new Error(error);
+    }
+  };
   return MachineList;
 }
 
