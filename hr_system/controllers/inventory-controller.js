@@ -171,7 +171,7 @@ exports.getMachineCountController = async (req, res, next) => {
 
 exports.addMachineTypeController = async(req,res,next) => {
   try {
-    let machineType = await db.MachineType.addMachineType(req.body);
+    let machineType = await db.Config.addMachineType(req.body);
     res.status_code = 200;
     res.message = "Created";
     return next();
@@ -184,7 +184,7 @@ exports.addMachineTypeController = async(req,res,next) => {
 
 exports.getMachineTypeController = async (req, res, next) => {
   try {
-    let machine_type_list = await db.MachineType.getMachineTypeList();
+    let machine_type_list = await db.Config.getMachineTypeList();
     res.status_code = 200;
     res.data = machine_type_list;
     return next();

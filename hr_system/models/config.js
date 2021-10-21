@@ -1,6 +1,6 @@
-function machineType(database, type) {
-  const MachineType = database.define(
-    "machineType",
+function config(database, type) {
+  const config = database.define(
+    "config",
     {
       type: type.STRING,
       value: type.STRING,
@@ -14,9 +14,9 @@ function machineType(database, type) {
       freezeTableName: true,
     }
   );
-  MachineType.addMachineType = async (reqBody) => {
+  config.addMachineType = async (reqBody) => {
     try {
-      let addMachine = await MachineType.create({
+      let addMachine = await config.create({
         type: reqBody.type,
         value: reqBody.value,
       });
@@ -25,15 +25,15 @@ function machineType(database, type) {
       throw new Error(error);
     }
   };
-  MachineType.getMachineTypeList = async () => {
+  config.getMachineTypeList = async () => {
     try {
-      let machineTypeList = await MachineType.findAll({});
+      let machineTypeList = await config.findAll({});
       return machineTypeList;
     } catch (error) {
       throw new Error("Unable to locate all machine types");
     }
   };
-  return MachineType;
+  return config;
 }
 
-module.exports = machineType;
+module.exports = config;
