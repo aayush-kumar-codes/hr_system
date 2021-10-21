@@ -104,7 +104,7 @@ exports.inventoryUpdateMachineController = async (req, res, next) => {
 exports.getUnassignedInventoryController = async (req, res, next) => {
   try {
     let unassignedInventory = await db.MachineList.getUnassignedInventory(
-      req.body
+      req.body, db
     );
     res.status_code = 200;
     res.data = unassignedInventory;
