@@ -44,6 +44,10 @@ const addMachineTypeValidator = [
   check("type", "type must not be empty").not().isEmpty(),
 ];
 
+const unassignRequestValidator = [
+  check("inventory_id", "inventory_id must not be empty").not().isEmpty(),
+];
+
 module.exports = {
   userCreationValidator,
   userLoginValidator,
@@ -54,4 +58,5 @@ module.exports = {
   MachineStatusValidator,
   MachineStatusDeleteValidator,
   addMachineTypeValidator,
+  unassignRequestValidator,
 };

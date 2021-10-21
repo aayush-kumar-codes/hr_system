@@ -221,6 +221,33 @@ exports.getUnapprovedInventoryControllers = async (req, res, next) => {
   }
 };
 
+exports.monthwiseAuditStatusController =async(req,res,next) => {
+  try {
+    let monthwiseAuditStatus = await db.InventoryAuditMonthWise.getStatus(req.body);
+    res.status_code = 200;
+    res.data = monthwiseAuditStatus;
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+}
+
+exports.inventoryUnassignRequestController =async(req,res,next) => {
+  try {
+    let inventoryUnassignRequest = await db.InventoryCommentsModel.unassignRequest(req.body);
+    res.status_code = 200;
+    res.data = inventoryUnassignRequest;
+    res.message = "request Made";
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message= error.message;
+    return next();
+  }
+}
+
 exports.removeMachineController = async(req,res,next) => {
   try {
     let removedMachine = await db.MachineList.removeMachine(req.body);

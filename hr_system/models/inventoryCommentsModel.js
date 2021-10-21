@@ -28,6 +28,7 @@ function inventorycomments(database, type) {
       as: "assign_unassign_user",
     });
   };
+
   inventory_comments.createAudit = async (reqBody) => {
     try {
       let creation = await inventory_comments.create({
@@ -36,6 +37,18 @@ function inventorycomments(database, type) {
         comment_type: reqBody.comment_type,
       });
       return creation.id;
+    } catch (error) {
+      throw new Error(error);
+    }
+  };
+  
+  inventory_comments.unassignRequest = async (reqBody) => {
+    try {
+      let requestForUnassignment = await inventory_comments.create({
+        inventory_id: reqBody.inventory_id,
+        comment: reqBody.comment,
+      });
+      return requestForUnassignment.id;
     } catch (error) {
       throw new Error(error);
     }
