@@ -147,6 +147,7 @@ exports.deleteMachineStatusController = async (req, res, next) => {
   try {
     let machine_list = await db.MachineStatus.DeleteStatus(req.body);
     res.status_code = 204;
+    // res.message = "status deleted";
     res.data = machine_list;
     return next();
   } catch (error) {

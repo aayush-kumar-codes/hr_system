@@ -39,7 +39,8 @@ function machine_status(database, type) {
                 where : {
                   id : reqBody.id
                 }});
-			return delete_status;
+			return delete_status; 
+			// return "status deleted"  after deletion nothing is sent in the response
 		} catch (error) {
 			throw new Error('Unable to locate status');
 		}
