@@ -15,7 +15,7 @@ const userLoginValidator = [
 const machineCreationValidator = [
   check("machine_type", "machine_type must not be empty").not().isEmpty(),
   check("machine_name", "machine_name must not be empty").not().isEmpty(),
-  check("serial_no", "serial_no must not be empty").not().isEmpty(),
+  check("serial_number", "serial_no must not be empty").not().isEmpty(),
   check("status", "status must not be empty").not().isEmpty(),
 ];
 

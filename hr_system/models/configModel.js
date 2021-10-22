@@ -20,7 +20,7 @@ function config(database, type) {
         type: reqBody.type,
         value: reqBody.value,
       });
-      return addMachine.id;
+      return addMachine;
     } catch (error) {
       throw new Error(error);
     }

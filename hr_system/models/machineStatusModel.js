@@ -16,7 +16,7 @@ function machine_status(database, type) {
             color: reqBody.color,
             is_default: reqBody.is_default,
           });
-          return creation.id;
+          return creation;
         } catch (error) {
           throw new Error(error); 
         }
@@ -35,11 +35,11 @@ function machine_status(database, type) {
 
     MachineStatus.DeleteStatus = async (reqBody) => {
 		try {
-			let delete_status = await MachineStatus.destroy({
-                where : {
-                  id : reqBody.id
-                }});
-			return delete_status;
+		let delete_status = await MachineStatus.destroy({
+            where : {
+              id : reqBody.id
+            }});
+		return delete_status;	
 		} catch (error) {
 			throw new Error('Unable to locate status');
 		}
