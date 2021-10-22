@@ -43,7 +43,6 @@ function machineuser(database, type) {
       let find_machine = await machines_user.findOne({
         where: { machine_id: reqBody.body.machine_id },
       });
-      console.log(find_machine);
       if (!find_machine) {
         const details = await machines_user.create({
           machine_id: reqBody.body.machine_id,
