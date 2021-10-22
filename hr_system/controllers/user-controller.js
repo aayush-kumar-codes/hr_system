@@ -68,3 +68,42 @@ exports.getUserRole = async (req, res, next) => {
 		return next();
 	}
 };
+
+exports.assignUserRoleController = async(req,res,next) => {
+	try {
+		let assignUserRole = await db.UserRole.assignRole(req.body);
+		res.status_code = 200;
+		res.data = assignUserRole;
+		return next();
+	} catch (error) {
+		res.status_code = 500;
+		res.message = error.message;
+		return next();
+	}
+}
+
+exports.updateRoleController =async(req,res, next) => {
+	try {
+		let updateRole = await db.Role.updateRole(req.body, db);
+		res.status_code = 200;
+		res.message = updateRole;
+		return next();
+	} catch (error) {
+		res.status_code = 500;
+		res.message = error.message;
+		return next();
+	}
+}
+
+exports.listAllRolesController = async(req,res,next) => {
+	try {
+		let listofRoles = await db.Role.getListOfRoles();
+		res.status_code = 200;
+		res.data = listofRoles;
+		return next();
+	} catch (error) {
+		res.status_code = 500;
+		res.message = error.message;
+		return next();
+	}
+}

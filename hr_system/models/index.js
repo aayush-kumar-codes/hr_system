@@ -10,6 +10,9 @@ const MachineStatus = require('./machineStatusModel');
 const Role = require('./roleModel');
 const Config = require("./configModel");
 const UserProfile = require("./userProfileModel");
+const UserRole = require("./userRoleModel");
+const RolesAction = require("./rolesActionsModel");
+const RolesNotification = require("./rolesNotificationModel");
+const RolesPage = require("./rolesPageModel");
 
-
-module.exports = { User, MachineList, MachineUser, InventoryTempFiles,InventoryAuditMonthWise, InventoryCommentsModel, FilesModel, MachineStatus, Role, Config, UserProfile };
+module.exports = { User, MachineList, MachineUser, InventoryTempFiles,InventoryAuditMonthWise, InventoryCommentsModel, FilesModel, MachineStatus, Role, Config, UserProfile, UserRole,RolesNotification,RolesAction,RolesPage };
