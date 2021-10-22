@@ -28,7 +28,11 @@ function machineuser(database, type) {
         },
         { where: { machine_id: reqBody.machine_id } }
       );
-      return creation;
+      if(creation){
+        return creation;
+      }else{
+        return ("machine_id not found");
+      }
     } catch (error) {
       throw new Error(error);
     }
@@ -39,6 +43,7 @@ function machineuser(database, type) {
       let find_machine = await machines_user.findOne({
         where: { machine_id: reqBody.body.machine_id },
       });
+      console.log(find_machine);
       if (!find_machine) {
         const details = await machines_user.create({
           machine_id: reqBody.body.machine_id,

@@ -92,7 +92,8 @@ exports.inventoryUpdateMachineController = async (req, res, next) => {
   try {
     let updatedMachine = await db.MachineList.updateMachine(req.body);
     res.status_code = 200;
-    res.message = "machine updated";
+    // res.message = "machine updated";
+    res.data = updatedMachine;
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -121,6 +122,7 @@ exports.addMachineStatusController = async (req, res, next) => {
     let audit_create = await db.MachineStatus.AddMachineStatus(req.body);
     res.status_code = 201;
     res.message = "Created";
+    res.data = audit_create;
     return next();
   } catch (error) {
     console.log(error);
@@ -146,10 +148,14 @@ exports.getMachineStatusController = async (req, res, next) => {
 exports.deleteMachineStatusController = async (req, res, next) => {
   try {
     let machine_list = await db.MachineStatus.DeleteStatus(req.body);
-    res.status_code = 204;
-    // res.message = "status deleted";
-    res.data = machine_list;
-    return next();
+    if(machine_list){
+      res.status_code = 204;
+      // res.data = machine_list;
+      return next();
+    }else{
+      res.status_code = 404;
+      res.message = "not found status to delete"
+    }
   } catch (error) {
     res.status_code = 500;
     res.message = error.message;
@@ -175,6 +181,7 @@ exports.addMachineTypeController = async (req, res, next) => {
     let machineType = await db.Config.addMachineType(req.body);
     res.status_code = 200;
     res.message = "Created";
+    res.data = machineType;
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -240,7 +247,7 @@ exports.inventoryUnassignRequestController =async(req,res,next) => {
     let inventoryUnassignRequest = await db.InventoryCommentsModel.unassignRequest(req.body);
     res.status_code = 200;
     res.data = inventoryUnassignRequest;
-    res.message = "request Made";
+    // res.message = "request Made";
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -254,7 +261,7 @@ exports.getTempFilesController = async(req,res,next) => {
     let tempFiles = await db.InventoryTempFiles.getTempFiles();
     res.status_code = 200;
     res.data = tempFiles;
-    res.message = "temp files found";
+    // res.message = "temp files found";
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -266,8 +273,7 @@ exports.getTempFilesController = async(req,res,next) => {
 exports.deleteTempFilesControllers = async(req,res, next) => {
   try {
     let deletedTempFiles = await db.InventoryTempFiles.deleteTempFiles(req.body);
-    res.status_code = 200;
-    res.message = "temp file removed";
+    res.status_code = 204;
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -279,8 +285,8 @@ exports.deleteTempFilesControllers = async(req,res, next) => {
 exports.removeMachineController = async(req,res,next) => {
   try {
     let removedMachine = await db.MachineList.removeMachine(req.body);
-    res.status_code = 200;
-    res.message = "Removed";
+    res.status_code = 204;
+    // res.message = "Removed";
     return next();
   } catch (error) {
     res.status_code = 500;

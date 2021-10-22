@@ -103,7 +103,7 @@ function machinelist(database, type) {
     }
   };
 
-  MachineList.GetMachineById = async (reqBody) => {
+  MachineList.GetMachineById = async (reqBody, res) => {
     try {
       let all_machine = await MachineList.findAll({
         where: {
@@ -118,40 +118,40 @@ function machinelist(database, type) {
 
   MachineList.updateMachine = async (reqBody) => {
     try {
-      let machine_to_update = await MachineList.findAll({
-        where: { id: reqBody.id },
-      });
-      if (machine_to_update) {
-        let update = await MachineList.update(
-          {
-            machine_type: reqBody.machine_type,
-            machine_name: reqBody.machine_name,
-            machine_price: reqBody.machine_price,
-            serial_number: reqBody.serial_number,
-            date_of_purchase: reqBody.date_of_purchase,
-            mac_address: reqBody.mac_address,
-            operating_system: reqBody.operating_system,
-            status: reqBody.status,
-            comments: reqBody.comments,
-            warranty_end_date: reqBody.warranty_end_date,
-            bill_number: reqBody.bill_number,
-            warranty_comment: reqBody.warranty_comment,
-            repair_comment: reqBody.repair_comment,
-            file_inventory_invoice: reqBody.file_inventory_invoice,
-            file_inventory_warranty: reqBody.file_inventory_warranty,
-            file_inventory_photo: reqBody.file_inventory_photo,
-            warranty_years: reqBody.warranty_years,
-            approval_status: reqBody.approval_status,
-            is_unassign_request: reqBody.is_unassign_request,
-            ownership_change_req_by_user: reqBody.ownership_change_req_by_user,
-          },
-          { where: { id: reqBody.id } }
-        );
-        console.log(update);
-        return machine_to_update;
-      } else {
-        throw new Error("Unable to find machine with the given id");
-      }
+      // let machine_to_update = await MachineList.findAll({
+      //   where: { id: reqBody.id },
+      // });
+      // if (machine_to_update) {
+      let update = await MachineList.update(
+        {
+          machine_type: reqBody.machine_type,
+          machine_name: reqBody.machine_name,
+          machine_price: reqBody.machine_price,
+          serial_number: reqBody.serial_number,
+          date_of_purchase: reqBody.date_of_purchase,
+          mac_address: reqBody.mac_address,
+          operating_system: reqBody.operating_system,
+          status: reqBody.status,
+          comments: reqBody.comments,
+          warranty_end_date: reqBody.warranty_end_date,
+          bill_number: reqBody.bill_number,
+          warranty_comment: reqBody.warranty_comment,
+          repair_comment: reqBody.repair_comment,
+          file_inventory_invoice: reqBody.file_inventory_invoice,
+          file_inventory_warranty: reqBody.file_inventory_warranty,
+          file_inventory_photo: reqBody.file_inventory_photo,
+          warranty_years: reqBody.warranty_years,
+          approval_status: reqBody.approval_status,
+          is_unassign_request: reqBody.is_unassign_request,
+          ownership_change_req_by_user: reqBody.ownership_change_req_by_user,
+        },
+        { where: { id: reqBody.id } }
+      );
+      // console.log(update);
+      return update;
+      // } else {
+      //   throw new Error("Unable to find machine with the given id");
+      // }
     } catch (error) {
       throw new Error(error);
     }
@@ -160,11 +160,16 @@ function machinelist(database, type) {
   MachineList.getUnassignedInventory = async (reqBody, models) => {
     try {
       let machineWithUser = await models.MachineUser.findAll({});
+      // let unassignedArray = [];
       if (machineWithUser) {
-        // let machineWithUserIds = machineWithUser.map((doc) => doc.machine_id);
+        let machineWithUserIds = machineWithUser.map((doc) => doc.machine_id);
+        console.log(machineWithUserIds);
         let unassignedInventory = await MachineList.findAll({
-          where: {[Op.ne]:{ id: machineWithUserIds } },
+          where: { id: { [Op.notIn]: machineWithUserIds } },
         });
+        // unassignedArray.push(unassignedInventory);
+        // });
+        // console.log(unassignedArray);
         return unassignedInventory;
       } else {
         return "nothing found";
@@ -196,11 +201,7 @@ function machinelist(database, type) {
       let unapprovedInventory = await MachineList.findAll({
         where: { approval_status: 0 },
       });
-      if (unapprovedInventory != "") {
-        return unapprovedInventory;
-      } else {
-        return "unable to locate all unapproved inventories";
-      }
+      return unapprovedInventory;
     } catch (error) {
       throw new Error(error);
     }
@@ -210,7 +211,7 @@ function machinelist(database, type) {
       let machineToRemove = await MachineList.destroy({
         where: { id: reqBody.id },
       });
-      return "removed";
+      return machineToRemove;
     } catch (error) {
       throw new Error(error);
     }
