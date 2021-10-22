@@ -55,14 +55,14 @@ function machinelist(database, type) {
         mac_address: reqBody.mac_address,
         operating_system: reqBody.operating_system,
         status: reqBody.status,
-        comments: reqBody.comments,
+        comments: reqBody.unassign_comment,
         warranty_end_date: reqBody.warranty_end_date,
         bill_number: reqBody.bill_number,
         warranty_comment: reqBody.warranty_comment,
         repair_comment: reqBody.repair_comment,
         file_inventory_invoice: reqBody.file_inventory_invoice,
         file_inventory_warranty: reqBody.file_inventory_warranty,
-        file_inventory_photo: reqBody.file_inventory_photo,
+        file_inventory_photo: reqBody.temp_inventory_photo,
         warranty_years: reqBody.warranty_years,
         approval_status: reqBody.approval_status,
         is_unassign_request: reqBody.is_unassign_request,
@@ -132,14 +132,14 @@ function machinelist(database, type) {
           mac_address: reqBody.mac_address,
           operating_system: reqBody.operating_system,
           status: reqBody.status,
-          comments: reqBody.comments,
+          comments: reqBody.unassign_comment,
           warranty_end_date: reqBody.warranty_end_date,
           bill_number: reqBody.bill_number,
           warranty_comment: reqBody.warranty_comment,
           repair_comment: reqBody.repair_comment,
           file_inventory_invoice: reqBody.file_inventory_invoice,
           file_inventory_warranty: reqBody.file_inventory_warranty,
-          file_inventory_photo: reqBody.file_inventory_photo,
+          file_inventory_photo: reqBody.temp_inventory_photo,
           warranty_years: reqBody.warranty_years,
           approval_status: reqBody.approval_status,
           is_unassign_request: reqBody.is_unassign_request,
@@ -160,20 +160,11 @@ function machinelist(database, type) {
   MachineList.getUnassignedInventory = async (reqBody, models) => {
     try {
       let machineWithUser = await models.MachineUser.findAll({});
-      // let unassignedArray = [];
-      if (machineWithUser) {
-        let machineWithUserIds = machineWithUser.map((doc) => doc.machine_id);
-        console.log(machineWithUserIds);
-        let unassignedInventory = await MachineList.findAll({
-          where: { id: { [Op.notIn]: machineWithUserIds } },
-        });
-        // unassignedArray.push(unassignedInventory);
-        // });
-        // console.log(unassignedArray);
-        return unassignedInventory;
-      } else {
-        return "nothing found";
-      }
+      let machineWithUserIds = machineWithUser.map((doc) => doc.machine_id);
+      let unassignedInventory = await MachineList.findAll({
+        where: { id: { [Op.notIn]: machineWithUserIds } },
+      });
+      return unassignedInventory;
     } catch (error) {
       throw new Error(error);
     }
