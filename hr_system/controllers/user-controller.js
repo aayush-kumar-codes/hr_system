@@ -68,3 +68,15 @@ exports.getUserRole = async (req, res, next) => {
 		return next();
 	}
 };
+
+// exports.addNewEmployeeController = async(req,res,next) => {
+// 	try {
+// 		let addNewEmployee = await db.UserProfile.addEmployee(req.body);
+// 		res.status_code = 200;
+// 		res.message = "create"
+// 	} catch (error) {
+// 		res.status_code = 500;
+// 		res.message = error.message;
+// 		return next();
+// 	}
+// } 

@@ -53,6 +53,12 @@ const addRoleValidator = [
 	check('description', 'description must not be empty').not().isEmpty()
 ];
 
+const addNewEmployeeValidator = [
+  check('name', 'name must not be empty').not().isEmpty(),
+  check('username', 'username must not be empty').not().isEmpty(),
+  check('jobtitle', 'jobtitle must not be empty').not().isEmpty(),
+  check('workemail', 'workemail must not be empty').not().isEmpty(),
+]
 
 module.exports = {
   userCreationValidator,
@@ -65,5 +71,6 @@ module.exports = {
   MachineStatusDeleteValidator,
   addMachineTypeValidator,
   unassignRequestValidator,
-  addRoleValidator
+  addRoleValidator,
+  addNewEmployeeValidator
 };
