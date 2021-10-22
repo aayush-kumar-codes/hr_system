@@ -21,7 +21,7 @@ function inventoryTempFiles(database, type) {
       let tempFilesToDelete = await InventoryTempFiles.destroy({
         where: { file_id: reqBody.file_id },
       });
-      return "file deleted";
+      return tempFilesToDelete;
     } catch (error) {
       throw new Error(error);
     }
