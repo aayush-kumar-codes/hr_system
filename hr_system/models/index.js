@@ -9,6 +9,7 @@ const FilesModel = require('./filesModel');
 const MachineStatus = require('./machineStatusModel');
 const Role = require('./roleModel');
 const Config = require("./configModel");
+const UserProfile = require("./userProfileModel");
 
 
-module.exports = { User, MachineList, MachineUser, InventoryTempFiles,InventoryAuditMonthWise, InventoryCommentsModel, FilesModel, MachineStatus, Role, Config };
+module.exports = { User, MachineList, MachineUser, InventoryTempFiles,InventoryAuditMonthWise, InventoryCommentsModel, FilesModel, MachineStatus, Role, Config, UserProfile };
