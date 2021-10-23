@@ -62,6 +62,24 @@ function user(database, type) {
 			throw new Error(error);
 		}
 	};
+	User.getEnabledUsers = async () =>{
+		try{
+			let enabledUsers=await User.findAll({where:{status:"enabled"}})
+               return enabledUsers;
+		}catch (error){
+		   throw new Error(error);
+		}
+	}
+	User.getDisabledUsers = async () =>{
+		try{
+			let disabledUsers=await User.findAll({where:{status:"disabled"}})
+               return disabledUsers;
+		}catch (error){
+		   throw new Error(error);
+		}
+	}
+	
+	
 	return User;
 }
 

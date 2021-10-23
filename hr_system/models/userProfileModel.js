@@ -91,9 +91,26 @@ function user_profile(database, type) {
         }
       };
 
+      user_profile.getUserProfile =async()=>{
+        try{
+        let UserProfile=await user_profile.findAll({});
+         return UserProfile
+        }catch(error){
+         throw new Error ("Unable to find User profile")
+        }
+      } 
+      user_profile.getUserProfileDetailsById = async(reqBody)=>{
+       try{
+         let userProfileById=await user_profile.findAll({where:{user_Id:reqBody.user_id}})
+          return userProfileById;
+       }catch(error){
+         throw new Error (error)
+       }
+
+      }
     return user_profile;
 }
-
+     
 
 
 module.exports = user_profile;
