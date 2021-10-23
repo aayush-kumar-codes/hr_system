@@ -32,7 +32,12 @@ function user(database, type) {
 	User.getMine = async (reqBody) => {
 		try {
 			let user = await User.findOne({ where: { username: reqBody.username } });
-			return user;
+			if(user){
+				return user.id;
+			}else{
+				return "login unsuccessful";
+			}
+			
 		} catch (error) {
 			throw new Error('Unable to find your profile');
 		}
