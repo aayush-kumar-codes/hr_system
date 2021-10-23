@@ -72,6 +72,25 @@ const updateRoleValidators = [
   check('notification_id', 'notification_id must not be empty').not().isEmpty(),
 ]
 
+const updateEmployeeVAlidator = [
+  check('userid', 'userid must not be empty').not().isEmpty(),
+  check('stepid', 'stepid must not be empty').not().isEmpty(),
+]
+
+const addTeamValidator = [
+  check('type', 'type must not be empty').not().isEmpty(),
+  check('value', 'value must not be empty').not().isEmpty(),
+]
+const updateUserPolicyDocument =[
+  check('policy_document','policy_document must not be empty').not().isEmpty()
+]
+
+// const user_document =[
+//   check ('file','file must not be empty').not().isEmpty(),
+//   check('user_id','user_id must not be empty').not().isEmpty()
+
+// ]
+
 module.exports = {
   userCreationValidator,
   userLoginValidator,
@@ -86,5 +105,8 @@ module.exports = {
   addRoleValidator,
   addNewEmployeeValidator,
   assignUserRoleValidator,
-  updateRoleValidators
+  updateRoleValidators,
+  updateEmployeeVAlidator,
+  addTeamValidator,
+  updateUserPolicyDocument
 };

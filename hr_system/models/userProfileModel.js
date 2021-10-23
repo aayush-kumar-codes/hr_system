@@ -94,7 +94,7 @@ function user_profile(database, type) {
       user_profile.getUserProfile =async()=>{
         try{
         let UserProfile=await user_profile.findAll({});
-         return UserProfile
+         return UserProfile;
         }catch(error){
          throw new Error ("Unable to find User profile")
         }
@@ -108,9 +108,27 @@ function user_profile(database, type) {
        }
 
       }
+      user_profile.getUserPolicyDocument = async(req)=>{
+        try{
+          const user_id =req.userData.user_id;
+          console.log(user_id)
+          let userPolicyDocument=await user_profile.findAll({where:{user_Id:user_id}})
+          return userPolicyDocument;
+        }catch(error){
+          throw new Error (error)
+        }
+      }
+      user_profile.updateUserPolicyDocument = async(req)=>{
+        try{
+          const user_id =req.userData.user_id;
+          let userPolicyDocument=await user_profile.update({ policy_document:req.body.policy_document,where:{user_Id:user_id}})
+           return userPolicyDocument;
+        }catch(error){
+          throw new Error (error)
+        }
+      }
+
+
     return user_profile;
 }
-     
-
-
 module.exports = user_profile;
