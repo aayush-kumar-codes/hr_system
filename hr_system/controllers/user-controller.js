@@ -29,6 +29,12 @@ exports.userLogin = async (req, res, next) => {
 		let user = await db.User.getMine(req.body);
 		const token = await jwt.sign({ user_id: user, email: user.email },secret.jwtSecret,{ expiresIn: "2hr" })
 		res.token = token;
+		if(res.token){
+			res.error = 0;
+			res.data = user;
+			res.message = "Success Login";
+		}
+		// res.message = 
 		res.status_code = 200;
 		return next();
 	} catch (error) {
