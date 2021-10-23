@@ -1,5 +1,9 @@
  
 {
+<<<<<<< HEAD
     "psql_url" : "postgres://ayush2:123@127.0.0.1:5432/postgres",
+=======
+    "psql_url" : "postgres://postgres:12345@127.0.0.1:5432/postgres",
+>>>>>>> 413199e0376d26866e772c050ffa5d0535a8b14e
     "jwtSecret" : "qwerty"
 }
