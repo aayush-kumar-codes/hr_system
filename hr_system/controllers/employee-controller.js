@@ -83,26 +83,6 @@ exports.getDisabledUser = async (req, res, next) => {
   }
 };
 
-// exports.addTeamController = async (req, res, next) => {
-//   try {
-//     let team = await db.Config.addTeam(req.body);
-//   } catch (error) {
-//     res.status_code = 500;
-//     res.message = error.message;
-//     return next();
-//   }
-// };
-
-exports.getUserDocument = async (req, res, next) => {
-  try {
-    let userDocument = await db.Document.getUserDocument();
-    res.data = userDocument;
-    res.status_code = 200;
-    return next();
-  } catch (error) {
-    throw new Error(error);
-  }
-};
 exports.addTeamController = async (req, res, next) => {
   try {
     let team = await db.Config.addTeam(req.body);
@@ -146,17 +126,20 @@ exports.updateUserPolicyDocument = async (req, res, next) => {
     return next();
   }
 };
-exports.uploadUserDocument = async (req, res, next) => {
-  try {
-    let uploadUserDocument = await db.Document.uploadUserDocument(req);
-    (res.message = uploadUserDocument), (res.status_code = 200);
-    return next();
-  } catch (error) {
-    res.status_code = 500;
-    res.message = error.message;
-    return next();
+
+exports.uploadUserDocument=async(req,res,next)=>{
+  try{
+      let uploadUserDocument=await db.Document.uploadUserDocument(req);
+      res.message=uploadUserDocument,
+      res.status_code=200;
+      return next();
+  }catch(error){
+      res.status_code = 500;
+      res.message = error.message;
+      return next();
   }
-};
+
+}
 
 exports.getTeamListController = async (req, res, next) => {
   try {
@@ -195,7 +178,7 @@ exports.deleteRoleController = async (req, res, next) => {
     res.status_code = 200;
     res.message = deletedRole;
     return next();
-  } catch (error) {
+  }catch(error){
     res.status_code = 500;
     res.message = error.message;
     return next();
@@ -254,3 +237,17 @@ exports.updateEmployeePassControllers = async (req, res, next) => {
     return next();
   }
 };
+
+exports.getUserDocument = async (req, res, next) => {
+  try {
+    let userDocument = await db.Document.getUserDocument();
+     res.data =userDocument;
+     res.status_code=200;
+     return next();
+  } catch(error){
+    res.status_code =500;
+    res.message =error.message;
+    return next();
+  }
+};
+

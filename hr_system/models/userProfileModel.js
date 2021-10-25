@@ -96,6 +96,7 @@ function user_profile(database, type) {
       throw new Error("Unable to find User profile");
     }
   };
+
   user_profile.getUserProfileDetailsById = async (reqBody) => {
     try {
       let userProfileById = await user_profile.findAll({
@@ -106,6 +107,7 @@ function user_profile(database, type) {
       throw new Error(error);
     }
   };
+
   user_profile.getUserPolicyDocument = async (req) => {
     try {
       const user_id = req.userData.user_id;
@@ -117,6 +119,7 @@ function user_profile(database, type) {
       throw new Error(error);
     }
   };
+
   user_profile.updateUserPolicyDocument = async (req) => {
     try {
       let userPolicyDocument = await user_profile.update(
