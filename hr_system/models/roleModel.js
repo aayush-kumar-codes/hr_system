@@ -7,10 +7,16 @@ function roles(database, type) {
 
   roles.AddUserRole = async (reqBody) => {
     try {
-      let creation = await roles.create({
-        name: reqBody.name,
-        description: reqBody.description,
-      });
+      let foundRoles = await roles.findAll({where: {name: reqBody.name}});
+      if(!foundRoles){
+        let creation = await roles.create({
+          name: reqBody.name,
+          description: reqBody.description,
+        });
+      }else{
+        
+      }
+      
       return creation.id;
     } catch (error) {
       throw new Error(error);

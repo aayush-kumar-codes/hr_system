@@ -10,7 +10,10 @@ exports.inventoryController = async (req, res, next) => {
     let machine_create = await db.MachineList.createMachine(req.body);
     req.body.obj_id = machine_create;
     res.status_code = 201;
-    res.message = "Created";
+    res.message = "Inventory added successfully and need to be approved by admin!!";
+    res.data={
+      data:machine_create
+    }
     return next();
   } catch (error) {
     res.status_code = 500;

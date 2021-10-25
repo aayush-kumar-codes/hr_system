@@ -86,24 +86,6 @@ exports.getDisabledUser = async (req, res, next) => {
 exports.addTeamController = async (req, res, next) => {
   try {
     let team = await db.Config.addTeam(req.body);
-  } catch (error) {
-    res.status_code = 500;
-    res.message = error.message;
-    return next();
-  }
-};
-
-
-exports.getUserDocument = async (req, res, next) => {
-  try {
-    let userDocument = await db.Document.getUserDocument();
-     res.data =userDocument;
-     res.status_code=200;
-     return next();
-
-exports.addTeamController = async (req, res, next) => {
-  try {
-    let team = await db.Config.addTeam(req.body);
     if (team) {
       res.status_code = 200;
       res.message = "created";
@@ -112,7 +94,6 @@ exports.addTeamController = async (req, res, next) => {
       res.message = "not created";
     }
     return next();
-
   } catch (error) {
     res.status_code = 500;
     res.message = error.message;
@@ -120,41 +101,43 @@ exports.addTeamController = async (req, res, next) => {
   }
 };
 
-exports.getUserPolicyDocument= async (req,res,next)=>{
-    try{
-        let userPolicyDocument=await db.UserProfile.getUserPolicyDocument(req);
-        res.data=userPolicyDocument.policy_document;
-        res.status_code=200;
-        return next();
-    } catch (error) {
-        res.status_code = 500;
-        res.message = error.message;
-        return next();
-      }
-}
-exports.updateUserPolicyDocument = async(req,res,next)=>{
-    try{
-       let updatedUserPolicyDocument=await db.UserProfile.updateUserPolicyDocument(req);
-        res.message="updated"
-        res.status_code=200;
-        return next();
-    }catch(error){
-        res.status_code = 500;
-        res.message = error.message;
-        return next();
-    }
-}
+exports.getUserPolicyDocument = async (req, res, next) => {
+  try {
+    let userPolicyDocument = await db.UserProfile.getUserPolicyDocument(req);
+    res.data = userPolicyDocument.policy_document;
+    res.status_code = 200;
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+};
+exports.updateUserPolicyDocument = async (req, res, next) => {
+  try {
+    let updatedUserPolicyDocument =
+      await db.UserProfile.updateUserPolicyDocument(req);
+    res.message = "updated";
+    res.status_code = 200;
+    return next();
+  } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+};
+
 exports.uploadUserDocument=async(req,res,next)=>{
-    try{
-        let uploadUserDocument=await db.Document.uploadUserDocument(req);
-        res.message=uploadUserDocument,
-        res.status_code=200;
-        return next();
-    }catch(error){
-        res.status_code = 500;
-        res.message = error.message;
-        return next();
-    }
+  try{
+      let uploadUserDocument=await db.Document.uploadUserDocument(req);
+      res.message=uploadUserDocument,
+      res.status_code=200;
+      return next();
+  }catch(error){
+      res.status_code = 500;
+      res.message = error.message;
+      return next();
+  }
 
 }
 
@@ -195,7 +178,7 @@ exports.deleteRoleController = async (req, res, next) => {
     res.status_code = 200;
     res.message = deletedRole;
     return next();
-  } catch (error) {
+  }catch(error){
     res.status_code = 500;
     res.message = error.message;
     return next();
@@ -254,3 +237,17 @@ exports.updateEmployeePassControllers = async (req, res, next) => {
     return next();
   }
 };
+
+exports.getUserDocument = async (req, res, next) => {
+  try {
+    let userDocument = await db.Document.getUserDocument();
+     res.data =userDocument;
+     res.status_code=200;
+     return next();
+  } catch(error){
+    res.status_code =500;
+    res.message =error.message;
+    return next();
+  }
+};
+
