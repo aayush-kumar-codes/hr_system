@@ -49,37 +49,64 @@ const unassignRequestValidator = [
 ];
 
 const addRoleValidator = [
-	check('name', 'name must not be empty').not().isEmpty(),
-	check('description', 'description must not be empty').not().isEmpty()
+  check("name", "name must not be empty").not().isEmpty(),
+  check("description", "description must not be empty").not().isEmpty(),
 ];
 
 const addNewEmployeeValidator = [
-  check('name', 'name must not be empty').not().isEmpty(),
-  check('username', 'username must not be empty').not().isEmpty(),
-  check('jobtitle', 'jobtitle must not be empty').not().isEmpty(),
-  check('workemail', 'workemail must not be empty').not().isEmpty(),
+  check("name", "name must not be empty").not().isEmpty(),
+  check("username", "username must not be empty").not().isEmpty(),
+  check("jobtitle", "jobtitle must not be empty").not().isEmpty(),
+  check("workemail", "workemail must not be empty").not().isEmpty(),
 ];
 
 const assignUserRoleValidator = [
-  check('user_id', 'user_id must not be empty').not().isEmpty(),
-  check('role_id', 'role_id must not be empty').not().isEmpty(),
-]
+  check("user_id", "user_id must not be empty").not().isEmpty(),
+  check("role_id", "role_id must not be empty").not().isEmpty(),
+];
 
 const updateRoleValidators = [
-  check('role_id', 'role_id must not be empty').not().isEmpty(),
-  check('action_id', 'action_id must not be empty').not().isEmpty(),
-  check('page_id', 'page_id must not be empty').not().isEmpty(),
-  check('notification_id', 'notification_id must not be empty').not().isEmpty(),
-]
+  check("role_id", "role_id must not be empty").not().isEmpty(),
+  check("action_id", "action_id must not be empty").not().isEmpty(),
+  check("page_id", "page_id must not be empty").not().isEmpty(),
+  check("notification_id", "notification_id must not be empty").not().isEmpty(),
+];
 
 const updateEmployeeVAlidator = [
-  check('userid', 'userid must not be empty').not().isEmpty(),
-  check('stepid', 'stepid must not be empty').not().isEmpty(),
-]
+  check("userid", "userid must not be empty").not().isEmpty(),
+  check("stepid", "stepid must not be empty").not().isEmpty(),
+];
 
 const addTeamValidator = [
-  check('type', 'type must not be empty').not().isEmpty(),
-  check('value', 'value must not be empty').not().isEmpty(),
+  check("type", "type must not be empty").not().isEmpty(),
+  check("value", "value must not be empty").not().isEmpty(),
+];
+
+const updateBankDetailsValidator = [
+  check("bank_account_no", "bank_account_no must not be empty").not().isEmpty(),
+  check("bank_name", "bank_name must not be empty").not().isEmpty(),
+  check("ifsc", "ifsc must not be empty").not().isEmpty(),
+];
+const deleteRoleValidator = [
+  check("role_id", "role_id must not be empty").not().isEmpty(),
+];
+
+const changeStatusValidator = [
+  check("user_id", "user_id must not be empty").not().isEmpty(),
+  check("status", "status must not be empty").not().isEmpty(),
+];
+
+const updateUserByIdValidator = [
+  check("user_id", "user_id must not be empty").not().isEmpty(),
+];
+
+const updateNewPassValidator = [
+  check("password", "password must not be empty").not().isEmpty(),
+]
+
+const updateEmployeePassValidators = [
+  check("empid", "empid must not be empty").not().isEmpty(),
+  check("password", "password must not be empty").not().isEmpty(),
 ]
 const updateUserPolicyDocument =[
   check('policy_document','policy_document must not be empty').not().isEmpty()
@@ -108,5 +135,11 @@ module.exports = {
   updateEmployeeVAlidator,
   addTeamValidator,
   updateUserPolicyDocument,
-  user_document
+  user_document,
+  updateBankDetailsValidator,
+  deleteRoleValidator,
+  changeStatusValidator,
+  updateUserByIdValidator,
+  updateNewPassValidator,
+  updateEmployeePassValidators
 };

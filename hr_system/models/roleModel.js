@@ -28,8 +28,10 @@ function roles(database, type) {
 
   roles.updateRole = async (reqBody, models) => {
     try {
-      let updated_Role = await roles.findOne({where: {id: reqBody.role_id}});
-      if(updated_Role){
+      let updated_Role = await roles.findOne({
+        where: { id: reqBody.role_id },
+      });
+      if (updated_Role) {
         let roleAction = await models.RolesAction.create({
           role_id: reqBody.role_id,
           action_id: reqBody.action_id,
@@ -43,8 +45,8 @@ function roles(database, type) {
           notification_id: reqBody.notification_id,
         });
         return "updated";
-      }else{
-        return "not updated"
+      } else {
+        return "not updated";
       }
     } catch (error) {
       console.log(error);
@@ -60,6 +62,22 @@ function roles(database, type) {
       throw new Error(error);
     }
   };
+  roles.deleteRole = async (reqBody) => {
+    try {
+      let roletoDelete = await roles.destroy({
+        where: { id: reqBody.role_id },
+      });
+      console.log(roletoDelete);
+      if (roletoDelete == 1) {
+        return "deleted";
+      } else {
+        return "not deleted";
+      }
+    } catch (error) {
+      throw new Error(error);
+    }
+  };
+
   return roles;
 }
 
