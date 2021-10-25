@@ -87,6 +87,48 @@ function user_profile(database, type) {
       throw new Error(error);
     }
   };
+
+  user_profile.getUserProfile = async () => {
+    try {
+      let UserProfile = await user_profile.findAll({});
+      return UserProfile;
+    } catch (error) {
+      throw new Error("Unable to find User profile");
+    }
+  };
+  user_profile.getUserProfileDetailsById = async (reqBody) => {
+    try {
+      let userProfileById = await user_profile.findAll({
+        where: { user_Id: reqBody.user_id },
+      });
+      return userProfileById;
+    } catch (error) {
+      throw new Error(error);
+    }
+  };
+  user_profile.getUserPolicyDocument = async (req) => {
+    try {
+      const user_id = req.userData.user_id;
+      let userPolicyDocument = await user_profile.findAll({
+        where: { user_Id: user_id },
+      });
+      return userPolicyDocument;
+    } catch (error) {
+      throw new Error(error);
+    }
+  };
+  user_profile.updateUserPolicyDocument = async (req) => {
+    try {
+      let userPolicyDocument = await user_profile.update(
+        { policy_document: req.body.policy_document },
+        { where: { user_Id: user_id } }
+      );
+      return userPolicyDocument;
+    } catch (error) {
+      console.log(error);
+      throw new Error(error);
+    }
+  };
   user_profile.updateUserById = async (reqBody) => {
     try {
       let userToUpdate = await user_profile.update(

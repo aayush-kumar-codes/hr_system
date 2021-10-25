@@ -9,6 +9,7 @@ let responseHandle = async (req, res) => {
   });
 };
 
+
 let responseForData = async (req, res) => {
 	res.status(res.status_code).json({
 	  error: res.error,

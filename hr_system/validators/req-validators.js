@@ -108,6 +108,14 @@ const updateEmployeePassValidators = [
   check("empid", "empid must not be empty").not().isEmpty(),
   check("password", "password must not be empty").not().isEmpty(),
 ]
+const updateUserPolicyDocument =[
+  check('policy_document','policy_document must not be empty').not().isEmpty()
+]
+
+const user_document =[
+  check ('file','file must not be empty').not().isEmpty(),
+  // check('user_id','user_id must not be empty').not().isEmpty()
+]
 
 module.exports = {
   userCreationValidator,
@@ -126,6 +134,8 @@ module.exports = {
   updateRoleValidators,
   updateEmployeeVAlidator,
   addTeamValidator,
+  updateUserPolicyDocument,
+  user_document,
   updateBankDetailsValidator,
   deleteRoleValidator,
   changeStatusValidator,
