@@ -27,7 +27,7 @@ function config(database, type) {
   };
   config.getMachineTypeList = async () => {
     try {
-      let machineTypeList = await config.findAll({});
+      let machineTypeList = await config.findAll({type:"machine_type"});
       return machineTypeList;
     } catch (error) {
       throw new Error("Unable to locate all machine types");

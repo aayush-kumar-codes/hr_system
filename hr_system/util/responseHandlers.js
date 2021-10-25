@@ -9,14 +9,12 @@ let responseHandle = async (req, res) => {
   });
 };
 
-
 let responseForData = async (req, res) => {
 	res.status(res.status_code).json({
 	  error: res.error,
-	  data: {
 		message: res.message,
-	  //   token: res.token,
-		data: res.data,
+		data:{ 
+      inventory_id:res.inventory_id
 	  },
 	});
   };
