@@ -64,7 +64,7 @@ const addNewEmployeeValidator = [
   check("email", "email must not be empty").not().isEmpty().isEmail(),
   check("email", "email must be an email").isEmail(),
   check("username", "username must not be empty").not().isEmpty(),
-  check("username", "username must be a valid username").not().matches(/^[a-zA-Z0-9]+$/)
+  check("username", "username must be a valid username").matches(/^[a-zA-Z0-9]+$/)
 ];
 
 const assignUserRoleValidator = [

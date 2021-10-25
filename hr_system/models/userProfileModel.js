@@ -42,7 +42,7 @@ function user_profile(database, type) {
     meta_data: type.STRING,
   });
 
-  user_profile.createProfile = async (reqBody, res,user_id, models) => {
+  user_profile.createProfile = async (reqBody, res, models) => {
     try {
       let username = await models.User.findAll({
         where: { username: reqBody.username },
@@ -53,13 +53,13 @@ function user_profile(database, type) {
       let otheremail = await user_profile.findAll({
         where: { other_email: reqBody.email },
       });
-      if (username) {
+      if (username.length !== 0) {
         res.error = 1;
         res.message = "username exists";
-      } else if (workemail) {
+      } else if (workemail.length !== 0) {
         res.error = 1;
         res.message = "workemail exists";
-      } else if (otheremail) {
+      } else if (otheremail.length !== 0) {
         res.error = 1;
         res.message = "personal email exitsts";
       } else {
@@ -73,21 +73,24 @@ function user_profile(database, type) {
           type: type,
         });
         let userId = userCreation.id;
+        // console.log(userId);
         if (!userId) {
           res.error = 1;
           res.message = "Error occured while adding user";
         } else {
+          // console.log("aditya");
           let userProfileData = await user_profile.create({
             name: reqBody.name,
             jobtitle: reqBody.jobtitle,
             dateofjoining: reqBody.dateofjoining,
             user_Id: userId,
-            dob: reqBody.dateofbirth,
+            dob: reqBody.dob,
             gender: reqBody.gender,
             work_email: reqBody.workemail,
             training_month: reqBody.training_month,
             other_email: reqBody.email,
           });
+          // console.log(userProfileData);
           if (!userProfileData) {
             let userDelete = await models.User.destroy({
               where: { id: userId },
@@ -107,32 +110,41 @@ function user_profile(database, type) {
               );
             }
             let allRoles = await models.Role.findAll({});
-            allRoles.forEach((roles) => {
-              if(roles.name == "employee"){
-                let defaultRoleId = roles.id;
-              }else{
-                res.error = 1;
-                res.message = "roles dont match";
+            for (let roles in allRoles) {
+              console.log(allRoles[roles].name);
+              if (allRoles[roles].name == "Employee") {
+                let defaultRoleId = allRoles[roles].id;
+                console.log(userId);
+                console.log(defaultRoleId);
+                if (userId && defaultRoleId !== "") {
+                  let roleToAssign = await models.UserRole.assignRole(
+                    userId,
+                    defaultRoleId
+                  );
+                } else {
+                  res.error = 1;
+                  res.message = "role not assigned";
+                }
+              // } else {
+              //   res.error = 1;
+              //   res.message = "roles dont match";
               }
-            });
-            if(user_Id && defaultRoleId !== false){
-              let roleToAssign = await models.UserRole.assignRole(user_Id,defaultRoleId);
-            }else{
-              res.error = 1;
-              res.message = "role not assigned";
             }
-            let data = [];
-            data.user = user_Id;
-            data.password = passwordString;
           }
         }
+        let Return = [];
+        let data = [];
+        data.userID = userId;
+        data.password = passwordString;
+        console.log(data);
+        Return.error = res.error;
+        Return.message = res.message;
+        Return.data = data;
+        console.log(Return);
+        return Return;
       }
-      let Return = [];
-      Return.error = res.error;
-      Return.message = res.message;
-      Return.data = data;
-      return Return;
     } catch (error) {
+      console.log(error);
       throw new Error(error);
     }
   };

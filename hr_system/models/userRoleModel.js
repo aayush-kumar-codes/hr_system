@@ -3,11 +3,11 @@ function UserRole(database, type) {
     user_id: type.INTEGER,
     role_id: type.INTEGER,
   });
-  userRole.assignRole = async (reqBody) => {
+  userRole.assignRole = async (userId, roleId) => {
     try {
       let roleToassign = await userRole.create({
-        user_id: reqBody.user_id,
-        role_id: reqBody.role_id,
+        user_id: userId,
+        role_id: roleId,
       });
       return roleToassign.id;
     } catch (error) {

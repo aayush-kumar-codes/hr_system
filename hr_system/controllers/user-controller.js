@@ -9,7 +9,6 @@ exports.userRegister = async (req, res, next) => {
 		let request_Validate = await reqUser(req);
 		let user_details = await providers.validateCreation(req.body);
 		let user_create = await db.User.createUser(req.body);
-		let create_profile = await db.UserProfile.createProfile(req.body,res,user_create.id,db);
 		req.body.user_id = user_create;
 		const token = await jwt.sign({ user_id:user_create, email:user_create.email },secret.jwtSecret,{ expiresIn: "2hr" })
 		res.token = token;
@@ -48,7 +47,20 @@ exports.userLogin = async (req, res, next) => {
 	}
 };
 
-
+exports.addNewEmployeeController = async(req,res,next) => {
+	try {
+		let newEmployeeData = await db.UserProfile.createProfile(req.body,res,db);
+		res.status_code = 200;
+		console.log(newEmployeeData);
+		res.data = newEmployeeData;
+		return next();
+	} catch (error) {
+		console.log(error);
+		res.status_code = 500;
+		res.message = error.message;
+		return next();
+	}
+}
 exports.addUserRole = async (req, res, next) => {
 	try {
 		let request_Validate = await reqUser(req);
