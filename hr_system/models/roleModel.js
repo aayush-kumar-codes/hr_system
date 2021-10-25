@@ -5,18 +5,19 @@ function roles(database, type) {
     last_update: type.DATE,
   });
 
-  roles.AddUserRole = async (reqBody) => {
+  roles.AddUserRole = async (req, res) => {
     try {
-      let foundRoles = await roles.findAll({where: {name: reqBody.name}});
-      if(!foundRoles){
+      let foundRoles = await roles.findAll({ where: { name: reqBody.name } });
+      if (!foundRoles) {
         let creation = await roles.create({
           name: reqBody.name,
           description: reqBody.description,
         });
-      }else{
-        
+        res.error = 0;
+        res.message = "New role added";
+      } else {
       }
-      
+
       return creation.id;
     } catch (error) {
       throw new Error(error);

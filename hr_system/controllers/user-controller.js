@@ -53,8 +53,8 @@ exports.addUserRole = async (req, res, next) => {
 	try {
 		let request_Validate = await reqUser(req);
 		let role_create = await db.Role.AddUserRole(req.body);
-		res.status_code = 201;
-		res.message = 'Created';
+		// res.status_code = 201;
+		// res.message = 'Created';
 		return next();
 	} catch (error) {														
 		res.status_code = 500;
@@ -62,8 +62,6 @@ exports.addUserRole = async (req, res, next) => {
 		return next();
 	}
 };
-
-
 
 exports.getUserRole = async (req, res, next) => {
 	try {
