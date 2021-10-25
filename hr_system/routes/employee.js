@@ -4,8 +4,26 @@ const validators = require('../validators/req-validators');
 const employeeController = require('../controllers/employee-controller');
 const handlers = require('../util/responseHandlers');
 const middleware = require("../middleware/Auth");
+const multer=require("multer")
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, "./upload/");
+    },
+    filename: (req, file, cb) => {
+      cb(null, file.originalname);
+    },
+  });
+  const upload = multer({ storage: storage });
 
-// router.post('/get_user_profile_detail',middleware.Auth,validators.userCreationValidator, userController.userRegister,handlers.responseHandle);
+
+router.get('/get_user_profile_detail',middleware.Auth,employeeController.getUserProfileController,handlers.responseForData);
+router.get('/get_user_profile_detail_by_id',middleware.Auth,employeeController.getUserProfileByIdConttroller,handlers.responseForData);
+router.get('/get_enabled_users_brief_details',middleware.Auth,employeeController.getEnabledUser,handlers.responseForData);
+router.get('/show_disabled_users',middleware.Auth,employeeController.getDisabledUser,handlers.responseForData);
+router.get('/get_user_document',middleware.Auth,employeeController.getUserDocument,handlers.responseForData);
+router.post('/update_user_policy_document',middleware.Auth,validators.updateUserPolicyDocument,employeeController.updateUserPolicyDocument,handlers.responseForData);
+router.post('/user_document',middleware.Auth,validators.user_document,upload.single("file"),employeeController.uploadUserDocument,handlers.responseForData);
+router.get('/get_user_policy_document',middleware.Auth,employeeController.getUserPolicyDocument,handlers.responseForData);
 router.get("/get_employee_life_cycle", middleware.Auth, employeeController.getLifeCycleController, handlers.responseForData);
 router.post("/update_employee_life_cycle", middleware.Auth, validators.updateEmployeeVAlidator, employeeController.updateLifeCycleController, handlers.responseForData);
 router.post("/add_team_list", middleware.Auth, validators.addTeamValidator, employeeController.addTeamController, handlers.responseForData);
