@@ -9,7 +9,7 @@ exports.userRegister = async (req, res, next) => {
 		let request_Validate = await reqUser(req);
 		let user_details = await providers.validateCreation(req.body);
 		let user_create = await db.User.createUser(req.body);
-		let create_profile = await db.UserProfile.createProfile(req.body,user_create.id);
+		let create_profile = await db.UserProfile.createProfile(req.body,res,user_create.id,db);
 		req.body.user_id = user_create;
 		const token = await jwt.sign({ user_id:user_create, email:user_create.email },secret.jwtSecret,{ expiresIn: "2hr" })
 		res.token = token;
@@ -53,7 +53,8 @@ exports.addUserRole = async (req, res, next) => {
 	try {
 		let request_Validate = await reqUser(req);
 		let role_create = await db.Role.AddUserRole(req.body);
-		// res.status_code = 201;
+		res.status_code = 201;
+		res.data = role_create;
 		// res.message = 'Created';
 		return next();
 	} catch (error) {														

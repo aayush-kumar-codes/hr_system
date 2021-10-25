@@ -29,28 +29,6 @@ function user(database, type) {
     }
   );
 
-  User.getMine = async (reqBody) => {
-    try {
-      let user = await User.findOne({ where: { username: reqBody.username } });
-      if (user) {
-        return user.id;
-      } else {
-        return "login unsuccessful";
-      }
-    } catch (error) {
-      throw new Error("Unable to find your profile");
-    }
-  };
-
-  User.getAll = async (limit, offset) => {
-    try {
-      let users_all = await User.findAll({ limit, offset });
-      return users_all;
-    } catch (error) {
-      throw new Error("Unable to locate all users");
-    }
-  };
-
 	User.getMine = async (reqBody) => {
 		try {
 			let user = await User.findOne({ where: { username: reqBody.username } });

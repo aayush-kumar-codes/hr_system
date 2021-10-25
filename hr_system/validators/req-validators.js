@@ -54,10 +54,17 @@ const addRoleValidator = [
 ];
 
 const addNewEmployeeValidator = [
+  check("dateofjoining", "date of joining must not be empty").not().isEmpty(),
   check("name", "name must not be empty").not().isEmpty(),
-  check("username", "username must not be empty").not().isEmpty(),
   check("jobtitle", "jobtitle must not be empty").not().isEmpty(),
+  check("gender", "gender must not be empty").not().isEmpty(),
+  check("dob", "dob must not be empty").not().isEmpty(),
   check("workemail", "workemail must not be empty").not().isEmpty(),
+  check("workemail", "workmail must be an email").isEmail(),
+  check("email", "email must not be empty").not().isEmpty().isEmail(),
+  check("email", "email must be an email").isEmail(),
+  check("username", "username must not be empty").not().isEmpty(),
+  check("username", "username must be a valid username").not().matches(/^[a-zA-Z0-9]+$/)
 ];
 
 const assignUserRoleValidator = [
@@ -102,20 +109,20 @@ const updateUserByIdValidator = [
 
 const updateNewPassValidator = [
   check("password", "password must not be empty").not().isEmpty(),
-]
+];
 
 const updateEmployeePassValidators = [
   check("empid", "empid must not be empty").not().isEmpty(),
   check("password", "password must not be empty").not().isEmpty(),
-]
-const updateUserPolicyDocument =[
-  check('policy_document','policy_document must not be empty').not().isEmpty()
-]
+];
+const updateUserPolicyDocument = [
+  check("policy_document", "policy_document must not be empty").not().isEmpty(),
+];
 
-const user_document =[
-  check ('file','file must not be empty').not().isEmpty(),
+const user_document = [
+  check("file", "file must not be empty").not().isEmpty(),
   // check('user_id','user_id must not be empty').not().isEmpty()
-]
+];
 
 module.exports = {
   userCreationValidator,
@@ -141,5 +148,5 @@ module.exports = {
   changeStatusValidator,
   updateUserByIdValidator,
   updateNewPassValidator,
-  updateEmployeePassValidators
+  updateEmployeePassValidators,
 };
