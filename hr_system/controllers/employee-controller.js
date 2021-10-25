@@ -122,22 +122,23 @@ exports.updateUserPolicyDocument = async(req,res,next)=>{
        let updatedUserPolicyDocument=await db.UserProfile.updateUserPolicyDocument(req);
         res.message="updated"
         res.status_code=200;
-    }catch{
+        return next();
+    }catch(error){
         res.status_code = 500;
         res.message = error.message;
         return next();
     }
 }
-// exports.uploadUserDocument=async()=>{
-//     try{
-//         let uploadUserDocument=await db.Document.uploadUserDocument();
-//         res.message=uploadUserDocument,
-//         res.status_code=200;
-//         return next();
-//     }catch{
-//         res.status_code = 500;
-//         res.message = error.message;
-//         return next();
-//     }
+exports.uploadUserDocument=async(req,res,next)=>{
+    try{
+        let uploadUserDocument=await db.Document.uploadUserDocument(req);
+        res.message=uploadUserDocument,
+        res.status_code=200;
+        return next();
+    }catch(error){
+        res.status_code = 500;
+        res.message = error.message;
+        return next();
+    }
 
-// }
+}

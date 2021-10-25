@@ -4,15 +4,16 @@ const validators = require('../validators/req-validators');
 const employeeController = require('../controllers/employee-controller');
 const handlers = require('../util/responseHandlers');
 const middleware = require("../middleware/Auth");
-// const storage = multer.diskStorage({
-//     destination: (req, file, cb) => {
-//       cb(null, "./upload/");
-//     },
-//     filename: (req, file, cb) => {
-//       cb(null, file.originalname);
-//     },
-//   });
-//   const upload = multer({ storage: storage });
+const multer=require("multer")
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, "./upload/");
+    },
+    filename: (req, file, cb) => {
+      cb(null, file.originalname);
+    },
+  });
+  const upload = multer({ storage: storage });
 
 
 router.get('/get_user_profile_detail',middleware.Auth,employeeController.getUserProfileController,handlers.responseForData);
@@ -26,6 +27,6 @@ router.post("/update_employee_life_cycle", middleware.Auth, validators.updateEmp
 router.post("/add_team_list", middleware.Auth, validators.addTeamValidator, employeeController.addTeamController, handlers.responseHandle);
 router.get('/get_user_policy_document',middleware.Auth,employeeController.getUserPolicyDocument,handlers.responseForData);
 router.post('/update_user_policy_document',middleware.Auth,validators.updateUserPolicyDocument,employeeController.updateUserPolicyDocument,handlers.responseForData);
-// router.post('/user_document',middleware.Auth,validators.userDocument,employeeController.uploadUserDocument,handlers.responseForData);
+router.post('/user_document',middleware.Auth,validators.user_document,upload.single("file"),employeeController.uploadUserDocument,handlers.responseForData);
 module.exports = router;
  

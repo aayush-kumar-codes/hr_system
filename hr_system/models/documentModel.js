@@ -20,25 +20,17 @@ function Document(database, type) {
     }
   };
 
-  document.uploadUserDocument = async (reqBody)=>{
+  document.uploadUserDocument = async (req)=>{
     try {
-      cloudinary.config({
-        cloud_name: "imageupload6395",
-        api_key: 878947817716679,
-        api_secret: "8LA4bybX-ivPicOEubgzhYOasF8",
-      });
-      const user_id =reqBody.userData.user_id;
-      const imageuploaded = await cloudinary.uploader.upload(
-        reqBody.files.image.tempFilePath
-      );
-      console.log("imageuploaded")
+      console.log(req)
       const data = {
-        filepath: imageuploaded.secure_url,
-        title: "abcd",
+        filepath: req.file.path,
+        title: req.file.name,
         uploaded_on:Date.now()
       };
-      await document.create({data});
-      return "uploaded"
+      console.log(data)
+      // await document.create(data);
+      // return "uploaded"
     } catch (error) {
         throw new Error (error)
     }
