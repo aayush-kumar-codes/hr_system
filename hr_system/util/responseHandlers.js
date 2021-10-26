@@ -20,15 +20,12 @@ let responseForData = async (req, res) => {
   };
 
   let responseForInventory = async (req, res) => {
-    console.log(res.status_code)
-    console.log(res.data)
     res.status(res.status_code).json({
       error: res.error,
       message: res.message,
       Data: {
        data: res.data,
       },
-      // console.log(Data)
     });
   };
 
