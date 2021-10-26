@@ -42,6 +42,58 @@ function user_profile(database, type) {
     meta_data: type.STRING,
   });
 
+  // user_profile. = async(reqBody) => {
+  user_profile.registerProfile = async (reqBody, user_id) => {
+    try {
+      let creation = await user_profile.create({
+        name: reqBody.name,
+        jobtitle: reqBody.jobtitle,
+        dateofjoining: reqBody.dateofjoining,
+        user_Id: user_id,
+        dob: reqBody.dateofjoining,
+        gender: reqBody.gender,
+        marital_status: reqBody.marital_status,
+        address1: reqBody.address1,
+        address2: reqBody.address2,
+        city: reqBody.city,
+        state: reqBody.state,
+        zip_postal: reqBody.zip_postal,
+        country: reqBody.country,
+        home_ph: reqBody.home_ph,
+        mobile_ph: reqBody.mobile_ph,
+        work_email: reqBody.workemail,
+        other_email: reqBody.email,
+        image: reqBody.image,
+        bank_account_num: reqBody.bank_account_num,
+        special_instructions: reqBody.special_instructions,
+        pan_card_num: reqBody.pan_card_num,
+        permanent_address: reqBody.permanent_address,
+        current_address: reqBody.current_address,
+        emergency_ph1: reqBody.emergency_ph1,
+        emergency_ph2: reqBody.emergency_ph2,
+        blood_group: reqBody.blood_group,
+        medical_condition: reqBody.medical_condition,
+        updated_on: reqBody.updated_on,
+        slack_id: reqBody.slack_id,
+        policy_document: reqBody.policy_document,
+        team: reqBody.team,
+        training_completion_date: reqBody.training_completion_date,
+        termination_date: reqBody.termination_date,
+        holding_comments: reqBody.holding_comments,
+        training_month: reqBody.training_month,
+        slack_msg: reqBody.slack_msg,
+        signature: reqBody.signature,
+        meta_data: reqBody.meta_data,
+      });
+      return creation.id;
+    } catch (error) {
+      throw new Error(error);
+    }
+    // let username = await models.User.findAll({
+    //   where: { username: reqBody.username },
+    // });
+  };
+
   user_profile.createProfile = async (reqBody, res, models) => {
     try {
       let username = await models.User.findAll({
@@ -125,9 +177,9 @@ function user_profile(database, type) {
                   res.error = 1;
                   res.message = "role not assigned";
                 }
-              // } else {
-              //   res.error = 1;
-              //   res.message = "roles dont match";
+                // } else {
+                //   res.error = 1;
+                //   res.message = "roles dont match";
               }
             }
           }

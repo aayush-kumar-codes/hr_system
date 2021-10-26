@@ -1,4 +1,5 @@
 function user(database, type) {
+  const { Op, fn, col, where } = require("sequelize");
   const User = database.define(
     "detail",
     {
@@ -29,18 +30,65 @@ function user(database, type) {
     }
   );
 
-  User.getMine = async (reqBody) => {
+  User.login = async (
+    username,
+    password,
+    email,
+    models,
+    forceLoginForUsername,
+  ) => {
     try {
-      let user = await User.findOne({ where: { username: reqBody.username } });
-      if (user) {
-        return user.id;
-      } else {
-        return "login unsuccessful";
-      }
+      // if (!forceLoginForUsername) {
+      let query = await User.findAll({
+        where: {
+          [Op.and]: [
+            { username: username },
+            { password: password },
+            { status: "Enabled" },
+          ],
+        },
+      });
+      let getUserInfoByWorkEmail = async (workEmailId, models) => {
+        let userProfile = await models.UserProfile.findOne({
+          where: { work_email: workEmailId },
+        });
+        console.log(userProfile);
+        let user = await User.findOne({ where: { id: userProfile.user_id } });
+        let user_roles = await models.UserRole.findOne({
+          where: { user_id: user.id },
+        });
+        let roles = await models.Roles.findOne({
+          where: { id: user_roles.role_id },
+        });
+        //  let userSlackInfo = getSlackUserInfo(workEmailId);
+        let data = [];
+        data.userProfile = userProfile;
+        data.user = user;
+        data.user_roles;
+        data.roles = roles;
+        //  data.slack_profile = userSlackInfo;
+        return data;
+      };
+      let user = await getUserInfoByWorkEmail(email, models);
+      console.log(user);
+      // console.log(query);
+      // }
     } catch (error) {
-      throw new Error("Unable to find your profile");
+      throw new Error(error);
     }
   };
+  // User.getMine = async (reqBody) => {
+  //   try {
+  //     let user = await User.findOne({ where: { username: reqBody.username } });
+  //     if (user) {
+  //       return user.id;
+  //     } else {
+  //       return "login unsuccessful";
+  //     }
+  //   } catch (error) {
+  //     throw new Error("Unable to find your profile");
+  //   }
+  // };
 
   User.getAll = async (limit, offset) => {
     try {
