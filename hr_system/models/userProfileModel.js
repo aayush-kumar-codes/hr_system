@@ -184,15 +184,13 @@ function user_profile(database, type) {
             }
           }
         }
-        let Return = [];
-        let data = [];
+        let Return = {};
+        let data = {};
         data.userID = userId;
         data.password = passwordString;
-        console.log(data);
         Return.error = res.error;
         Return.message = res.message;
         Return.data = data;
-        console.log(Return);
         return Return;
       }
     } catch (error) {

@@ -20,4 +20,8 @@ let responseForData = async (req, res) => {
   });
 };
 
-module.exports = { responseHandle, responseForData };
+let addNewEmployeeResponseHandle = async (req, res) => {
+  res.status(res.status_code).json(res.data);
+};
+
+module.exports = { responseHandle, responseForData,addNewEmployeeResponseHandle };
