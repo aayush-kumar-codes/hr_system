@@ -4,7 +4,7 @@ let responseHandle = async (req, res) => {
     data: {
       message: res.message,
       token: res.token,
-      userid: res.data,
+     userid: res.data,
     },
   });
 };
@@ -19,4 +19,17 @@ let responseForData = async (req, res) => {
 	});
   };
 
-module.exports = { responseHandle ,responseForData};
+  let responseForInventory = async (req, res) => {
+    console.log(res.status_code)
+    console.log(res.data)
+    res.status(res.status_code).json({
+      error: res.error,
+      message: res.message,
+      Data: {
+       data: res.data,
+      },
+      // console.log(Data)
+    });
+  };
+
+module.exports = { responseHandle ,responseForData,responseForInventory};

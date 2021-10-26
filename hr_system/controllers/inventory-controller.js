@@ -169,14 +169,16 @@ exports.getMachineStatusController = async (req, res, next) => {
 exports.deleteMachineStatusController = async (req, res, next) => {
   try {
         
-    let machine_list = await db.MachineStatus.DeleteStatus(req.body,db);
+    let machine_list = await db.MachineStatus.DeleteStatus(req.body,res,db);
+    console.log(machine_list)
     if (machine_list) {
-      res.status_code = 204;
-      // res.data = machine_list;
+      console.log(123)
+      res.status_code = 201;
+      res.data = machine_list;
       return next();
     } else {
       res.status_code = 404;
-      res.message = "not found status to delete";
+      res.message = " status not found  to delete";
     }
   } catch (error) {
     res.status_code = 500;

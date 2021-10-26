@@ -1,3 +1,5 @@
+const { responseForInventory } = require("../util/responseHandlers");
+const {Op}=require("sequelize")
 function machine_status(database, type) {
   const MachineStatus = database.define("machine_status", {
     status: type.STRING,
@@ -27,41 +29,56 @@ function machine_status(database, type) {
     }
   };
 
-  MachineStatus.DeleteStatus = async (reqBody, db) => {
+  MachineStatus.DeleteStatus = async (reqBody,res,db) => {
     try {
+      console.log(reBody.status)
       const machineStatus = await db.MachineStatus.findAll({
-        where: { status: reqBody.status, is_default: 1 },
+        where:{
+          [Op.and]: [
+            { status: reqBody.status}, 
+            {is_default: 1 }
+          ]
+        }
       });
-      // console.log(machineStatus)
+      console.log(machineStatus)
       if (machineStatus.length !== 0) {
-        return "status is a default status. It can not be delete.";
-        // return machineStatus;
+        const R=[]
+        res.message= "status is a default status. It can not be delete.";
+        res.error=1
+        R.message=res.message;
+        res.error=res.error;
+        return R;
       } else {
         machineList = await db.MachineList.findAll({
           where: { status: reqBody.status },
         });
         if (machineList.length !== 0) {
-          //  "Inventory status is in use"
+        res.message= "Inventory status is in use"
+        res.error=0;
           if (reqBody.new_status != false) {
             await db.MachineList.Update(
               { status: reqBody.new_status },
               { where: { status: reqBody.status } }
             );
-			db.MachineStatus.destroy({where:{status=reqBody.status}})
-			return "Inventories status is changed from $status to $newStatus and $status is deleted"
+			db.MachineStatus.destroy({where:{status:reqBody.status}})
+			res.message= "Inventories status is changed from $status to $newStatus and $status is deleted"
+      res.error=0;
           }
         }else{
 			await db.MachineStatus.destroy({where:{status:reqBody.status}})
-			return "status removed succesfully"
+			res.message= "status removed succesfully"
+      res.error =0
 		}
       }
-
       let delete_status = await MachineStatus.destroy({
         where: {
           id: reqBody.id,
         },
       });
-      return delete_status;
+      const R=[];
+      R.message=res.message;
+      R.error=res.error;
+      return R;
     } catch (error) {
       throw new Error("Unable to locate status");
     }
