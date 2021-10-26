@@ -97,7 +97,7 @@ exports.getMyInventoryController = async (req, res, next) => {
 
 exports.getMachineController = async (req, res, next) => {
   try {
-    let machine_list = await db.MachineList.GetMachineById(req.body);
+    let machine_list = await db.MachineList.GetMachineById(req.body,db);
     res.status_code = 200;
     res.data = machine_list;
     return next();
@@ -155,7 +155,7 @@ exports.addMachineStatusController = async (req, res, next) => {
 
 exports.getMachineStatusController = async (req, res, next) => {
   try {
-    let machine_list = await db.MachineStatus.getAllStatus();
+    let machine_list = await db.MachineStatus.getAllStatus(req);
     res.status_code = 200;
     res.data = machine_list;
     return next();
@@ -170,9 +170,7 @@ exports.deleteMachineStatusController = async (req, res, next) => {
   try {
         
     let machine_list = await db.MachineStatus.DeleteStatus(req.body,res,db);
-    console.log(machine_list)
     if (machine_list) {
-      console.log(123)
       res.status_code = 201;
       res.data = machine_list;
       return next();

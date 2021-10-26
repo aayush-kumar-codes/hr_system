@@ -44,7 +44,7 @@ function machinelist(database, type) {
   };
 
   MachineList.createMachine = async (reqBody) => {
-    try {   
+    try {
       let creation = await MachineList.create({
         machine_type: reqBody.machine_type,
         machine_name: reqBody.machine_name,
@@ -102,19 +102,71 @@ function machinelist(database, type) {
     }
   };
 
-  MachineList.GetMachineById = async (reqBody, res) => {
+  MachineList.GetMachineById = async (reqBody, db) => {
     try {
-      let all_machine = await MachineList.findAll({
+      let all_machine = await MachineList.findOne({
+        where: { id: reqBody.id },
+        include: [
+          {
+            model: db.FilesModel,
+            as: "file_inventory_invoice_id",
+            // where: { id: all_machine.id},
+          },
+          {
+            model: db.FilesModel,
+            as: "file_inventory_warranty_id",
+            // where: { id: reqBody.id },
+          },
+          {
+            model: db.FilesModel,
+            as: "file_inventory_photo_id",
+            // where: { id: reqBody.id },
+          }
+        ],
+      });
+      console.log(all_machine);
+      let machineUser = await db.MachineUser.findAll({
+        where: { machine_id: all_machine.id },
+      });
+      console.log(2);
+      let fileinventoryinvoice = await db.FilesModel.findAll({
+        where: { id: all_machine.file_inventory_invoice },
+      });
+      let fileinventoryphoto = await db.FilesModel.findAll({
+        where: { id: all_machine.file_inventory_photo },
+      });
+      let fileinventorywarranty = await db.FilesModel.findAll({
+        where: { id: all_machine.file_inventory_warranty },
+      });
+      // console.log(fileinventoryinvoice)
+      // console.log(fileinventoryphoto)
+      // console.log(fileinventorywarranty)
+      // console.log(all_machine.file_inventory_invoice);
+      // console.log(all_machine.file_entory_photo);
+      let comments = await db.InventoryCommentsModel.findAll({
         where: {
-          id: reqBody.id,
+          inventory_id: reqBody.id,
         },
       });
-      return all_machine;
+      console.log(comments);
+      let userProfileData = await db.UserProfile.findAll({
+        where: {
+          [Op.or]: [
+            { id: comments.updated_by_user_id },
+            { id: comments.assign_unassign_user_id },
+          ],
+        },
+      });
+      // console.log(456);
+      // let userProfiledata = await db.UserProfile.findAll({
+      //   where: { id: comments.assign_unassign_user_id },
+      // });
+      // return all_machine;
     } catch (error) {
+      console.log(error);
       throw new Error("Unable to locate all users");
     }
   };
-
   MachineList.updateMachine = async (reqBody) => {
     try {
       // let machine_to_update = await MachineList.findAll({

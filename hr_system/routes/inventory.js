@@ -10,11 +10,11 @@ router.post('/add_office_machine', middleware.AuthForAdmin, validators.machineCr
 router.get('/get_office_machine', middleware.AuthForAdmin,inventoryControllers.inventoryGetController, handlers.responseForInventory);    //done
 router.post('/assign_user_machine', middleware.AuthForAdmin, validators.AssignUserMachineValidator,inventoryControllers.AssignUserMachineController, handlers.responseForInventory); //done
 router.get('/get_my_inventories', middleware.AuthForHr,inventoryControllers.getMyInventoryController, handlers.responseForInventory);
-router.post('/get_machine', middleware.AuthForHr,inventoryControllers.getMachineController,handlers.responseForInventory);
+router.post('/get_machine', middleware.AuthForAdmin,inventoryControllers.getMachineController,handlers.responseForInventory); //working
 router.post("/add_inventory_audit",middleware.AuthForHr,validators.inventoryAuditValidator,inventoryControllers.inventoryAuditController,handlers.responseForInventory);
 router.post("/add_machine_status",middleware.AuthForAdmin,validators.MachineStatusValidator,inventoryControllers.addMachineStatusController,handlers.responseForInventory);
-router.get("/get_machine_status_list",middleware.AuthForAdmin,inventoryControllers.getMachineStatusController,handlers.responseForInventory);
-router.post("/delete_machine_status",middleware.AuthForAdmin,validators.MachineStatusDeleteValidator,inventoryControllers.deleteMachineStatusController,handlers.responseForInventory);//working on it
+router.get("/get_machine_status_list",middleware.AuthForAdmin,inventoryControllers.getMachineStatusController,handlers.responseForInventory); 
+router.post("/delete_machine_status",middleware.AuthForAdmin,validators.MachineStatusDeleteValidator,inventoryControllers.deleteMachineStatusController,handlers.responseForInventory);  //done
 router.post("/update_office_machine",middleware.AuthForAdmin,validators.UpdateMachineValidator,inventoryControllers.inventoryUpdateMachineController,handlers.responseForInventory);
 router.get("/get_unassigned_inventories",middleware.AuthForAdmin,inventoryControllers.getUnassignedInventoryController,handlers.responseForInventory);
 router.get("/get_machine_count",middleware.AuthForHr,inventoryControllers.getMachineCountController,handlers.responseForInventory);

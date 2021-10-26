@@ -29,4 +29,14 @@ let responseForData = async (req, res) => {
     });
   };
 
-module.exports = { responseHandle ,responseForData,responseForInventory};
+
+  let responseForEmployee = async (req, res) => {
+    res.status(res.status_code).json({
+      error: res.error,
+      message: res.message,
+      Data: {
+       data: res.data,
+      },
+    });
+  };
+module.exports = { responseHandle ,responseForData,responseForInventory,responseForEmployee};
