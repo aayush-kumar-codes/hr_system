@@ -5,13 +5,22 @@ function roles(database, type) {
     last_update: type.DATE,
   });
 
-  roles.AddUserRole = async (reqBody) => {
+  roles.AddUserRole = async (reqBody, res) => {
     try {
-      let creation = await roles.create({
-        name: reqBody.name,
-        description: reqBody.description,
-      });
-      return creation.id;
+      let foundRoles = await roles.findAll({ where: { name: reqBody.name } });
+      // console.log(foundRoles);
+      if (foundRoles.length == 0) {
+        let creation = await roles.create({
+          name: reqBody.name,
+          description: reqBody.description,
+        });
+        // error = 0;
+        // message = "New role added";
+
+        return creation.id;
+      } else {
+        return "not updated";
+      }
     } catch (error) {
       throw new Error(error);
     }
@@ -28,8 +37,10 @@ function roles(database, type) {
 
   roles.updateRole = async (reqBody, models) => {
     try {
-      let updated_Role = await roles.findOne({where: {id: reqBody.role_id}});
-      if(updated_Role){
+      let updated_Role = await roles.findOne({
+        where: { id: reqBody.role_id },
+      });
+      if (updated_Role) {
         let roleAction = await models.RolesAction.create({
           role_id: reqBody.role_id,
           action_id: reqBody.action_id,
@@ -43,8 +54,8 @@ function roles(database, type) {
           notification_id: reqBody.notification_id,
         });
         return "updated";
-      }else{
-        return "not updated"
+      } else {
+        return "not updated";
       }
     } catch (error) {
       console.log(error);
@@ -60,6 +71,22 @@ function roles(database, type) {
       throw new Error(error);
     }
   };
+  roles.deleteRole = async (reqBody) => {
+    try {
+      let roletoDelete = await roles.destroy({
+        where: { id: reqBody.role_id },
+      });
+      console.log(roletoDelete);
+      if (roletoDelete == 1) {
+        return "deleted";
+      } else {
+        return "not deleted";
+      }
+    } catch (error) {
+      throw new Error(error);
+    }
+  };
+
   return roles;
 }
 

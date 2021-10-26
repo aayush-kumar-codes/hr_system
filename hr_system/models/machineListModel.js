@@ -25,7 +25,6 @@ function machinelist(database, type) {
       ownership_change_req_by_user: type.INTEGER,
     },
     {
-      timestamps: true,
       freezeTableName: true,
     }
   );
@@ -45,7 +44,7 @@ function machinelist(database, type) {
   };
 
   MachineList.createMachine = async (reqBody) => {
-    try {
+    try {   
       let creation = await MachineList.create({
         machine_type: reqBody.machine_type,
         machine_name: reqBody.machine_name,
