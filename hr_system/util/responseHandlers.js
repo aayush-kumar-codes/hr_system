@@ -9,16 +9,15 @@ let responseHandle = async (req, res) => {
   });
 };
 
-
 let responseForData = async (req, res) => {
-	res.status(res.status_code).json({
-	  error: res.error,
-	  data: {
-		message: res.message,
-	  //   token: res.token,
-		data: res.data,
-	  },
-	});
-  };
+  res.status(res.status_code).json({
+    error: res.error,
+    data: {
+      message: res.message,
+      token: res.token,
+      data: res.data,
+    },
+  });
+};
 
-module.exports = { responseHandle ,responseForData};
+module.exports = { responseHandle, responseForData };
