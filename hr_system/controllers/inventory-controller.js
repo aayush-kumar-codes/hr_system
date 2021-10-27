@@ -7,7 +7,7 @@ const secret = require("../config");
 exports.inventoryController = async (req, res, next) => {
   try {
     let request_Validate = await reqValidate(req);
-    let machine_create = await db.MachineList.createMachine(req.body);
+    let machine_create = await db.MachineList.createMachine(req,db);
     req.body.obj_id = machine_create;
     if (machine_create != null) {
       res.status_code = 201;
@@ -19,7 +19,7 @@ exports.inventoryController = async (req, res, next) => {
     } else {
       res.status_code = 500;
       res.error = 1;
-      res.message = "failed to add inventory ";
+      res.message = "Error in adding new inventory ";
       return next();
     }
   } catch (error) {
@@ -46,7 +46,6 @@ exports.AssignUserMachineController = async (req, res, next) => {
   try {
     let request_Validate = await reqValidate(req);
     let machine_create = await db.MachineUser.AssignMachine(req, db);
-    // console.log(machine_create)
     if (machine_create == "Done") {
       res.status_code = 201;
       res.error = 0;
@@ -97,7 +96,7 @@ exports.getMyInventoryController = async (req, res, next) => {
 
 exports.getMachineController = async (req, res, next) => {
   try {
-    let machine_list = await db.MachineList.GetMachineById(req.body,db);
+    let machine_list = await db.MachineList.GetMachineById(req.body,db,res);
     res.status_code = 200;
     res.data = machine_list;
     return next();

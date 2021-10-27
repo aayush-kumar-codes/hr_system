@@ -43,32 +43,88 @@ function machinelist(database, type) {
     });
   };
 
-  MachineList.createMachine = async (reqBody) => {
+  MachineList.createMachine = async (req, db) => {
     try {
-      let creation = await MachineList.create({
-        machine_type: reqBody.machine_type,
-        machine_name: reqBody.machine_name,
-        machine_price: reqBody.machine_price,
-        serial_number: reqBody.serial_number,
-        date_of_purchase: reqBody.date_of_purchase,
-        mac_address: reqBody.mac_address,
-        operating_system: reqBody.operating_system,
-        status: reqBody.status,
-        comments: reqBody.unassign_comment,
-        warranty_end_date: reqBody.warranty_end_date,
-        bill_number: reqBody.bill_number,
-        warranty_comment: reqBody.warranty_comment,
-        repair_comment: reqBody.repair_comment,
-        file_inventory_invoice: reqBody.file_inventory_invoice,
-        file_inventory_warranty: reqBody.file_inventory_warranty,
-        file_inventory_photo: reqBody.temp_inventory_photo,
-        warranty_years: reqBody.warranty_years,
-        approval_status: reqBody.approval_status,
-        is_unassign_request: reqBody.is_unassign_request,
-        ownership_change_req_by_user: reqBody.ownership_change_req_by_user,
-      });
-      return creation.id;
+      const loggeduserid = req.userData.user_id;
+      if (req.mac_address != null || req.body.serial_number != null) {
+        var Data = await MachineList.findOne({
+          where: {
+            [Op.or]: [
+              { mac_address: req.body.mac_address },
+              { serial_number: req.body.serial_number },
+            ],
+          },
+        });
+      }
+      if (Data == null) {
+        let creation = await MachineList.create({
+          machine_type: req.body.machine_type,
+          machine_name: req.body.machine_name,
+          machine_price: req.body.machine_price,
+          serial_number: req.body.serial_number,
+          date_of_purchase: req.body.date_of_purchase,
+          mac_address: req.body.mac_address,
+          operating_system: req.body.operating_system,
+          status: req.body.status,
+          comments: req.body.unassign_comment,
+          warranty_end_date: req.body.warranty_end_date,
+          bill_number: req.body.bill_number,
+          warranty_comment: req.body.warranty_comment,
+          repair_comment: req.body.repair_comment,
+          file_inventory_invoice: req.body.file_inventory_invoice,
+          file_inventory_warranty: req.body.file_inventory_warranty,
+          file_inventory_photo: req.body.temp_inventory_photo,
+          warranty_years: req.body.warranty_years,
+          approval_status: req.body.approval_status,
+          is_unassign_request: req.body.is_unassign_request,
+          ownership_change_req_by_user: req.body.ownership_change_req_by_user,
+        });
+        if (creation.id != null) {
+          const machine_id = creation.id;
+          if (req.body.user_id == "" || req.body.user_id == null) {
+            if (req.body.unassign_comments != null) {
+              let addInventoryComment = async (machine_id,loggeduserid,req) => {
+                const inventoryComment = await db.InventoryCommentsModel.create({
+                    inventory_id: machine_id,
+                    updated_by_user_id: loggeduserid,
+                    comment_type: req.body.comment_type,
+                    comment: req.body.unassign_comment,
+                  });
+                if (req.body.assign_unassign_user_id != null){
+                  const inventoryComment =await db.InventoryCommentsModel.create({
+                      inventory_id: machine_id,
+                      updated_by_user_id: loggeduserid,
+                      comment_type: req.body.comment_type,
+                      comment: req.body.unassign_comment,
+                      assign_unassign_user_id: req.body.assign_unassign_user_id,
+                    });
+                  }
+                return inventoryComment.id;
+              };
+              const addInventoryComment1 = await addInventoryComment(
+                creation.id,
+                loggeduserid,
+                req
+              );
+            }
+          } else {
+            const assignUserMachine = async (machine_id, req, loggeduserid) => {
+              if (req.body.userid == "" ||req.body.userid == 0 ||req.body.userid == null) {
+                const removeMachineAssignToUser = async(machine_id, loggeduserid)=>{
+                 const machine_info=await GetMachineById (machine_id)
+                }
+              }
+            };
+          }
+        } else {
+          console.log("Error in adding new inventory");
+        }
+        return creation.id;
+      } else {
+        console.log("mac_address or serial_no already exists");
+      }
     } catch (error) {
+      console.log(error);
       throw new Error(error);
     }
   };
@@ -102,66 +158,64 @@ function machinelist(database, type) {
     }
   };
 
-  MachineList.GetMachineById = async (reqBody, db) => {
+  MachineList.GetMachineById = async (reqBody, db,res) => {
     try {
-      let all_machine = await MachineList.findOne({
+      let all_machine = await MachineList.findAll({
         where: { id: reqBody.id },
         include: [
           {
             model: db.FilesModel,
             as: "file_inventory_invoice_id",
-            // where: { id: all_machine.id},
           },
           {
             model: db.FilesModel,
             as: "file_inventory_warranty_id",
-            // where: { id: reqBody.id },
           },
           {
             model: db.FilesModel,
             as: "file_inventory_photo_id",
-            // where: { id: reqBody.id },
-          }
+          },
         ],
       });
-      console.log(all_machine);
-      let machineUser = await db.MachineUser.findAll({
-        where: { machine_id: all_machine.id },
-      });
-      console.log(2);
-      let fileinventoryinvoice = await db.FilesModel.findAll({
-        where: { id: all_machine.file_inventory_invoice },
-      });
-      let fileinventoryphoto = await db.FilesModel.findAll({
-        where: { id: all_machine.file_inventory_photo },
-      });
-      let fileinventorywarranty = await db.FilesModel.findAll({
-        where: { id: all_machine.file_inventory_warranty },
-      });
-      // console.log(fileinventoryinvoice)
-      // console.log(fileinventoryphoto)
-      // console.log(fileinventorywarranty)
-      // console.log(all_machine.file_inventory_invoice);
-      // console.log(all_machine.file_entory_photo);
-      let comments = await db.InventoryCommentsModel.findAll({
-        where: {
-          inventory_id: reqBody.id,
-        },
-      });
-      console.log(comments);
-      let userProfileData = await db.UserProfile.findAll({
-        where: {
-          [Op.or]: [
-            { id: comments.updated_by_user_id },
-            { id: comments.assign_unassign_user_id },
-          ],
-        },
-      });
-      // console.log(456);
+      res.send(all_machine);
+      // let getInventoryHistory = async (id) => {
+      //   try {
+      //     let getInventoryComments = async (inventory_id) => {
+      //       try {
+      //         let inventory_comments = await db.InventoryCommentsModel.findAll({
+      //           where: {
+      //             inventory_id: inventory_id,
+      //           },
+      //         });
+      //         console.log(inventory_comments);
+      //         let userProfileData = await db.UserProfile.findAll({
+      //           where: {
+      //             [Op.or]: [
+      //               { id: inventory_comments.updated_by_user_id },
+      //               { id: inventory_comments.assign_unassign_user_id },
+      //             ],
+      //           },
+      //         });
+      //         const Result = [];
+      //         Result.comments = inventory_comments;
+      //         Result.userProfileData = userProfileData;
+      //         return Result;
+      //       } catch (error) {
+      //         throw new Error("error in  getInventoryComments");
+      //       }
+      //     };
+      //     const inventoryHistory = await getInventoryComments(all_machine.id);
+      //     return inventoryHistory;
+      //   } catch (error) {
+      //     throw new Error("error in getInventoryHistory");
+      //   }
+      // };
       // let userProfiledata = await db.UserProfile.findAll({
       //   where: { id: comments.assign_unassign_user_id },
       // });
       // return all_machine;
+      // const inventoryHistory = await getInventoryHistory(all_machine.id);
+      // return inventoryHistory;
     } catch (error) {
       console.log(error);
       throw new Error("Unable to locate all users");
@@ -198,7 +252,6 @@ function machinelist(database, type) {
         },
         { where: { id: reqBody.id } }
       );
-      // console.log(update);
       return update;
       // } else {
       //   throw new Error("Unable to find machine with the given id");

@@ -14,6 +14,7 @@ exports.AuthForAdmin = async (req, res, next) => {
     const user = await db.User.findOne({ where: { id: checkJwt.user_id } });
     if (user.type == "admin") {
       req.userData = checkJwt;
+      // console.log(req.userData)
       next();
     } else {
       res.send("you are not authorized");
