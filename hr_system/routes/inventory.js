@@ -18,7 +18,7 @@ router.post("/delete_machine_status",middleware.AuthForAdmin,validators.MachineS
 router.post("/update_office_machine",middleware.AuthForAdmin,validators.UpdateMachineValidator,inventoryControllers.inventoryUpdateMachineController,handlers.responseForInventory);
 router.get("/get_unassigned_inventories",middleware.AuthForAdmin,inventoryControllers.getUnassignedInventoryController,handlers.responseForInventory);
 router.get("/get_machine_count",middleware.AuthForHr,inventoryControllers.getMachineCountController,handlers.responseForInventory);
-router.get("/get_machine_type_list", middleware.AuthForAdmin,inventoryControllers.getMachineTypeController, handlers.responseForInventory);   //done
+// router.get("/get_machine_type_list", middleware.AuthForAdmin,inventoryControllers.getMachineTypeController, handlers.responseForInventory);   //done
 router.post("/add_machine_type",middleware.AuthForAdmin, validators.addMachineTypeValidator,inventoryControllers.addMachineTypeController, handlers.responseForInventory)
 router.get("/get_machines_detail", middleware.AuthForAdmin, inventoryControllers.getMachinesDetailController, handlers.responseForInventory);
 router.get("/get_unapproved_inventories", middleware.AuthForAdmin, inventoryControllers.getUnapprovedInventoryControllers, handlers.responseForInventory);

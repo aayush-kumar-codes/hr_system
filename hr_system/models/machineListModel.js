@@ -1,3 +1,6 @@
+const { MachineList } = require(".");
+const db = require("../db");
+
 function machinelist(database, type) {
   const { Op } = require("sequelize");
   const MachineList = database.define(
@@ -43,7 +46,7 @@ function machinelist(database, type) {
     });
   };
 
-  MachineList.createMachine = async (req, db) => {
+  MachineList.addOfficeMachine = async (req, db) => {
     try {
       const loggeduserid = req.userData.user_id;
       if (req.mac_address != null || req.body.serial_number != null) {
@@ -83,39 +86,26 @@ function machinelist(database, type) {
           const machine_id = creation.id;
           if (req.body.user_id == "" || req.body.user_id == null) {
             if (req.body.unassign_comments != null) {
-              let addInventoryComment = async (machine_id,loggeduserid,req) => {
-                const inventoryComment = await db.InventoryCommentsModel.create({
-                    inventory_id: machine_id,
-                    updated_by_user_id: loggeduserid,
-                    comment_type: req.body.comment_type,
-                    comment: req.body.unassign_comment,
-                  });
-                if (req.body.assign_unassign_user_id != null){
-                  const inventoryComment =await db.InventoryCommentsModel.create({
-                      inventory_id: machine_id,
-                      updated_by_user_id: loggeduserid,
-                      comment_type: req.body.comment_type,
-                      comment: req.body.unassign_comment,
-                      assign_unassign_user_id: req.body.assign_unassign_user_id,
-                    });
-                  }
-                return inventoryComment.id;
-              };
               const addInventoryComment1 = await addInventoryComment(
                 creation.id,
                 loggeduserid,
                 req
               );
             }
+            else{console.log("unassign comment is empty")}
           } else {
-            const assignUserMachine = async (machine_id, req, loggeduserid) => {
-              if (req.body.userid == "" ||req.body.userid == 0 ||req.body.userid == null) {
-                const removeMachineAssignToUser = async(machine_id, loggeduserid)=>{
-                 const machine_info=await GetMachineById (machine_id)
-                }
-              }
-            };
+            const assign = await assignUserMachine(
+              machine_id,
+              req,
+              loggeduserid
+            );
           }
+          await updateInventoryWithTempFile(
+            loggeduserid,
+            machine_id,
+            db,
+            req
+          );
         } else {
           console.log("Error in adding new inventory");
         }
@@ -124,7 +114,6 @@ function machinelist(database, type) {
         console.log("mac_address or serial_no already exists");
       }
     } catch (error) {
-      console.log(error);
       throw new Error(error);
     }
   };
@@ -158,9 +147,9 @@ function machinelist(database, type) {
     }
   };
 
-  MachineList.GetMachineById = async (reqBody, db,res) => {
+  MachineList.getMachineDetail = async (reqBody, db, res) => {
     try {
-      let all_machine = await MachineList.findAll({
+      let all_machine = await MachineList.findOne({
         where: { id: reqBody.id },
         include: [
           {
@@ -177,47 +166,16 @@ function machinelist(database, type) {
           },
         ],
       });
-      res.send(all_machine);
-      // let getInventoryHistory = async (id) => {
-      //   try {
-      //     let getInventoryComments = async (inventory_id) => {
-      //       try {
-      //         let inventory_comments = await db.InventoryCommentsModel.findAll({
-      //           where: {
-      //             inventory_id: inventory_id,
-      //           },
-      //         });
-      //         console.log(inventory_comments);
-      //         let userProfileData = await db.UserProfile.findAll({
-      //           where: {
-      //             [Op.or]: [
-      //               { id: inventory_comments.updated_by_user_id },
-      //               { id: inventory_comments.assign_unassign_user_id },
-      //             ],
-      //           },
-      //         });
-      //         const Result = [];
-      //         Result.comments = inventory_comments;
-      //         Result.userProfileData = userProfileData;
-      //         return Result;
-      //       } catch (error) {
-      //         throw new Error("error in  getInventoryComments");
-      //       }
-      //     };
-      //     const inventoryHistory = await getInventoryComments(all_machine.id);
-      //     return inventoryHistory;
-      //   } catch (error) {
-      //     throw new Error("error in getInventoryHistory");
-      //   }
-      // };
+      // res.send(all_machine);
+
       // let userProfiledata = await db.UserProfile.findAll({
-      //   where: { id: comments.assign_unassign_user_id },
+      //   where: { id: inventory_comments.assign_unassign_user_id },
       // });
       // return all_machine;
-      // const inventoryHistory = await getInventoryHistory(all_machine.id);
-      // return inventoryHistory;
+      // console.log(all_machine)
+      const inventoryHistory = await getInventoryHistory(reqBody.id, db);
+      return inventoryHistory;
     } catch (error) {
-      console.log(error);
       throw new Error("Unable to locate all users");
     }
   };
@@ -311,7 +269,108 @@ function machinelist(database, type) {
       throw new Error(error);
     }
   };
+  let getInventoryComments = async (inventory_id, db) => {
+    try {
+      let inventory_comments = await db.InventoryCommentsModel.findAll({
+        where: { inventory_id: inventory_id },
+      });
+      let userProfileData = [];
+      inventory_comments.forEach(async (comments) => {
+        let ProfileData = await db.UserProfile.findAll({
+          where: {
+            [Op.or]: [
+              { id: comments.updated_by_user_id },
+              { id: comments.assign_unassign_user_id },
+            ],
+          },
+        });
+        userProfileData.push(ProfileData);
+      });
+      const Result = [];
+      Result.comments = inventory_comments;
+      Result.userProfileData = userProfileData;
+      console.log(Result);
+      return Result;
+    } catch (error) {
+      console.log(error);
+      throw new Error("error in  getInventoryComments");
+    }
+  };
+  let getInventoryHistory = async (inventory_id, db) => {
+    try {
+      const inventoryHistory = await getInventoryComments(inventory_id, db);
+      return inventoryHistory;
+    } catch (error) {
+      throw new Error("error in getInventoryHistory");
+    }
+  };
   return MachineList;
 }
-
+let addInventoryComment = async (machine_id, loggeduserid, req,db) => {
+  const inventoryComment = await db.InventoryCommentsModel.create({
+    inventory_id: machine_id,
+    updated_by_user_id: loggeduserid,
+    comment_type: req.body.comment_type,
+    comment: req.body.unassign_comment,
+  });
+  if (req.body.assign_unassign_user_id != null) {
+    const inventoryComment = await db.InventoryCommentsModel.create({
+      inventory_id: machine_id,
+      updated_by_user_id: loggeduserid,
+      comment_type: req.body.comment_type,
+      comment: req.body.unassign_comment,
+      assign_unassign_user_id: req.body.assign_unassign_user_id,
+    });
+  }
+  return inventoryComment.id;
+};
+const assignUserMachine = async (machine_id, req, loggeduserid) => {
+  if (
+    req.body.userid == "" ||
+    req.body.userid == 0 ||
+    req.body.userid == null) {
+      await removeMachineAssignToUser(machine_id,loggeduserid,req);
+  }
+  else{
+    const machine_info =await getMachineDetails(machine_id)
+    let checkpass=true;
+    if(machine_info.status=="sold"){
+    checkpass=false;
+      message = "Sold status inventory cannnot be assign to any employee";
+    } 
+  }
+};
+const updateInventoryWithTempFile = async (
+  loggeduserid,
+  machine_id,
+  db, req
+) => {
+  const file_id = await db.InventoryTempFiles.findOne({
+    where: { id: req.body.temp_inventory_photo_id },
+  });
+  await updateInventoryFilePhoto(loggeduserid, machine_id, file_id,db,req);
+};
+const updateInventoryFilePhoto = async (
+  loggeduserid,
+  machine_id,
+  file_id,
+  db,req
+) => {
+  await db.MachineList.update(
+    { file_inventory_photo: file_id },
+    {where:{ id: machine_id }}
+  );
+  await addInventoryComment(machine_id, loggeduserid, req,db);
+};
+const removeMachineAssignToUser = async (machine_id, loggeduserid,req) => {
+const machine_Info = await getMachineDetail(machine_id);
+if(machine_Info!=null){
+  const message=[];
+  message.inventoryName=machine_Info.machine_name;
+  message.invetoryType=machine_Info.machine_type;
+  addInventoryComment(machine_id,loggeduserid,req,db)
+}
+await db.MachineUser.destroy({where:{machine_id:machine_id}})
+    return message;
+    };
 module.exports = machinelist;

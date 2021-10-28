@@ -7,7 +7,7 @@ const secret = require("../config");
 exports.inventoryController = async (req, res, next) => {
   try {
     let request_Validate = await reqValidate(req);
-    let machine_create = await db.MachineList.createMachine(req,db);
+    let machine_create = await db.MachineList.addOfficeMachine(req,db);
     req.body.obj_id = machine_create;
     if (machine_create != null) {
       res.status_code = 201;
@@ -96,7 +96,8 @@ exports.getMyInventoryController = async (req, res, next) => {
 
 exports.getMachineController = async (req, res, next) => {
   try {
-    let machine_list = await db.MachineList.GetMachineById(req.body,db,res);
+    let machine_list = await db.MachineList.getMachineDetail(req.body,db,res);
+    console.log(machine_list)
     res.status_code = 200;
     res.data = machine_list;
     return next();
