@@ -5,60 +5,44 @@ const jwt = require('jsonwebtoken')
 const secret = require('../config')
 const md5 = require("md5");
 
-// exports.userRegister = async (req, res, next) => {
-// 	try {
-// 		let request_Validate = await reqUser(req);
-// 		let user_details = await providers.validateCreation(req.body);
-// 		let user_create = await db.User.createUser(req.body);
-// 		req.body.user_id = user_create;
-// 		const token = await jwt.sign({ user_id:user_create, email:user_create.email },secret.jwtSecret,{ expiresIn: "2hr" })
-// 		res.token = token;
-// 		res.status_code = 201;
-// 		res.message = 'Created';
-// 		return next();
-// 	} catch (error) {														
-// 		res.status_code = 500;
-// 		res.message = error.message;
-// 		return next();
-// 	}
-// };
 exports.userRegister = async (req, res, next) => {
 	try {
 		let request_Validate = await reqUser(req);
 		let user_details = await providers.validateCreation(req.body);
 		let user_create = await db.User.createUser(req.body);
-		console.log(user_create);
-		let create_profile = await db.UserProfile.registerProfile(req.body,user_create.id);
 		req.body.user_id = user_create;
 		const token = await jwt.sign({ user_id:user_create, email:user_create.email },secret.jwtSecret,{ expiresIn: "2hr" })
 		res.token = token;
 		res.status_code = 201;
 		res.message = 'Created';
 		return next();
-	} catch (error) {		
-		console.log(error);												
+	} catch (error) {														
 		res.status_code = 500;
 		res.message = error.message;
 		return next();
 	}
 };
+
 exports.userLogin = async (req, res, next) => {
 	try {
 		let request_Validate = await reqUser(req);
+		// let user_details = await providers.validateCreation(req.body);
 		let username = req.body.username;
 		let password = md5(req.body.password);
 		let email = req.body.email;
-		console.log(password);
+		// console.log(password);
 		// if(req.body.googleAuthToken !== ""){
 		// 	// let result = await db.User.loginGoogleAuth(req.body.googleAuthToken);
 		// 	let result = "aditya";
 		// 	res.status_code = 200;
 		// 	res.data = result;
 		// }else{
+
 			let result = await db.User.login(username, password,email,db);
 			res.status_code =200;
 			res.data = result;
-		// }
+		
+			// }
 		// let user = await db.User.getMine(req.body);
 		// const token = await jwt.sign({ user_id: user, email: user.email },secret.jwtSecret,{ expiresIn: "2hr" })
 		// res.token = token;
@@ -75,6 +59,7 @@ exports.userLogin = async (req, res, next) => {
 		// }
 		return next();
 	} catch (error) {
+		console.log(error);
 		res.status_code = 500;
 		res.message = error.message;
 		return next();
@@ -85,6 +70,7 @@ exports.addNewEmployeeController = async(req,res,next) => {
 	try {
 		let newEmployeeData = await db.UserProfile.createProfile(req.body,res,db);
 		res.status_code = 200;
+		console.log(newEmployeeData);
 		res.data = newEmployeeData;
 		return next();
 	} catch (error) {

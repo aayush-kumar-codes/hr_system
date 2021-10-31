@@ -1,5 +1,12 @@
 function user(database, type) {
-  const { Op, fn, col, where } = require("sequelize");
+  const {
+    generateUserToken,
+    getUserInfoByWorkEmail,
+    getUserInfo,
+  } = require("../allFunctions");
+  const jwt = require("jsonwebtoken");
+  const secret = require("../config");
+  const { Op } = require("sequelize");
   const User = database.define(
     "detail",
     {
@@ -35,11 +42,15 @@ function user(database, type) {
     password,
     email,
     models,
-    forceLoginForUsername,
+    forceLoginForUsername
   ) => {
     try {
+      let error = 1;
+      let message;
+      let data = {};
+      let login_by_email = false;
       // if (!forceLoginForUsername) {
-      let query = await User.findAll({
+      let query = await User.findOne({
         where: {
           [Op.and]: [
             { username: username },
@@ -48,35 +59,55 @@ function user(database, type) {
           ],
         },
       });
-      let getUserInfoByWorkEmail = async (workEmailId, models) => {
-        let userProfile = await models.UserProfile.findOne({
-          where: { work_email: workEmailId },
-        });
-        console.log(userProfile);
-        let user = await User.findOne({ where: { id: userProfile.user_id } });
-        let user_roles = await models.UserRole.findOne({
-          where: { user_id: user.id },
-        });
-        let roles = await models.Roles.findOne({
-          where: { id: user_roles.role_id },
-        });
-        //  let userSlackInfo = getSlackUserInfo(workEmailId);
-        let data = [];
-        data.userProfile = userProfile;
-        data.user = user;
-        data.user_roles;
-        data.roles = roles;
-        //  data.slack_profile = userSlackInfo;
-        return data;
-      };
-      let user = await getUserInfoByWorkEmail(email, models);
-      console.log(user);
-      // console.log(query);
+      let userData = await getUserInfoByWorkEmail(email, models);
+      if ((userData.userProfile.user_Id && userData.user.password) !== "") {
+        if (userData.user.password == password) {
+          login_by_email = true;
+        } else {
+          login_by_email = false;
+        }
+      }
+      if (query == null) {
+        error = 1;
+        message = "invalid login";
+      } else {
+        let userId = query.id != null ? query.id : userData.userProfile.user_Id;
+        let userInfo = await getUserInfo(userId, models);
+        if (userInfo == null) {
+          message = "Invalid Login";
+        } else {
+          is_super_admin = false;
+          if (userInfo.users.type.toLowerCase() == "admin") {
+            is_super_admin = true;
+          }
+          if (is_super_admin == false && userInfo.user_roles.role_id == null) {
+            error = 1;
+            message = "Role is not assigned.Contact Admin";
+          } else {
+            error = 0;
+            message = "Success login";
+            let jwtToken = await generateUserToken(
+              userInfo.user_profile.user_Id,
+              models
+            );
+            // console.log(jwtToken);
+            data.token = jwtToken;
+            data.userId = userInfo.user_profile.user_Id;
+          }
+        }
+      }
+      let Return = {};
+      Return.error = error;
+      Return.message = message;
+      Return.data = data;
+      return Return;
       // }
     } catch (error) {
+      console.log(error);
       throw new Error(error);
     }
   };
+
   // User.getMine = async (reqBody) => {
   //   try {
   //     let user = await User.findOne({ where: { username: reqBody.username } });
