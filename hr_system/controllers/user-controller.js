@@ -39,8 +39,12 @@ exports.userLogin = async (req, res, next) => {
 		// }else{
 
 			let result = await db.User.login(username, password,email,db);
+			console.log(result.data.userId);
 			res.status_code =200;
-			res.data = result;
+			res.error = result.error;
+			res.message = result.message;
+			res.token = result.data.token;
+			res.data = result.data.userId;
 		
 			// }
 		// let user = await db.User.getMine(req.body);

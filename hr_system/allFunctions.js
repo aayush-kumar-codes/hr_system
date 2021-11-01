@@ -13,21 +13,23 @@ const secret = require("./config.json");
 const { Op, col } = require("sequelize");
 const db = require("./db");
 
+let getPageById = async (id) => {
+  let data;
+  let all = await getAllPages();
+  for (let item in all) {
+    if (all[item].id == id) {
+      data = all[item];
+    }
+  }
+  console.log(data);
+  return data;
+};
+
 let getRolePages = async (roleid, models) => {
   let query = await models.RolesPage.findAll({
     where: { role_id: roleid },
   });
   if (query.length > 0) {
-    let getPageById = async (id) => {
-      let data;
-      let all = await getAllPages();
-      for (let item in all) {
-        if (all[item].id == id) {
-          data = all[item];
-        }
-      }
-      return data;
-    };
     let data = await Promise.all(
       query.map(async (doc) => {
         doc = JSON.parse(JSON.stringify(doc));
@@ -37,6 +39,7 @@ let getRolePages = async (roleid, models) => {
         return obj;
       })
     );
+    console.log(data);
     return data;
   }
 };
@@ -624,7 +627,7 @@ let generateUserToken = async (userId, models) => {
   let userInfo = await getUserInfo(userId, models);
   if (userInfo == null) {
   } else {
-    // userProfileImage = await _getEmployeeProfilePhoto(userInfo);
+    // let userProfileImage = await _getEmployeeProfilePhoto(userInfo);
     let userRole;
     if (userInfo.users.type.toLowerCase() == "admin") {
       userRole = userInfo.users.type;
@@ -641,13 +644,14 @@ let generateUserToken = async (userId, models) => {
       name: userInfo.user_profile.name,
       jobtitle: userInfo.user_profile.jobtitle,
       // profileImage : userProfileImage,
-      // (login_time = getTime()),
+      login_time : new Date().getTime(),
       login_date_time: new Date(),
-      // eth_token : req.userData,
+      // eth_token : userInfo.users.eth_token,
     };
     let roleAction = [];
     if (userInfo.users.type.toLowerCase() == "admin") {
       u.role_pages = await getRolePagesForSuperAdmin();
+      // console.log(u.role_pages);
     } else {
       let roleInfo = await getUserRole(userInfo.user_profile.user_Id, models);
       if (roleInfo != null) {
@@ -670,6 +674,7 @@ let generateUserToken = async (userId, models) => {
         });
       }
     }
+    console.log(roleAction);
     u.role_actions = roleAction;
     u.is_policy_documents_read_by_user = 1;
     u.is_inventory_audit_pending = 0;
@@ -684,6 +689,7 @@ let generateUserToken = async (userId, models) => {
             key.pop();
           }
         });
+        // console.log(generic_pages);
         u.role_pages = generic_pages;
       }
       // let isValidGoogleDriveTokenExistsStatus = await isValidGoogleDriveTokenExists();
@@ -753,10 +759,10 @@ let generateUserToken = async (userId, models) => {
     }
     // console.log(u);
   }
-  let token = jwt.sign({ data: u }, secret.jwtSecret, {
+  let token = jwt.sign({data: u}, secret.jwtSecret, {
     expiresIn: "2hr",
   });
-  // console.log(jwtToken);
+  // console.log(token);
   return token;
 };
 

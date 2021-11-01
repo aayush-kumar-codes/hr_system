@@ -6,7 +6,7 @@ const handlers = require('../util/responseHandlers');
 const middleware = require("../middleware/Auth");
 
 router.post('/register', validators.userCreationValidator, userController.userRegister,handlers.responseForData);
-router.post('/login',validators.userLoginValidator,userController.userLogin,handlers.responseForData);
+router.post('/login',validators.userLoginValidator,userController.userLogin,handlers.responseHandle);
 router.post('/add_roles',middleware.AuthForAdmin,validators.addRoleValidator,userController.addUserRole,handlers.responseHandle);
 router.get('/list_all_roles',middleware.AuthForAdmin,userController.getUserRole,handlers.responseHandle);
 router.post("/add_new_employee", middleware.AuthForHr, validators.addNewEmployeeValidator ,userController.addNewEmployeeController, handlers.addNewEmployeeResponseHandle);
