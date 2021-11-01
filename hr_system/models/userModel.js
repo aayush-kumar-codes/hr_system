@@ -90,7 +90,6 @@ function user(database, type) {
               userInfo.user_profile.user_Id,
               models
             );
-            // console.log(jwtToken);
             data.token = jwtToken;
             data.userId = userInfo.user_profile.user_Id;
           }

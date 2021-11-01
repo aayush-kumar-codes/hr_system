@@ -21,7 +21,6 @@ let getPageById = async (id) => {
       data = all[item];
     }
   }
-  console.log(data);
   return data;
 };
 
@@ -39,7 +38,6 @@ let getRolePages = async (roleid, models) => {
         return obj;
       })
     );
-    console.log(data);
     return data;
   }
 };
@@ -77,7 +75,6 @@ let getRoleActions = async (roleid, models) => {
 //     await models.RolesNotification.findAll({
 //       where: { role_id: roleid },
 //     });
-//   console.log(query);
 //   if (query.length > 0) {
 //     let getNotificationById = async (id) => {
 //       let data;
@@ -108,21 +105,18 @@ let getRoleActions = async (roleid, models) => {
 
 let getRolePagesForSuperAdmin = async () => {
   let data = await getGenericPagesForAllRoles();
-  // console.log(data);
   let allPages = await getAllPages();
   allPages.forEach((page) => {
     newPage = { page_id: page.id, page_name: page.name };
     data.push(newPage);
   });
   let sorted_Data = data.sort();
-  // console.log(sorted_Data);
   return sorted_Data;
 };
 
 let getGenericPagesForAllRoles = async () => {
   let data = [];
-  let allPages = await getAllPages();
-  // console.log(123);
+  let allPages=await getAllPages();
   for (let page in allPages) {
     let pid = allPages[page].id;
     if (
@@ -142,7 +136,6 @@ let getGenericPagesForAllRoles = async () => {
 };
 
 // let _getEmployeeProfilePhoto = async (profileInfo) => {
-//   console.log(1);
 //   let profileImage;
 //   if (
 //     profileInfo.slack_profile.profile.image_original != null
@@ -248,7 +241,6 @@ let getRolePagesForApiToken = async (roleid, models) => {
     });
   }
   let sorted_Data = data.sort();
-  //   console.log(sorted_Data);
   return sorted_Data;
 };
 
@@ -267,19 +259,17 @@ let checkifPageEnabled = async (page_id, models) => {
 
 let getInventoriesRequestedForUnassign = async (models) => {
   let query = await models.MachineList.findAll(
-    { attributes: [col(id), machine_id] },
+    { attributes: [["id", "machine_id"]] },
     { where: { is_unassign_request: 1 } }
   );
-  // console.log(query);
   return query;
 };
 
-let getInventoriesRequestedForOwnershipChange = async () => {
+let getInventoriesRequestedForOwnershipChange = async (models) => {
   let query = await models.MachineList.findAll(
-    { attributes: [col(id), machine_id] },
+    { attributes: [["id", "machine_id"]] },
     { where: { ownership_change_req_by_user: 1 } }
   );
-  // console.log(query);
   return query;
 };
 
@@ -299,19 +289,18 @@ let getUserInventories = async (userid, models, userRole = false) => {
     roleName.toLowerCase() == "hr" ||
     roleName.toLowerCase() == "inventory manager"
   ) {
-    // console.log(123213);
     let unassignRequestInventories = await getInventoriesRequestedForUnassign(
       models
     );
-    query = query.concate(unassignRequestInventories);
+    query = query.concat(unassignRequestInventories);
     if (query.length > 1) {
       let tempExists = [];
-      query.forEach((key) => {
-        if (tempExists.includes(key.machine_id)) {
-          key.pop();
+      for(let i = 0; i< query.length; i++){
+        if(tempExists.includes(query[i].machine_id)){
+          query.pop();
         }
-        tempExists.push(key.machine_id);
-      });
+        tempExists.push(query[i].machine_id);
+      }
     }
   }
   if (
@@ -319,13 +308,13 @@ let getUserInventories = async (userid, models, userRole = false) => {
     roleName.toLowerCase() == "inventory manager"
   ) {
     let ownershipChangeRequestInventories =
-      await getInventoriesRequestedForOwnershipChange();
-    query = query.concate(ownershipChangeRequestInventories);
+      await getInventoriesRequestedForOwnershipChange(models);
+    query = query.concat(ownershipChangeRequestInventories);
     if (query.length > 1) {
       let tempExists = [];
       query.forEach((key) => {
         if (tempExists.includes(key.machine_id)) {
-          key.pop();
+          query.pop();
         }
         tempExists.push(key.machine_id);
       });
@@ -353,15 +342,17 @@ let getInventoryComments = async (inventory_id, models) => {
   let q1 = await models.InventoryCommentsModel.findAll({
     where: { inventory_id: inventory_id },
   });
+  for(let i in q1){
   let q2 = await models.UserProfile.findAll({
-    where: { user_id: q1.updated_by_user_id },
+    where: { user_Id: q1[i].updated_by_user_id },
   });
   let q3 = await models.UserProfile.findAll({
-    where: { user_id: q1.assign_unassign_user_id },
+    where: { user_Id: q1[i].assign_unassign_user_id },
   });
-  row.inventory_comments = q1;
   row.update_by_user = q2;
   row.assign_unassign_user_name = q3;
+  }
+  row.inventory_comments = q1;
   return row;
 };
 
@@ -381,7 +372,6 @@ let _getDateTimeData = async () => {
   data.todayDate_Y_m_d =
     date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
   return data;
-  // console.log(currentTimeStamp);
 };
 
 let getInvenoryAuditFullDetails = async (audit_id, models) => {
@@ -451,7 +441,7 @@ let getInventoryFullDetails = async (
   );
   let query3 = await models.UserProfile.findOne(
     { attributes: ["name", "work_email"] },
-    { where: { user_id: query2.user_id } }
+    { where: { user_id: query2.dataValues.user_Id } }
   );
   let query4 = await models.FilesModel.findOne({
     where: { id: query1.file_inventory_invoice },
@@ -527,19 +517,19 @@ let getInventoryFullDetails = async (
     row.file_inventory_photo = `${process.env.ENV_BASE_URL}.'attendance/uploads/inventories/'.${row.file_inventory_photo}`;
   }
   return row;
+  
 };
 // -------------------------------remanis--------------------------------
 
 let isInventoryAuditPending = async (userid, models) => {
   let isAuditPending = false;
   let userInventories = await getUserInventories(userid, models);
-  console.log(userInventories);
   if (userInventories == false) {
   } else {
     let hide_assigned_user_info = true;
     for (let ele in userInventories) {
       let i_details = await getInventoryFullDetails(
-        userInventories[ele].machine_id,
+        userInventories[ele].dataValues.machine_id,
         hide_assigned_user_info,
         models
       );
@@ -651,7 +641,6 @@ let generateUserToken = async (userId, models) => {
     let roleAction = [];
     if (userInfo.users.type.toLowerCase() == "admin") {
       u.role_pages = await getRolePagesForSuperAdmin();
-      // console.log(u.role_pages);
     } else {
       let roleInfo = await getUserRole(userInfo.user_profile.user_Id, models);
       if (roleInfo != null) {
@@ -668,18 +657,15 @@ let generateUserToken = async (userId, models) => {
       }
       if (roleInfo != null) {
         let role_actions = roleInfo.role_actions;
-        console.log(role_actions);
         role_actions.forEach((key) => {
           roleAction.push(key.action_name);
         });
       }
     }
-    console.log(roleAction);
     u.role_actions = roleAction;
     u.is_policy_documents_read_by_user = 1;
     u.is_inventory_audit_pending = 0;
     if (userInfo.users.type.toLowerCase() == "admin") {
-      console.log(2334234);
       if (isInventoryAuditPending(userInfo.users.id, models)) {
         let generic_pages = await getGenericPagesForAllRoles();
         u.right_to_skip_inventory_audit = 1;
@@ -689,21 +675,17 @@ let generateUserToken = async (userId, models) => {
             key.pop();
           }
         });
-        // console.log(generic_pages);
         u.role_pages = generic_pages;
       }
       // let isValidGoogleDriveTokenExistsStatus = await isValidGoogleDriveTokenExists();
-      // u.is_valid_google_drive_token_exists = isValidGoogleDriveTokenExistsStatus
-      // console.log(u);
+      // u.is_valid_google_drive_token_exists = isValidGoogleDriveTokenExistsStatus;
     } else {
-      // console.log(123123);
       let generic_pages = await getGenericPagesForAllRoles();
-      let is_policy_documents_read_by_user =
-        await is_policy_documents_read_by_user(
+      let is_policy_documents_read_by_user2 =await is_policy_documents_read_by_user (
           userInfo.user_profile.user_Id,
           models
         );
-      if (is_policy_documents_read_by_user == false) {
+      if (is_policy_documents_read_by_user2 == false) {
         u.is_policy_documents_read_by_user = 0;
         generic_pages.forEach((ele) => {
           if (!checkifPageEnabled(ele.page_id, models)) {
@@ -732,7 +714,7 @@ let generateUserToken = async (userId, models) => {
           }
         });
         if (
-          addOns.skip_inventory_audit &&
+          // addOns.skip_inventory_audit &&
           userInfo.users.type.toLowerCase() ==
             ("hr" || "inventory manager" || "hr payroll manager")
         ) {
@@ -745,11 +727,11 @@ let generateUserToken = async (userId, models) => {
         ("hr" || "inventory manager" || "hr payroll manager")
       ) {
         if (u.is_inventory_audit_pending == 1) {
-          if (addOns.skip_inventory_audit) {
-            u.is_inventory_audit_pending = 0;
-          } else {
+          // if (addOns.skip_inventory_audit) {
+          //   u.is_inventory_audit_pending = 0;
+          // } else {
             u.right_to_skip_inventory_audit = 1;
-          }
+          // }
         }
       }
     }
@@ -757,14 +739,26 @@ let generateUserToken = async (userId, models) => {
       let roles = await getRolesForPage(u.role_pages[ele].page_id, models);
       u.role_pages[ele].roles = roles;
     }
-    // console.log(u);
   }
   let token = jwt.sign({data: u}, secret.jwtSecret, {
     expiresIn: "2hr",
   });
-  // console.log(token);
   return token;
 };
+const refreshToken = async(oldToken,addOnsRefreshToken )=>{
+  let Return=oldToken;
+  if(await isValidTokenAgainstTime(oldToken)){
+    const checkJwt = await jwt.verify(oldToken[1], secret.jwtSecret);
+    let loggedUserInfo=jwt.decode(oldToken)
+    console.log(loggedUserInfo)
+    // loggedUserInfo = JWT::decode($oldToken, HR::JWT_SECRET_KEY);
+    // loggedUserInfo = json_decode(json_encode($loggedUserInfo), true);
+    // loggedUserInfo_userid = $loggedUserInfo['id'];
+    // Return = self::generateUserToken( $loggedUserInfo_userid, $addOns );
+  }
+
+}
+
 
 module.exports = {
   getRolePagesForSuperAdmin,
@@ -774,14 +768,17 @@ module.exports = {
   getRoleActions,
   //   getRoleNotifications,
   //   _getEmployeeProfilePhoto
+  getUserInventories,
   getUserInfo,
   getUserInfoByWorkEmail,
   getUserRole,
   getRolePagesForApiToken,
   checkifPageEnabled,
+  getInventoryFullDetails,
   isInventoryAuditPending,
   isUnassignInventoriesRequestPending,
   is_policy_documents_read_by_user,
   isOwnershipChangeInventoriesRequestPending,
   generateUserToken,
+  refreshToken,
 };

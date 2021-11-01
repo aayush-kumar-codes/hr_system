@@ -1,5 +1,10 @@
 const { MachineList } = require(".");
 const db = require("../db");
+const {
+  getUserInventories,
+  getUserRole,
+  getInventoryFullDetails,is_policy_documents_read_by_user,getUserInfo,
+} = require("../allFunctions");
 
 function machinelist(database, type) {
   const { Op } = require("sequelize");
@@ -62,57 +67,53 @@ function machinelist(database, type) {
       // }
       // console.log(Data)
       // if (Data.length == 0) {
-        let creation = await MachineList.create({
-          machine_type: req.body.machine_type,
-          machine_name: req.body.machine_name,
-          machine_price: req.body.machine_price,
-          serial_number: req.body.serial_number,
-          date_of_purchase: req.body.date_of_purchase,
-          mac_address: req.body.mac_address,
-          operating_system: req.body.operating_system,
-          status: req.body.status,
-          comments: req.body.unassign_comment,
-          warranty_end_date: req.body.warranty_end_date,
-          bill_number: req.body.bill_number,
-          warranty_comment: req.body.warranty_comment,
-          repair_comment: req.body.repair_comment,
-          file_inventory_invoice: req.body.file_inventory_invoice,
-          file_inventory_warranty: req.body.file_inventory_warranty,
-          file_inventory_photo: req.body.temp_inventory_photo,
-          warranty_years: req.body.warranty_years,
-          approval_status: req.body.approval_status,
-          is_unassign_request: req.body.is_unassign_request,
-          ownership_change_req_by_user: req.body.ownership_change_req_by_user,
-        });
-        if (creation.id != null) {
-          const machine_id = creation.id;
-          if (req.body.user_id == "" || req.body.user_id == null) {
-            if (req.body.unassign_comments != null) {
-              const addInventoryComment1 = await addInventoryComment(
-                creation.id,
-                loggeduserid,
-                req
-              );
-            } else {
-              console.log("unassign comment is empty");
-            }
-          } else {
-            const assign = await assignUserMachine(
-              machine_id,
-              req,
-              loggeduserid
+      let creation = await MachineList.create({
+        machine_type: req.body.machine_type,
+        machine_name: req.body.machine_name,
+        machine_price: req.body.machine_price,
+        serial_number: req.body.serial_number,
+        date_of_purchase: req.body.date_of_purchase,
+        mac_address: req.body.mac_address,
+        operating_system: req.body.operating_system,
+        status: req.body.status,
+        comments: req.body.unassign_comment,
+        warranty_end_date: req.body.warranty_end_date,
+        bill_number: req.body.bill_number,
+        warranty_comment: req.body.warranty_comment,
+        repair_comment: req.body.repair_comment,
+        file_inventory_invoice: req.body.file_inventory_invoice,
+        file_inventory_warranty: req.body.file_inventory_warranty,
+        file_inventory_photo: req.body.temp_inventory_photo,
+        warranty_years: req.body.warranty_years,
+        approval_status: req.body.approval_status,
+        is_unassign_request: req.body.is_unassign_request,
+        ownership_change_req_by_user: req.body.ownership_change_req_by_user,
+      });
+      if (creation.id != null) {
+        const machine_id = creation.id;
+        if (req.body.user_id == "" || req.body.user_id == null) {
+          if (req.body.unassign_comments != null) {
+            const addInventoryComment1 = await addInventoryComment(
+              creation.id,
+              loggeduserid,
+              req
             );
+          } else {
+            console.log("unassign comment is empty");
           }
-          await updateInventoryWithTempFile(loggeduserid, machine_id, db, req);
         } else {
-          console.log("Error in adding new inventory");
+          const assign = await assignUserMachine(machine_id, req, loggeduserid);
         }
-        return creation.id;
+        await updateInventoryWithTempFile(loggeduserid, machine_id, db, req);
+      } else {
+        console.log("Error in adding new inventory");
+      }
+      return creation.id;
       // } else {
       //   console.log("mac_address or serial_no already exists");
       // }
     } catch (error) {
-      console.log(error)
+      console.log(error);
       throw new Error(error);
     }
   };
@@ -125,14 +126,26 @@ function machinelist(database, type) {
       throw new Error("Unable to locate all users");
     }
   };
-
+//working
   MachineList.GetMachine = async (reqBody, models) => {
     try {
-      console.log(reqBody.userData)
-      const loggeduserid = reqBody.userData.user_id;
-      const myinventories=await api_getMyInventories(loggeduserid,user_role)
+      const loggeduserid = reqBody.userData.data.id;
+      const loggeduser_role=reqBody.userData.data.role;
+      let res = await api_getMyInventories(loggeduserid,loggeduser_role,models);
+      if(typeof reqBody.skip_inventory_audit!=undefined  && skip_inventory_audit==1){
+        let lowerCaseLoggedUserRole = toLowerCase(loggeduser_role)
+        if(lowerCaseLoggedUserRole=='hr' || lowerCaseLoggedUserRole == 'inventory manager' || 
+        lowerCaseLoggedUserRole == 'hr payroll manager' ||
+        lowerCaseLoggedUserRole == 'admin'){
+          let addOnsRefreshToken=[]
+          addOnsRefreshToken.skip_inventory_audit=true;
+          let newToken=await refreshToken( token, addOnsRefreshToken );
+          res.data.new_token=newToken;
+        }
+      }
 
     } catch (error) {
+      console.log(error)
       throw new Error("Unable to locate all users");
     }
   };
@@ -140,25 +153,25 @@ function machinelist(database, type) {
   MachineList.getMachineDetail = async (reqBody, db, res) => {
     try {
       let row = {};
-  let query1 = await models.MachineList.findOne({ where: { id: id } });
-  let query2 = await models.MachineUser.findOne(
-    { attributes: ["user_Id", "assign_date"] },
-    { where: { machine_id: query1.id } }
-  );
-  let query3 = await models.FilesModel.findOne({
-    where: { id: query1.file_inventory_invoice },
-  });
-  let query4 = await models.FilesModel.findOne({
-    where: { id: query1.file_inventory_warranty },
-  });
-  let query5 = await models.FilesModel.findOne({
-    where: { id: query1.file_inventory_photo },
-  });
-  row.machine_list = query1;
-  row.machine_user = query2
-  row.file_inventory_invoice = query3;
-  row.file_inventory_warranty = query4;
-  row.file_inventory_photo = query5;
+      let query1 = await models.MachineList.findOne({ where: { id: id } });
+      let query2 = await models.MachineUser.findOne(
+        { attributes: ["user_Id", "assign_date"] },
+        { where: { machine_id: query1.id } }
+      );
+      let query3 = await models.FilesModel.findOne({
+        where: { id: query1.file_inventory_invoice },
+      });
+      let query4 = await models.FilesModel.findOne({
+        where: { id: query1.file_inventory_warranty },
+      });
+      let query5 = await models.FilesModel.findOne({
+        where: { id: query1.file_inventory_photo },
+      });
+      row.machine_list = query1;
+      row.machine_user = query2;
+      row.file_inventory_invoice = query3;
+      row.file_inventory_warranty = query4;
+      row.file_inventory_photo = query5;
       // let all_machine = await MachineList.findOne({
       //   where: { id: reqBody.id },
       //   include: [
@@ -182,15 +195,13 @@ function machinelist(database, type) {
       //   where: { id: inventory_comments.assign_unassign_user_id },
       // });
       // return all_machine;
-      // console.log(all_machine)
       const inventoryHistory = await getInventoryHistory(reqBody.id, db);
-      row.history=inventoryHistory;
+      row.history = inventoryHistory;
       let Return = {};
-      Return.data= row;
-      console.log(Return)
+      Return.data = row;
       return Return;
     } catch (error) {
-      console.log(error)
+      console.log(error);
       throw new Error("Unable to locate all users");
     }
   };
@@ -304,7 +315,6 @@ function machinelist(database, type) {
       const Result = [];
       Result.comments = inventory_comments;
       Result.userProfileData = userProfileData;
-      console.log(Result);
       return Result;
     } catch (error) {
       console.log(error);
@@ -390,30 +400,73 @@ const removeMachineAssignToUser = async (machine_id, loggeduserid, req) => {
   await db.MachineUser.destroy({ where: { machine_id: machine_id } });
   return message;
 };
-const api_getMyInventories =(async(user_id,user_role)=>{
- const userInventories=await getUserInventories(user_id,user_role)
- if(!userInventories){
-   console.log("no inventories assigned to user")
- }
- else{
-   let roleName;
-   if(user_role ==null){
-    let roleDetails = await getUserRole(userid); 
-    if(typeof roleDetails.name!=undefined){
-      let roleName=roleDetails.name;
+const api_getMyInventories = async (user_id, user_role,models) => {
+  let error=0;
+  let message='';
+  let data={};
+  let userInventories = await getUserInventories(user_id,models, user_role);
+  console.log(userInventories)
+  console.log(123455)
+  if (!userInventories) {
+    message="no inventories assigned to user";
+  } else {
+    let roleName;
+    if (user_role == null) {
+      let roleDetails = await getUserRole(userid);
+      if (typeof roleDetails.name != undefined) {
+        let roleName = roleDetails.name;
+      }
+    } else {
+      roleName = user_role;
     }
-   }else{
-    roleName=user_role;
-   }
-   roleName=roleName.toLowerCase()
+    roleName = roleName.toLowerCase();
+    let user_assign_machine = [];
+    let hide_assigned_user_info = true;
+    for (let key in userInventories) {
+      let i_details = await getInventoryFullDetails(
+        userInventories[key].dataValues.machine_id,
+        hide_assigned_user_info,
+        models
+      );
+      if (typeof i_details.is_unassign_request!= undefined && i_details.is_unassign_request == 1) {
+        if (
+          roleName == "admin" ||
+          roleName == "hr" ||
+          roleName == "inventory manager"
+        ) {
+          i_details.is_unassign_request_handler = 1;
+        }
+      }
+      if (typeof i_details.ownership_change_req_by_user != undefined && i_details.ownership_change_req_by_user == 1) {
+        if (
+          roleName == "admin" ||
+          roleName == "hr" ||
+          roleName == "inventory manager"
+        ) {
+          i_details.is_ownership_change_req_handler = 1;
+        }
+      }
+      user_assign_machine.push(i_details);
+    }
+    data.user_assign_machine = user_assign_machine;
 
- }
-})
-const getUserInventories=async(user_id,user_role)=>{
+    let user_profile_detail=await getUserInfo(user_id,models)
+    let upd={};
+    upd.name = user_profile_detail.name
+    upd.jobtitle = user_profile_detail.jobtitle
+    upd.work_email = user_profile_detail.work_email
+    upd.slack_profile = user_profile_detail.slack_profile
+    upd.role_name = user_profile_detail.role_name
+    upd.gender = user_profile_detail.gender
+    upd.user_Id = user_profile_detail.user_Id;
 
-}
-const getUserRole=(async(userid)=>{
-
-
-})
+    data.user_profile_detail=upd;
+  }
+  let Return={};
+  Return.error=error;
+  Return.message=message;
+  Return.data=data;
+  console.log(Return)
+  return Return;
+};
 module.exports = machinelist;
