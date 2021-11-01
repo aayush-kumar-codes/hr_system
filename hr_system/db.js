@@ -13,9 +13,13 @@ Object.keys(Models).forEach((modelName) => {
 });
 
 Object.keys(db).forEach((modelName) => {
-  if ("associate" in db[modelName]) {
-    console.log(db[modelName]);
-    db[modelName].associate(db);
+  try {
+    if ("associate" in db[modelName]) {
+      console.log(db[modelName]);
+      db[modelName].associate(db);
+    }
+  } catch (error) {
+    console.log(error);
   }
 });
 

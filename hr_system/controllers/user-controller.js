@@ -3,6 +3,7 @@ const providers = require('../providers/creation-provider');
 const reqUser = require('../providers/error-check');
 const jwt = require('jsonwebtoken')
 const secret = require('../config')
+const md5 = require("md5");
 
 exports.userRegister = async (req, res, next) => {
 	try {
@@ -25,22 +26,44 @@ exports.userRegister = async (req, res, next) => {
 exports.userLogin = async (req, res, next) => {
 	try {
 		let request_Validate = await reqUser(req);
-		let user = await db.User.getMine(req.body);
-		const token = await jwt.sign({ user_id: user, email: user.email },secret.jwtSecret,{ expiresIn: "2hr" })
-		res.token = token;
-		if(res.token){
-			res.status_code = 200;
-			res.error = 0;
-			res.data = user;
-			res.message = "Success Login";
-		}else{
-			res.status_code = 401;
-			res.error = 1;
-			res.data = [];
-			res.message = "Login Failed";
-		}
+		// let user_details = await providers.validateCreation(req.body);
+		let username = req.body.username;
+		let password = md5(req.body.password);
+		let email = req.body.email;
+		// console.log(password);
+		// if(req.body.googleAuthToken !== ""){
+		// 	// let result = await db.User.loginGoogleAuth(req.body.googleAuthToken);
+		// 	let result = "aditya";
+		// 	res.status_code = 200;
+		// 	res.data = result;
+		// }else{
+
+			let result = await db.User.login(username, password,email,db);
+			console.log(result.data.userId);
+			res.status_code =200;
+			res.error = result.error;
+			res.message = result.message;
+			res.token = result.data.token;
+			res.data = result.data.userId;
+		
+			// }
+		// let user = await db.User.getMine(req.body);
+		// const token = await jwt.sign({ user_id: user, email: user.email },secret.jwtSecret,{ expiresIn: "2hr" })
+		// res.token = token;
+		// if(res.token){
+		// 	res.status_code = 200;
+		// 	res.error = 0;
+		// 	res.data = user;
+		// 	res.message = "Success Login";
+		// }else{
+		// 	res.status_code = 401;
+		// 	res.error = 1;
+		// 	res.data = [];
+		// 	res.message = "Login Failed";
+		// }
 		return next();
 	} catch (error) {
+		console.log(error);
 		res.status_code = 500;
 		res.message = error.message;
 		return next();
@@ -64,7 +87,12 @@ exports.addNewEmployeeController = async(req,res,next) => {
 exports.addUserRole = async (req, res, next) => {
 	try {
 		let request_Validate = await reqUser(req);
-		let role_create = await db.Role.AddUserRole(req.body);
+		if(req.body.base_role_id !== ""){
+			let base_role_id = req.body.base_role_id;
+		}
+		let name = req.body.name;
+		let description = req.body.description;
+		let role_create = await db.Role.AddUserRole(name, description, base_role_id);
 		res.status_code = 201;
 		res.data = role_create;
 		// res.message = 'Created';

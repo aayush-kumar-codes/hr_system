@@ -5,22 +5,38 @@ function roles(database, type) {
     last_update: type.DATE,
   });
 
-  roles.AddUserRole = async (reqBody, res) => {
+  roles.AddUserRole = async (name,description, base_role_id, res) => {
     try {
-      let foundRoles = await roles.findAll({ where: { name: reqBody.name } });
+      let foundRoles = await roles.findAll({ where: { name: name } });
       // console.log(foundRoles);
       if (foundRoles.length == 0) {
         let creation = await roles.create({
-          name: reqBody.name,
-          description: reqBody.description,
+          name: name,
+          description: description,
         });
-        // error = 0;
-        // message = "New role added";
-
-        return creation.id;
+        error = 0;
+        message = "New role added";
+        if(base_role_id != ""){
+          for(let roles in foundRoles){
+            let roleId = foundRoles[roles].id;
+            copyExistingRoleRightsToNewRole(base_role_id,roleId);
+          }
+        }else{
+          for(let roles in foundRoles){
+            let roleId = foundRoles[roles].id;
+            
+          }
+        }
+        // return creation.id;
       } else {
-        return "not updated";
+        error = 1;
+        message = "Role name already exist";
+        // return "not updated";
       }
+      let arr = [];
+      arr.error = error;
+      arr.message = message;
+      return arr;
     } catch (error) {
       throw new Error(error);
     }
