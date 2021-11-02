@@ -745,20 +745,39 @@ let generateUserToken = async (userId, models) => {
   });
   return token;
 };
-const refreshToken = async(oldToken,addOnsRefreshToken )=>{
+const refreshToken = async(oldToken,models,addOns=false)=>{
   let Return=oldToken;
-  if(await isValidTokenAgainstTime(oldToken)){
+  let ReturnedData=await isValidTokenAgainstTime(oldToken)
+  if(ReturnedData){
+    oldToken = oldToken.split(" ");
     const checkJwt = await jwt.verify(oldToken[1], secret.jwtSecret);
-    let loggedUserInfo=jwt.decode(oldToken)
-    console.log(loggedUserInfo)
-    // loggedUserInfo = JWT::decode($oldToken, HR::JWT_SECRET_KEY);
-    // loggedUserInfo = json_decode(json_encode($loggedUserInfo), true);
-    // loggedUserInfo_userid = $loggedUserInfo['id'];
-    // Return = self::generateUserToken( $loggedUserInfo_userid, $addOns );
+    let loggedUserInfo=jwt.decode(oldToken[1])
+    let loggedUserInfo_userid=loggedUserInfo.data.id
+    Return = await generateUserToken(loggedUserInfo_userid,models, addOns );
   }
+  return Return;  
+
+};
+const isValidTokenAgainstTime=async(token)=>{
+  let Return =true;
+  token = token.split(" ");
+  const checkJwt = await jwt.verify(token[1], secret.jwtSecret);
+  let tokenInfo=jwt.decode(token[1])
+  if(typeof tokenInfo!=undefined&&tokenInfo.data.login_time!=""){
+    let token_start_time=tokenInfo.data.login_time;
+    let current_time = new Date().getTime();
+    let time_diff=current_time-token_start_time;
+    let mins=time_diff/(60000);
+    if(mins>60){
+      Return=false;
+    }
+  } else {
+    Return =false;
+  }
+  return Return;
+
 
 }
-
 
 module.exports = {
   getRolePagesForSuperAdmin,

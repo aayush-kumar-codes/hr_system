@@ -4,6 +4,7 @@ const {
   getUserInventories,
   getUserRole,
   getInventoryFullDetails,is_policy_documents_read_by_user,getUserInfo,
+  refreshToken
 } = require("../allFunctions");
 
 function machinelist(database, type) {
@@ -132,16 +133,19 @@ function machinelist(database, type) {
       const loggeduserid = reqBody.userData.data.id;
       const loggeduser_role=reqBody.userData.data.role;
       let res = await api_getMyInventories(loggeduserid,loggeduser_role,models);
-      if(typeof reqBody.skip_inventory_audit!=undefined  && skip_inventory_audit==1){
-        let lowerCaseLoggedUserRole = toLowerCase(loggeduser_role)
+      // console.log(skip_inventory_audit);
+      // if(typeof reqBody.skip_inventory_audit!=undefined  && skip_inventory_audit==1){
+        let lowerCaseLoggedUserRole = loggeduser_role.toLowerCase()
         if(lowerCaseLoggedUserRole=='hr' || lowerCaseLoggedUserRole == 'inventory manager' || 
         lowerCaseLoggedUserRole == 'hr payroll manager' ||
         lowerCaseLoggedUserRole == 'admin'){
           let addOnsRefreshToken=[]
           addOnsRefreshToken.skip_inventory_audit=true;
-          let newToken=await refreshToken( token, addOnsRefreshToken );
-          res.data.new_token=newToken;
-        }
+          let newToken=await refreshToken( reqBody.headers.authorization,models, addOnsRefreshToken );
+          console.log(newToken)
+          console.log(3425633563)
+          // res.data.new_token=newToken;
+        // }
       }
 
     } catch (error) {
@@ -405,8 +409,6 @@ const api_getMyInventories = async (user_id, user_role,models) => {
   let message='';
   let data={};
   let userInventories = await getUserInventories(user_id,models, user_role);
-  console.log(userInventories)
-  console.log(123455)
   if (!userInventories) {
     message="no inventories assigned to user";
   } else {
@@ -466,7 +468,6 @@ const api_getMyInventories = async (user_id, user_role,models) => {
   Return.error=error;
   Return.message=message;
   Return.data=data;
-  console.log(Return)
   return Return;
 };
 module.exports = machinelist;
