@@ -133,8 +133,7 @@ function machinelist(database, type) {
       const loggeduserid = reqBody.userData.data.id;
       const loggeduser_role=reqBody.userData.data.role;
       let res = await api_getMyInventories(loggeduserid,loggeduser_role,models);
-      // console.log(skip_inventory_audit);
-      // if(typeof reqBody.skip_inventory_audit!=undefined  && skip_inventory_audit==1){
+      if(typeof reqBody.body.skip_inventory_audit!=undefined  && reqBody.body.skip_inventory_audit==1){
         let lowerCaseLoggedUserRole = loggeduser_role.toLowerCase()
         if(lowerCaseLoggedUserRole=='hr' || lowerCaseLoggedUserRole == 'inventory manager' || 
         lowerCaseLoggedUserRole == 'hr payroll manager' ||
@@ -142,10 +141,8 @@ function machinelist(database, type) {
           let addOnsRefreshToken=[]
           addOnsRefreshToken.skip_inventory_audit=true;
           let newToken=await refreshToken( reqBody.headers.authorization,models, addOnsRefreshToken );
-          console.log(newToken)
-          console.log(3425633563)
-          // res.data.new_token=newToken;
-        // }
+          res.data.new_token=newToken;
+        }
       }
 
     } catch (error) {
