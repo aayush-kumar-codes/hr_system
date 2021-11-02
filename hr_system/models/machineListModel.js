@@ -4,7 +4,7 @@ const {
   getUserInventories,
   getUserRole,
   getInventoryFullDetails,is_policy_documents_read_by_user,getUserInfo,
-  refreshToken
+  refreshToken,getInventoryHistory,
 } = require("../allFunctions");
 
 function machinelist(database, type) {
@@ -144,68 +144,69 @@ function machinelist(database, type) {
           res.data.new_token=newToken;
         }
       }
-
     } catch (error) {
       console.log(error)
       throw new Error("Unable to locate all users");
     }
   };
 
-  MachineList.getMachineDetail = async (reqBody, db, res) => {
-    try {
-      let row = {};
-      let query1 = await models.MachineList.findOne({ where: { id: id } });
-      let query2 = await models.MachineUser.findOne(
-        { attributes: ["user_Id", "assign_date"] },
-        { where: { machine_id: query1.id } }
-      );
-      let query3 = await models.FilesModel.findOne({
-        where: { id: query1.file_inventory_invoice },
-      });
-      let query4 = await models.FilesModel.findOne({
-        where: { id: query1.file_inventory_warranty },
-      });
-      let query5 = await models.FilesModel.findOne({
-        where: { id: query1.file_inventory_photo },
-      });
-      row.machine_list = query1;
-      row.machine_user = query2;
-      row.file_inventory_invoice = query3;
-      row.file_inventory_warranty = query4;
-      row.file_inventory_photo = query5;
-      // let all_machine = await MachineList.findOne({
-      //   where: { id: reqBody.id },
-      //   include: [
-      //     {
-      //       model: db.FilesModel,
-      //       as: "file_inventory_invoice_id",
-      //     },
-      //     {
-      //       model: db.FilesModel,
-      //       as: "file_inventory_warranty_id",
-      //     },
-      //     {
-      //       model: db.FilesModel,
-      //       as: "file_inventory_photo_id",
-      //     },
-      //   ],
-      // });
-      // res.send(all_machine);
+  // MachineList.getMachineDetail = async (reqBody,models, res) => {
+  //   try {
+  //     let error = 0;
+  //     let row = {};
+  //     let query1 = await models.MachineList.findOne({ where: { id: reqBody.id } });
+  //     let query2 = await models.MachineUser.findOne(
+  //       { attributes: ["user_Id", "assign_date"] },
+  //       { where: { machine_id: query1.id } }
+  //     );
+  //     let query3 = await models.FilesModel.findOne({
+  //       where: { id: query1.file_inventory_invoice },
+  //     });
+  //     let query4 = await models.FilesModel.findOne({
+  //       where: { id: query1.file_inventory_warranty },
+  //     });
+  //     let query5 = await models.FilesModel.findOne({
+  //       where: { id: query1.file_inventory_photo },
+  //     });
+  //     row.machine_list = query1;
+  //     row.machine_user = query2;
+  //     row.file_inventory_invoice = query3;
+  //     row.file_inventory_warranty = query4;
+  //     row.file_inventory_photo = query5;
+  //     // let all_machine = await MachineList.findOne({
+  //     //   where: { id: reqBody.id },
+  //     //   include: [
+  //     //     {
+  //     //       model: db.FilesModel,
+  //     //       as: "file_inventory_invoice_id",
+  //     //     },
+  //     //     {
+  //     //       model: db.FilesModel,
+  //     //       as: "file_inventory_warranty_id",
+  //     //     },
+  //     //     {
+  //     //       model: db.FilesModel,
+  //     //       as: "file_inventory_photo_id",
+  //     //     },
+  //     //   ],
+  //     // });
+  //     // res.send(all_machine);
 
-      // let userProfiledata = await db.UserProfile.findAll({
-      //   where: { id: inventory_comments.assign_unassign_user_id },
-      // });
-      // return all_machine;
-      const inventoryHistory = await getInventoryHistory(reqBody.id, db);
-      row.history = inventoryHistory;
-      let Return = {};
-      Return.data = row;
-      return Return;
-    } catch (error) {
-      console.log(error);
-      throw new Error("Unable to locate all users");
-    }
-  };
+  //     // let userProfiledata = await db.UserProfile.findAll({
+  //     //   where: { id: inventory_comments.assign_unassign_user_id },
+  //     // });
+  //     // return all_machine;
+  //     const inventoryHistory = await getInventoryHistory(reqBody.id, models);
+  //     row.history = inventoryHistory;
+  //     let Return = {};
+  //     Return.error=error;
+  //     Return.data = row;
+  //     return Return;
+  //   } catch (error) {
+  //     console.log(error);
+  //     throw new Error("Unable to locate all users");
+  //   }
+  // };
   MachineList.updateMachine = async (reqBody) => {
     try {
       // let machine_to_update = await MachineList.findAll({
@@ -298,9 +299,11 @@ function machinelist(database, type) {
   };
   let getInventoryComments = async (inventory_id, db) => {
     try {
+      console.log(12453)
       let inventory_comments = await db.InventoryCommentsModel.findAll({
         where: { inventory_id: inventory_id },
       });
+      console.log(211334)
       let userProfileData = [];
       inventory_comments.forEach(async (comments) => {
         let ProfileData = await db.UserProfile.findAll({
@@ -322,16 +325,6 @@ function machinelist(database, type) {
       throw new Error("error in  getInventoryComments");
     }
   };
-  let getInventoryHistory = async (inventory_id, db) => {
-    try {
-      const inventoryHistory = await getInventoryComments(inventory_id, db);
-      return inventoryHistory;
-    } catch (error) {
-      throw new Error("error in getInventoryHistory");
-    }
-  };
-  return MachineList;
-}
 let addInventoryComment = async (machine_id, loggeduserid, req, db) => {
   const inventoryComment = await db.InventoryCommentsModel.create({
     inventory_id: machine_id,
@@ -467,4 +460,6 @@ const api_getMyInventories = async (user_id, user_role,models) => {
   Return.data=data;
   return Return;
 };
+return MachineList;
+}
 module.exports = machinelist;

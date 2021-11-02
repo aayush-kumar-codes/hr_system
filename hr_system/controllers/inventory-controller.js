@@ -3,7 +3,7 @@ const providers = require("../providers/creation-provider");
 const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
-
+const {getMachineDetail}= require("../allFunctions")
 exports.inventoryController = async (req, res, next) => {
   try {
     let request_Validate = await reqValidate(req);
@@ -68,7 +68,7 @@ exports.AssignUserMachineController = async (req, res, next) => {
 
 exports.inventoryAuditController = async (req, res, next) => {
   try {
-    let audit_create = await db.InventoryCommentsModel.createAudit(req.body);
+    let audit_create = await db.InventoryCommentsModel.createAudit(req,db);
     res.status_code = 201;
     res.data = audit_create;
     res.message = "Created";
@@ -96,8 +96,7 @@ exports.getMyInventoryController = async (req, res, next) => {
 
 exports.getMachineController = async (req, res, next) => {
   try {
-    let machine_list = await db.MachineList.getMachineDetail(req.body,db,res);
-    console.log(machine_list)
+    let machine_list = await getMachineDetail(req.body,db,res);
     res.status_code = 200;
     res.data = machine_list;
     return next();

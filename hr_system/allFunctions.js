@@ -10,7 +10,7 @@ const {
 const jwt = require("jsonwebtoken");
 const secret = require("./config.json");
 
-const { Op, col } = require("sequelize");
+const { Op,QueryTypes } = require("sequelize");
 const db = require("./db");
 
 let getPageById = async (id) => {
@@ -116,7 +116,7 @@ let getRolePagesForSuperAdmin = async () => {
 
 let getGenericPagesForAllRoles = async () => {
   let data = [];
-  let allPages=await getAllPages();
+  let allPages = await getAllPages();
   for (let page in allPages) {
     let pid = allPages[page].id;
     if (
@@ -165,6 +165,7 @@ let getUserInfo = async (userId, models) => {
   let user_roles = await models.UserRole.findOne({
     where: { user_id: users.id },
   });
+  // console.log(user_roles)
   let roles = await models.Role.findOne({
     where: { id: user_roles.role_id },
   });
@@ -295,8 +296,8 @@ let getUserInventories = async (userid, models, userRole = false) => {
     query = query.concat(unassignRequestInventories);
     if (query.length > 1) {
       let tempExists = [];
-      for(let i = 0; i< query.length; i++){
-        if(tempExists.includes(query[i].machine_id)){
+      for (let i = 0; i < query.length; i++) {
+        if (tempExists.includes(query[i].machine_id)) {
           query.pop();
         }
         tempExists.push(query[i].machine_id);
@@ -342,15 +343,15 @@ let getInventoryComments = async (inventory_id, models) => {
   let q1 = await models.InventoryCommentsModel.findAll({
     where: { inventory_id: inventory_id },
   });
-  for(let i in q1){
-  let q2 = await models.UserProfile.findAll({
-    where: { user_Id: q1[i].updated_by_user_id },
-  });
-  let q3 = await models.UserProfile.findAll({
-    where: { user_Id: q1[i].assign_unassign_user_id },
-  });
-  row.update_by_user = q2;
-  row.assign_unassign_user_name = q3;
+  for (let i in q1) {
+    let q2 = await models.UserProfile.findAll({
+      where: { user_Id: q1[i].updated_by_user_id },
+    });
+    let q3 = await models.UserProfile.findAll({
+      where: { user_Id: q1[i].assign_unassign_user_id },
+    });
+    row.update_by_user = q2;
+    row.assign_unassign_user_name = q3;
   }
   row.inventory_comments = q1;
   return row;
@@ -517,7 +518,6 @@ let getInventoryFullDetails = async (
     row.file_inventory_photo = `${process.env.ENV_BASE_URL}.'attendance/uploads/inventories/'.${row.file_inventory_photo}`;
   }
   return row;
-  
 };
 // -------------------------------remanis--------------------------------
 
@@ -634,7 +634,7 @@ let generateUserToken = async (userId, models) => {
       name: userInfo.user_profile.name,
       jobtitle: userInfo.user_profile.jobtitle,
       // profileImage : userProfileImage,
-      login_time : new Date().getTime(),
+      login_time: new Date().getTime(),
       login_date_time: new Date(),
       // eth_token : userInfo.users.eth_token,
     };
@@ -681,7 +681,8 @@ let generateUserToken = async (userId, models) => {
       // u.is_valid_google_drive_token_exists = isValidGoogleDriveTokenExistsStatus;
     } else {
       let generic_pages = await getGenericPagesForAllRoles();
-      let is_policy_documents_read_by_user2 =await is_policy_documents_read_by_user (
+      let is_policy_documents_read_by_user2 =
+        await is_policy_documents_read_by_user(
           userInfo.user_profile.user_Id,
           models
         );
@@ -716,7 +717,7 @@ let generateUserToken = async (userId, models) => {
         if (
           // addOns.skip_inventory_audit &&
           userInfo.users.type.toLowerCase() ==
-            ("hr" || "inventory manager" || "hr payroll manager")
+          ("hr" || "inventory manager" || "hr payroll manager")
         ) {
         } else {
           u.role_pages = generic_pages;
@@ -730,7 +731,7 @@ let generateUserToken = async (userId, models) => {
           // if (addOns.skip_inventory_audit) {
           //   u.is_inventory_audit_pending = 0;
           // } else {
-            u.right_to_skip_inventory_audit = 1;
+          u.right_to_skip_inventory_audit = 1;
           // }
         }
       }
@@ -740,44 +741,155 @@ let generateUserToken = async (userId, models) => {
       u.role_pages[ele].roles = roles;
     }
   }
-  let token = jwt.sign({data: u}, secret.jwtSecret, {
+  let token = jwt.sign({ data: u }, secret.jwtSecret, {
     expiresIn: "2hr",
   });
   return token;
 };
-const refreshToken = async(oldToken,models,addOns=false)=>{
-  let Return=oldToken;
-  let ReturnedData=await isValidTokenAgainstTime(oldToken)
-  if(ReturnedData){
+const refreshToken = async (oldToken, models, addOns = false) => {
+  let Return = oldToken;
+  let ReturnedData = await isValidTokenAgainstTime(oldToken);
+  if (ReturnedData) {
     oldToken = oldToken.split(" ");
     const checkJwt = await jwt.verify(oldToken[1], secret.jwtSecret);
-    let loggedUserInfo=jwt.decode(oldToken[1])
-    let loggedUserInfo_userid=loggedUserInfo.data.id
-    Return = await generateUserToken(loggedUserInfo_userid,models, addOns );
-  }
-  return Return;  
-
-};
-const isValidTokenAgainstTime=async(token)=>{
-  let Return =true;
-  token = token.split(" ");
-  const checkJwt = await jwt.verify(token[1], secret.jwtSecret);
-  let tokenInfo=jwt.decode(token[1])
-  if(typeof tokenInfo!=undefined&&tokenInfo.data.login_time!=""){
-    let token_start_time=tokenInfo.data.login_time;
-    let current_time = new Date().getTime();
-    let time_diff=current_time-token_start_time;
-    let mins=time_diff/(60000);
-    if(mins>60){
-      Return=false;
-    }
-  } else {
-    Return =false;
+    let loggedUserInfo = jwt.decode(oldToken[1]);
+    let loggedUserInfo_userid = loggedUserInfo.data.id;
+    Return = await generateUserToken(loggedUserInfo_userid, models, addOns);
   }
   return Return;
+};
+const isValidTokenAgainstTime = async (token) => {
+  let Return = true;
+  token = token.split(" ");
+  const checkJwt = await jwt.verify(token[1], secret.jwtSecret);
+  let tokenInfo = jwt.decode(token[1]);
+  if (typeof tokenInfo != undefined && tokenInfo.data.login_time != "") {
+    let token_start_time = tokenInfo.data.login_time;
+    let current_time = new Date().getTime();
+    let time_diff = current_time - token_start_time;
+    let mins = time_diff / 60000;
+    if (mins > 60) {
+      Return = false;
+    }
+  } else {
+    Return = false;
+  }
+};
+let getMachineDetail = async (id, models, res) => {
+  try {
+    let error = 0;
+    let row = {};
+    let query1 = await models.MachineList.findOne({ where: { id: id } });
+    let query2 = await models.MachineUser.findOne(
+      { attributes: ["user_Id", "assign_date"] },
+      { where: { machine_id: query1.id } }
+    );
+    let query3 = await models.FilesModel.findOne({
+      where: { id: query1.file_inventory_invoice },
+    });
+    let query4 = await models.FilesModel.findOne({
+      where: { id: query1.file_inventory_warranty },
+    });
+    let query5 = await models.FilesModel.findOne({
+      where: { id: query1.file_inventory_photo },
+    });
+    row.machine_list = query1;
+    row.machine_user = query2;
+    row.file_inventory_invoice = query3;
+    row.file_inventory_warranty = query4;
+    row.file_inventory_photo = query5;
+    // let all_machine = await MachineList.findOne({
+    //   where: { id: req.body.id },
+    //   include: [
+    //     {
+    //       model: db.FilesModel,
+    //       as: "file_inventory_invoice_id",
+    //     },
+    //     {
+    //       model: db.FilesModel,
+    //       as: "file_inventory_warranty_id",
+    //     },
+    //     {
+    //       model: db.FilesModel,
+    //       as: "file_inventory_photo_id",
+    //     },
+    //   ],
+    // });
+    // res.send(all_machine);
 
-
+    // let userProfiledata = await db.UserProfile.findAll({
+    //   where: { id: inventory_comments.assign_unassign_user_id },
+    // });
+    // return all_machine;
+    const inventoryHistory = await getInventoryHistory(id, models);
+    row.history = inventoryHistory;
+    let Return = {};
+    Return.error = error;
+    Return.data = row;
+    return Return;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Unable to locate all users");
+  }
+};
+const api_addInventoryAudit = async (
+  loggedUserInfo,
+  inventory_id,
+  logged_user_id,
+  audit_comment_type,
+  audit_message,
+  models
+) => {
+  const addInventoryAudit1=  await addInventoryAudit(loggedUserInfo,inventory_id,logged_user_id,audit_comment_type,audit_message);
+  let messageBody = [];
+  if (audit_comment_type == "issue" || audit_comment_type == "critical_issue") {
+    let inventoryDetails = await getMachineDetail(inventory_id, models);
+    messageBody.issueType =
+      audit_comment_type == "issue" ? "Issue" : "Critical Issue";
+    messageBody.inventoryName = inventoryDetails.data.machine_name;
+    messageBody.inventoryType = inventoryDetails.data.machine_type;
+    messageBody.message = audit_message;
+  }
+  if (
+    typeof loggedUserInfo != "undefined" &&
+    typeof loggedUserInfo.role != undefined
+  ){
+   let loggedUserRole =loggedUserInfo.role.toLowerCase();
+   if(loggedUserRole=='admin'||loggedUserRole == 'hr'||loggedUserRole=='inventory manager'){
+     if(typeof inventoryDetails!=undefined){
+      inventoryDetails=await getMachineDetail(inventory_id,models)
+     }
+     if(typeof inventoryDetails.data!="undefined" &&typeof inventoryDetails.data.user_Id!="undefined"){
+      let assignedUsedId = inventoryDetails.data.user_id;
+      if(assignedUsedId!=null){
+      audit_comment_type = audit_comment_type.replace("_"," ")
+      audit_comment_type = audit_comment_type.toLowerCase().replace(/\b[a-z]/g, function(letter) {
+      return letter.toUpperCase();
+      });
+      messageBody.issueType = audit_comment_type ;
+      messageBody.inventoryName=inventoryDetails.data.machine_name;
+      messageBody.inventoryType=inventoryDetails.data.machine_type;
+      messageBody.message  = audit_message;
+   }
+  }
 }
+  }
+  Return = [];
+  Return.error = 0;
+  Return.message = 'Audit added for inventory successfully!!';
+  Return.data = [];
+  return Return;
+
+};
+// working on it
+// const addInventoryAudit= async(loggedUserInfo,inventory_id,updated_by_user_id,audit_comment_type,audit_message)=>{
+//   inventory_id = typeof inventory_id!="undefined" ? inventory_id : "";
+//   audit_done_by_user_id = updated_by_user_id ? updated_by_user_id : "";
+//   audit_comment_type    = comment_type ? comment_type : "";
+//   audit_message         = comment ? comment : "";
+//   let dateTimeData = await _getDateTimeData();
+//   console.log(dateTimeData)
+// }
 
 module.exports = {
   getRolePagesForSuperAdmin,
@@ -793,6 +905,7 @@ module.exports = {
   getUserRole,
   getRolePagesForApiToken,
   checkifPageEnabled,
+  getInventoryHistory,
   getInventoryFullDetails,
   isInventoryAuditPending,
   isUnassignInventoriesRequestPending,
@@ -800,4 +913,8 @@ module.exports = {
   isOwnershipChangeInventoriesRequestPending,
   generateUserToken,
   refreshToken,
+  isValidTokenAgainstTime,
+  api_addInventoryAudit,
+  addInventoryAudit,
+  getMachineDetail,
 };

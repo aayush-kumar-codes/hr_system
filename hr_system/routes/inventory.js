@@ -8,7 +8,7 @@ const middleware = require("../middleware/Auth");
 router.post('/add_office_machine', middleware.AuthForAdmin, validators.machineCreationValidator, inventoryControllers.inventoryController, handlers.responseForData); //done
 router.get('/get_office_machine', middleware.AuthForAdmin,inventoryControllers.inventoryGetController, handlers.responseForInventory);    //done
 router.post('/assign_user_machine', middleware.AuthForAdmin, validators.AssignUserMachineValidator,inventoryControllers.AssignUserMachineController, handlers.responseForInventory); //done
-router.get('/get_my_inventories', middleware.AuthForHr,inventoryControllers.getMyInventoryController, handlers.responseForInventory);
+router.get('/get_my_inventories', middleware.AuthForHr,inventoryControllers.getMyInventoryController, handlers.responseForInventory);//done
 router.post('/get_machine', middleware.AuthForAdmin,inventoryControllers.getMachineController,handlers.responseForInventory); //working
 router.post("/add_inventory_audit",middleware.AuthForHr,validators.inventoryAuditValidator,inventoryControllers.inventoryAuditController,handlers.responseForInventory);
 router.post("/add_machine_status",middleware.AuthForAdmin,validators.MachineStatusValidator,inventoryControllers.addMachineStatusController,handlers.responseForInventory);
