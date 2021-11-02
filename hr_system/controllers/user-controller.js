@@ -39,7 +39,7 @@ exports.userLogin = async (req, res, next) => {
 		// }else{
 
 			let result = await db.User.login(username, password,email,db);
-			console.log(result.data.userId);
+			// console.log(result.data.userId);
 			res.status_code =200;
 			res.error = result.error;
 			res.message = result.message;
@@ -87,14 +87,17 @@ exports.addNewEmployeeController = async(req,res,next) => {
 exports.addUserRole = async (req, res, next) => {
 	try {
 		let request_Validate = await reqUser(req);
-		if(req.body.base_role_id !== ""){
-			let base_role_id = req.body.base_role_id;
+		let base_role_id = null;
+		if((typeof req.body.base_role_id !== undefined) && (req.base_role_id != null)){
+			base_role_id = req.body.base_role_id;
 		}
 		let name = req.body.name;
 		let description = req.body.description;
-		let role_create = await db.Role.AddUserRole(name, description, base_role_id);
+		let role_create = await db.Role.AddNewRole(name, description, base_role_id);
 		res.status_code = 201;
-		res.data = role_create;
+		res.error = role_create.error;
+		// console.log(role_create.message);
+		res.message = role_create.message;
 		// res.message = 'Created';
 		return next();
 	} catch (error) {														
@@ -106,7 +109,7 @@ exports.addUserRole = async (req, res, next) => {
 
 exports.getUserRole = async (req, res, next) => {
 	try {
-		let machine_count = await db.Role.getUserRoles();
+		let machine_count = await db.Role.listAllRole(db);
 		res.status_code = 200;
 		res.data = machine_count;
 		return next();

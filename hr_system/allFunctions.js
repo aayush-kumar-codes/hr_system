@@ -21,7 +21,7 @@ let getPageById = async (id) => {
       data = all[item];
     }
   }
-  console.log(data);
+  // console.log(data);
   return data;
 };
 
@@ -39,7 +39,7 @@ let getRolePages = async (roleid, models) => {
         return obj;
       })
     );
-    console.log(data);
+    // console.log(data);
     return data;
   }
 };
@@ -347,7 +347,7 @@ let getRolesForPage = async (page_id, models) => {
   }
   return roles;
 };
-// ---------------------------remains--------------------------------
+// ---------------------------not remains--------------------------------
 let getInventoryComments = async (inventory_id, models) => {
   let row = {};
   let q1 = await models.InventoryCommentsModel.findAll({
@@ -528,12 +528,12 @@ let getInventoryFullDetails = async (
   }
   return row;
 };
-// -------------------------------remanis--------------------------------
+// ------------------------------- not remanis--------------------------------
 
 let isInventoryAuditPending = async (userid, models) => {
   let isAuditPending = false;
   let userInventories = await getUserInventories(userid, models);
-  console.log(userInventories);
+  // console.log(userInventories);
   if (userInventories == false) {
   } else {
     let hide_assigned_user_info = true;
@@ -644,7 +644,7 @@ let generateUserToken = async (userId, models) => {
       name: userInfo.user_profile.name,
       jobtitle: userInfo.user_profile.jobtitle,
       // profileImage : userProfileImage,
-      login_time : new Date().getTime(),
+      login_time: new Date().getTime(),
       login_date_time: new Date(),
       // eth_token : userInfo.users.eth_token,
     };
@@ -668,18 +668,18 @@ let generateUserToken = async (userId, models) => {
       }
       if (roleInfo != null) {
         let role_actions = roleInfo.role_actions;
-        console.log(role_actions);
+        // console.log(role_actions);
         role_actions.forEach((key) => {
           roleAction.push(key.action_name);
         });
       }
     }
-    console.log(roleAction);
+    // console.log(roleAction);
     u.role_actions = roleAction;
     u.is_policy_documents_read_by_user = 1;
     u.is_inventory_audit_pending = 0;
     if (userInfo.users.type.toLowerCase() == "admin") {
-      console.log(2334234);
+      // console.log(2334234);
       if (isInventoryAuditPending(userInfo.users.id, models)) {
         let generic_pages = await getGenericPagesForAllRoles();
         u.right_to_skip_inventory_audit = 1;
@@ -759,14 +759,180 @@ let generateUserToken = async (userId, models) => {
     }
     // console.log(u);
   }
-  let token = jwt.sign({data: u}, secret.jwtSecret, {
+  let token = jwt.sign({ data: u }, secret.jwtSecret, {
     expiresIn: "2hr",
   });
   // console.log(token);
   return token;
 };
 
+let copyExistingRoleRightsToNewRole = async (base_role_id, new_role_id) => {
+  let baseRoleData = await getRoleCompleteDetails(base_role_id);
+  if (baseRoleData != null && new_role_id != null) {
+    if (
+      typeof baseRoleData[role_pages] != undefined &&
+      baseRoleData[role_pages].length > 0
+    ) {
+      let b_pages = baseRoleData[role_pages];
+      for (let key in b_pages) {
+        let b_page_id = b_pages[key].page_id;
+        await addRolePage(new_role_id, b_page_id);
+      }
+    }
+    if (
+      typeof baseRoleData[role_actions] != undefined &&
+      baseRoleData[role_actions].length > 0
+    ) {
+      let b_actions = baseRoleData.role_actions;
+      for (let key in b_actions) {
+        let b_action_id = b_action[key].action_id;
+        await addRoleAction(new_role_id, b_action_id);
+      }
+    }
+    if (
+      typeof baseRoleData[role_notifications] != undefined &&
+      baseRoleData[role_notifications].length > 0
+    ) {
+      let b_notifications = baseRoleData.role_notifications;
+      for (let key in b_notifications) {
+        let b_notification_id = b_notifications[key].notification_id;
+        await addRoleNotification(new_role_id, b_notification_id);
+      }
+    }
+  }
+};
+
+let assignDefaultValuesToRole = async (new_role_id, roleName = false) => {
+  let allpages = await getAllPages();
+  for (let key in allpages) {
+    if (
+      typeof allpages[key].baseCheck != undefined &&
+      allpages[key].baseCheck == "defaultForAllRoles"
+    ) {
+      await addRolePage(new_role_id, allpages[key].id);
+      if (
+        typeof allpages[key].actions_list != undefined &&
+        allpages[key].actions_list > 0
+      ) {
+        for (let ele in allpages[key].actions_list) {
+          await addRoleAction(new_role_id, allpages[key].actions_list[ele].id);
+        }
+      }
+    }
+    if (roleName != false) {
+      if (
+        allpages[key].defaultForRoles != undefined &&
+        allpages[key].defaultForRoles > 0 &&
+        allpages[key].defaultForRoles.includes(roleName)
+      ) {
+        await addRolePage(new_role_id, allpages[key].id);
+        if (
+          typeof allpages[key].actions_list != undefined &&
+          allpages[key].actions_list > 0
+        ) {
+          for (let ele in allpages[key].actions_list) {
+            await addRoleAction(new_role_id, allpages[key].actions_list[ele]);
+          }
+        }
+      }
+    }
+  }
+};
+
+let getAllRole = async (models) => {
+  let q = await models.Role.findAll({});
+  return q;
+};
+
+let manageUserTypeOnRoleChange =async (userid, models) => {
+  let roleDetails = await getUserRole(userid, models);
+  let currentRoleName = roleDetails.role.name;
+  let q = await models.User.findOne({where: userid});
+  let userType = q.type;
+  if((currentRoleName.toLowerCase() == "admin") && (userType.toLowerCase() == "admin")){
+    let q = await models.User.update({type:"admin"},{where: {id: userid}});
+  }
+  if((currentRoleName.toLowerCase() != "admin") && (userType.toLowerCase() == "admin")){
+    let q = await models.User.update({type:"employee"},{where: {id: userid}});
+  }
+  return true;
+}
+
+let isOnlyOneAdminRoleChanging = async(userid,models) => {
+  let roleInfo = await getUserRole(userid, models);
+  if((typeof roleInfo.name != undefined) && (roleInfo.name == "admin")){
+    let q = models.User.findAll({where: {type: "admin"}});
+    if(q.length == 1){
+      return true;
+    }
+  }
+  return false;
+} 
+
+let assignUserRole = async (userid, roleid, models) => {
+  let error = 1;
+  let message;
+  if (await isOnlyOneAdminRoleChanging(userid, models)) {
+    message = "Role cannot be change, as only one admin is left!!";
+  } else {
+    if (roleid == 0) {
+      let q = models.UserRole.destroy({ user_id: userid });
+      error = 0;
+      message = "User Role removed!!";
+    } else {
+      let q = models.UserRole.findAll({ where: { user_id: userid } });
+      if (q.length == 0) {
+        let creation = await models.UserRole.create({
+          user_id: userid,
+          role_id: roleid,
+        });
+        error = 0;
+        message = "User role assigned!!";
+      } else {
+        let q = await models.UserRole.update(
+          { role_id: roleid },
+          { where: { user_id: userid } }
+        );
+        error = 0;
+        message = "User role updated!!";
+      }
+    }
+    await manageUserTypeOnRoleChange(userid, models);
+  }
+  let Return = {
+    error: error,
+    message: message,
+  };
+  return Return;
+};
+
+let assignAdminRoleToUserTypeAdminIfNoRoleAssigned = async (roles, models) => {
+  let q = await models.User.findAll({
+    where: { [Op.and]: [{ type: "admin" }, { status: "Enabled" }] },
+  });
+  if (q.length > 0) {
+    let adminRoleDetails = null;
+    for (let key in roles) {
+      if (roles[key].name == "admin") {
+        adminRoleDetails = roles[key];
+      }
+    }
+    if (adminRoleDetails != null) {
+      for (let key in q) {
+        let roleInfo = await getUserRole(q[key].id, models);
+        if (
+          roleInfo == null ||
+          (typeof roleInfo.name != undefined && roleInfo.name != "admin")
+        ) {
+          await assignUserRole(q[key].id, adminRoleDetails.id, models);
+        }
+      }
+    }
+  }
+};
+
 module.exports = {
+  getAllRole,
   getRolePagesForSuperAdmin,
   getGenericPagesForAllRoles,
   getRolePages,
@@ -784,4 +950,7 @@ module.exports = {
   is_policy_documents_read_by_user,
   isOwnershipChangeInventoriesRequestPending,
   generateUserToken,
+  copyExistingRoleRightsToNewRole,
+  assignDefaultValuesToRole,
+  assignAdminRoleToUserTypeAdminIfNoRoleAssigned,
 };
