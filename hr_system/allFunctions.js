@@ -10,7 +10,7 @@ const {
 const jwt = require("jsonwebtoken");
 const secret = require("./config.json");
 
-const { Op, col } = require("sequelize");
+const { Op, QueryTypes } = require("sequelize");
 const db = require("./db");
 
 let getPageById = async (id) => {
@@ -29,6 +29,8 @@ let getRolePages = async (roleid, models) => {
   let query = await models.RolesPage.findAll({
     where: { role_id: roleid },
   });
+  // console.log(8989);
+  // console.log(query.length);
   if (query.length > 0) {
     let data = await Promise.all(
       query.map(async (doc) => {
@@ -43,23 +45,24 @@ let getRolePages = async (roleid, models) => {
     return data;
   }
 };
+let getActionById = async (id) => {
+  let data;
+  let all = await getAllActions();
+  for (let item in all) {
+    if (all[item].id == id) {
+      data = all[item];
+    }
+  }
+  return data;
+};
 
 let getRoleActions = async (roleid, models) => {
   let query = await models.RolesAction.findAll({
     where: { role_id: roleid },
   });
+  let data;
   if (query.length > 0) {
-    let getActionById = async (id) => {
-      let data;
-      let all = await getAllActions();
-      for (let item in all) {
-        if (all[item].id == id) {
-          data = all[item];
-        }
-      }
-      return data;
-    };
-    let data = await Promise.all(
+    data = await Promise.all(
       query.map(async (doc) => {
         doc = JSON.parse(JSON.stringify(doc));
         let obj = { ...doc };
@@ -68,8 +71,12 @@ let getRoleActions = async (roleid, models) => {
         return obj;
       })
     );
+    // console.log(4343);
+    // console.log(data);
     return data;
   }
+  // console.log(9090);
+  // console.log(data);
 };
 
 // let getRoleNotifications = async (roleid, models) => {
@@ -165,22 +172,27 @@ let getGenericPagesForAllRoles = async () => {
 // };
 
 let getUserInfo = async (userId, models) => {
-  let users = await models.User.findOne({ where: { id: userId } });
-  let user_profile = await models.UserProfile.findOne({
-    where: { user_Id: users.id },
-  });
-  let user_roles = await models.UserRole.findOne({
-    where: { user_id: users.id },
-  });
-  let roles = await models.Role.findOne({
-    where: { id: user_roles.role_id },
-  });
-  let data = [];
-  data.users = users;
-  data.user_profile = user_profile;
-  data.user_roles = user_roles;
-  data.roles = roles;
-  return data;
+  try {
+    let users = await models.User.findOne({ where: { id: userId } });
+    let user_profile = await models.UserProfile.findOne({
+      where: { user_Id: users.id },
+    });
+    let user_roles = await models.UserRole.findOne({
+      where: { user_id: users.id },
+    });
+    let roles = await models.Role.findOne({
+      where: { id: user_roles.role_id },
+    });
+    let data = {};
+    data.users = users;
+    data.user_profile = user_profile;
+    data.user_roles = user_roles;
+    data.roles = roles;
+    return data;
+  } catch (error) {
+    console.log(error);
+    throw new Error(error);
+  }
 };
 
 let getUserInfoByWorkEmail = async (workEmailId, models) => {
@@ -721,7 +733,7 @@ let generateUserToken = async (userId, models) => {
           await isOwnershipChangeInventoriesRequestPending(models);
       }
       if (
-        isInventoryAuditPending(userInfo.users.id, models) ||
+        (await isInventoryAuditPending(userInfo.users.id, models)) ||
         hasUnassignRequestInventories ||
         hasOwnershipChangeInventoriesRequestPending
       ) {
@@ -844,30 +856,42 @@ let getAllRole = async (models) => {
   return q;
 };
 
-let manageUserTypeOnRoleChange =async (userid, models) => {
+let manageUserTypeOnRoleChange = async (userid, models) => {
   let roleDetails = await getUserRole(userid, models);
   let currentRoleName = roleDetails.role.name;
-  let q = await models.User.findOne({where: userid});
+  let q = await models.User.findOne({ where: { id: userid } });
   let userType = q.type;
-  if((currentRoleName.toLowerCase() == "admin") && (userType.toLowerCase() == "admin")){
-    let q = await models.User.update({type:"admin"},{where: {id: userid}});
+  if (
+    currentRoleName.toLowerCase() == "admin" &&
+    userType.toLowerCase() == "admin"
+  ) {
+    let q = await models.User.update(
+      { type: "admin" },
+      { where: { id: userid } }
+    );
   }
-  if((currentRoleName.toLowerCase() != "admin") && (userType.toLowerCase() == "admin")){
-    let q = await models.User.update({type:"employee"},{where: {id: userid}});
+  if (
+    currentRoleName.toLowerCase() != "admin" &&
+    userType.toLowerCase() == "admin"
+  ) {
+    let q = await models.User.update(
+      { type: "employee" },
+      { where: { id: userid } }
+    );
   }
   return true;
-}
+};
 
-let isOnlyOneAdminRoleChanging = async(userid,models) => {
+let isOnlyOneAdminRoleChanging = async (userid, models) => {
   let roleInfo = await getUserRole(userid, models);
-  if((typeof roleInfo.name != undefined) && (roleInfo.name == "admin")){
-    let q = models.User.findAll({where: {type: "admin"}});
-    if(q.length == 1){
+  if (typeof roleInfo.name != undefined && roleInfo.name == "admin") {
+    let q = await models.User.findAll({ where: { type: "admin" } });
+    if (q.length == 1) {
       return true;
     }
   }
   return false;
-} 
+};
 
 let assignUserRole = async (userid, roleid, models) => {
   let error = 1;
@@ -876,11 +900,11 @@ let assignUserRole = async (userid, roleid, models) => {
     message = "Role cannot be change, as only one admin is left!!";
   } else {
     if (roleid == 0) {
-      let q = models.UserRole.destroy({ user_id: userid });
+      let q = await models.UserRole.destroy({ user_id: userid });
       error = 0;
       message = "User Role removed!!";
     } else {
-      let q = models.UserRole.findAll({ where: { user_id: userid } });
+      let q = await models.UserRole.findAll({ where: { user_id: userid } });
       if (q.length == 0) {
         let creation = await models.UserRole.create({
           user_id: userid,
@@ -931,7 +955,126 @@ let assignAdminRoleToUserTypeAdminIfNoRoleAssigned = async (roles, models) => {
   }
 };
 
+let validateSecretKey = async (secret_key, models) => {
+  let Return = false;
+  let q = await models.SecretTokens.findOne({
+    where: { secret_key: secret_key },
+  });
+  if (q.length > 0) {
+    Return = true;
+  }
+  return Return;
+};
+
+let getEnabledUsersList = async (sorted_by = false, models) => {
+  try {
+    let q;
+    let isAdmin;
+    // console.log(typeof isAdmin);
+    if (sorted_by == "salary") {
+      q = await models.sequelize.query(
+        "SELECT users.*, user_profile.*,salary.total_salary,roles.id as role_id,roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile.user_id LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id LEFT JOIN ( SELECT user_Id, MAX(total_salary) as total_salary FROM salary GROUP BY user_Id ) as salary ON users.id = salary.user_Id where users.status = 'Enabled' ORDER BY salary.total_salary DESC",
+        { type: QueryTypes.SELECT }
+      );
+    } else if (sorted_by == "dateofjoining") {
+      q = await models.sequelize.query(
+        "SELECT users.*, user_profile.*,roles.id as role_id,roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile.user_id LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' ORDER BY user_profile.dateofjoining ASC ",
+        { type: QueryTypes.SELECT }
+      );
+    } else {
+      q = await models.sequelize.query(
+        "SELECT users.*,user_profile.*,roles.id as role_id,roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile.user_id LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' ",
+        { type: QueryTypes.SELECT }
+      );
+    }
+    // console.log(q);
+    let newRows = [];
+    for (let pp in q) {
+      delete q[pp].total_salary;
+      if (isAdmin === null) {
+        delete q[pp].holding_comments;
+      }
+      q[pp].slack_profile = [];
+      newRows.push(q[pp]);
+    }
+    // console.log(newRows);
+    // let slackUserList = await getSlackUsersList();
+    // we have make function related to slack user php code line no. 585 getSlackUsersList();
+    // if(newRows.length>0){
+    //   for(let key in newRows){
+    //     newRows[key][profileImage] = await _getEmployeeProfilePhoto(newRows[key].profileImage.values());
+    //   }
+    // }
+    return newRows
+  } catch (error) {
+    console.log(error);
+    throw new Error(error);
+  }
+};
+let getEnabledUsersListWithoutPass = async (
+  role = false,
+  sorted_by = false,
+  models
+) => {
+  let row = await getEnabledUsersList(sorted_by, models);
+  let secureKeys = [
+    "bank_account_num",
+    "blood_group",
+    "address1",
+    "address2",
+    "emergency_ph1",
+    "emergency_ph2",
+    "medical_condition",
+    "dob",
+    "marital_status",
+    "city",
+    "state",
+    "zip_postal",
+    "country",
+    "home_ph",
+    "mobile_ph",
+    "work_email",
+    "other_email",
+    "special_instructions",
+    "pan_card_num",
+    "permanent_address",
+    "current_address",
+    "slack_id",
+    "policy_document",
+    "training_completion_date",
+    "termination_date",
+    "training_month",
+    "slack_msg",
+    "signature",
+    "role_id",
+    "role_name",
+    "eth_token",
+  ];
+  for (let val in row) {
+    delete row[val].password;
+    if (role.toLowerCase() == "guest") {
+      for (let key in val) {
+        for (let secureKey in secureKeys) {
+          if (val[key] == secureKeys[secureKey]) {
+            delete val[key];
+          }
+        }
+      }
+    }
+    row.push(row[val]);
+  }
+  let Return = {
+    error: 0,
+    data: row,
+  };
+  // console.log(231);
+  return Return;
+};
+
 module.exports = {
+  getEnabledUsersListWithoutPass,
+  validateSecretKey,
+  assignUserRole,
   getAllRole,
   getRolePagesForSuperAdmin,
   getGenericPagesForAllRoles,

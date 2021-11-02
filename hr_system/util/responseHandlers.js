@@ -2,8 +2,8 @@ let responseHandle = async (req, res) => {
   res.status(res.status_code).json({
     error: res.error,
     data: {
-      message: res.message,
       token: res.token,
+      message: res.message,
       userid: res.data,
     },
   });

@@ -8,7 +8,7 @@ function user(database, type) {
   const secret = require("../config");
   const { Op } = require("sequelize");
   const User = database.define(
-    "detail",
+    "user",
     {
       username: {
         type: type.STRING,
@@ -34,7 +34,7 @@ function user(database, type) {
           });
         },
       },
-    }
+    }, { timestamps: false}
   );
 
   User.login = async (
