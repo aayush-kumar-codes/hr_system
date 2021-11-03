@@ -5,20 +5,22 @@ function machine_status(database, type) {
     status: type.STRING,
     color: type.STRING,
     is_default: type.INTEGER,
+  },{ freezeTableName: true,
+    timestamps: false
   });
 
-  MachineStatus.AddMachineStatus = async (reqBody) => {
-    try {
-      let creation = await MachineStatus.create({
-        status: reqBody.status,
-        color: reqBody.color,
-        is_default: reqBody.is_default,
-      });
-      return creation;
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
+  // MachineStatus.AddMachineStatus = async (reqBody) => {
+  //   try {
+  //     let creation = await MachineStatus.create({
+  //       status: reqBody.status,
+  //       color: reqBody.color,
+  //       is_default: reqBody.is_default,
+  //     });
+  //     return creation;
+  //   } catch (error) {
+  //     throw new Error(error);
+  //   }
+  // };
 
   MachineStatus.getAllStatus = async (reqBody) => {
     try {

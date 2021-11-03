@@ -10,8 +10,9 @@ const {
 const jwt = require("jsonwebtoken");
 const secret = require("./config.json");
 
-const { Op,QueryTypes } = require("sequelize");
+const {Op,QueryTypes } = require("sequelize");
 const db = require("./db");
+const { sequelize } = require("./db");
 
 let getPageById = async (id) => {
   let data;
@@ -911,7 +912,45 @@ let addInventoryComment = async (machine_id, loggeduserid, models,req) => {
   }
   return inventoryComment.id;
 };
-
+const AddMachineStatus =async(req,models)=>{
+  let addInventoryStatusType1 = await addInventoryStatusType(req,models)
+}
+const addInventoryStatusType = async(req,models)=>{
+let r_error = 0;
+let r_message = "";
+let r_data    = [];
+let newStatus = false;
+if(typeof req.body.status==undefined || req.body.status==null||req.body.status==""){
+r_error = 1;
+r_message = "Status is empty.";
+}
+else{
+ let data_status = req.body.status.trim();
+ console.log(data_status)
+ let q =await models.sequelize.query(`SELECT * FROM machine_status WHERE status = :status`, { replacements: { status: data_status }, type:QueryTypes.SELECT })
+if(q.length>0){
+  r_error   = 1;
+  r_message = "data_status status already exists";
+} else {
+  let is_default=0;
+  let color='';
+  q=await models.MachineStatus.create(data_status,is_default,color)
+  if (q!=null) {
+      r_error   = 1;
+      r_message = "Error in adding status."
+  } else {
+      r_error   = 0;
+      r_message = "$data_status status added successfully.";
+  }
+}
+}
+let Return =[];
+Return['error']   = r_error;
+Return['message'] = r_message;
+Return['data']    = r_data;
+console.log(Return)
+return Return;
+}
 module.exports = {
   getRolePagesForSuperAdmin,
   getGenericPagesForAllRoles,
@@ -939,4 +978,6 @@ module.exports = {
   addInventoryAudit,
   addInventoryComment ,
   getMachineDetail,
+  AddMachineStatus,
+  addInventoryStatusType
 };
