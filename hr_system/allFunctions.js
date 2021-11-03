@@ -199,7 +199,10 @@ let getUserInfoByWorkEmail = async (workEmailId, models) => {
   let userProfile = await models.UserProfile.findOne({
     where: { work_email: workEmailId },
   });
+  console.log(userProfile);
   let user = await models.User.findOne({ where: { id: userProfile.user_Id } });
+  console.log(234);
+  console.log(user);
   let user_roles = await models.UserRole.findOne({
     where: { user_id: user.id },
   });
@@ -279,7 +282,7 @@ let checkifPageEnabled = async (page_id, models) => {
 
 let getInventoriesRequestedForUnassign = async (models) => {
   let query = await models.MachineList.findAll(
-    { attributes: [col(id), machine_id] },
+    { attributes: [["id", "machine_id"]] },
     { where: { is_unassign_request: 1 } }
   );
   // console.log(query);
@@ -288,7 +291,7 @@ let getInventoriesRequestedForUnassign = async (models) => {
 
 let getInventoriesRequestedForOwnershipChange = async () => {
   let query = await models.MachineList.findAll(
-    { attributes: [col(id), machine_id] },
+    { attributes: [["id", "machine_id"]] },
     { where: { ownership_change_req_by_user: 1 } }
   );
   // console.log(query);
@@ -970,24 +973,25 @@ let getEnabledUsersList = async (sorted_by = false, models) => {
   try {
     let q;
     let isAdmin;
-    // console.log(typeof isAdmin);
+    console.log(typeof isAdmin);
     if (sorted_by == "salary") {
       q = await models.sequelize.query(
-        "SELECT users.*, user_profile.*,salary.total_salary,roles.id as role_id,roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile.user_id LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id LEFT JOIN ( SELECT user_Id, MAX(total_salary) as total_salary FROM salary GROUP BY user_Id ) as salary ON users.id = salary.user_Id where users.status = 'Enabled' ORDER BY salary.total_salary DESC",
+        "SELECT users.*, user_profile.*,salary.total_salary,roles.id as role_id,roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile.user_Id LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id LEFT JOIN ( SELECT user_Id, MAX(total_salary) as total_salary FROM salary GROUP BY user_Id ) as salary ON users.id = salary.user_Id where users.status = 'Enabled' ORDER BY salary.total_salary DESC",
         { type: QueryTypes.SELECT }
       );
     } else if (sorted_by == "dateofjoining") {
       q = await models.sequelize.query(
-        "SELECT users.*, user_profile.*,roles.id as role_id,roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile.user_id LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' ORDER BY user_profile.dateofjoining ASC ",
+        "SELECT users.*, user_profile.*,roles.id as role_id,roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile.user_Id LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' ORDER BY user_profile.dateofjoining ASC ",
         { type: QueryTypes.SELECT }
       );
     } else {
+      console.log(8787);
       q = await models.sequelize.query(
-        "SELECT users.*,user_profile.*,roles.id as role_id,roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile.user_id LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' ",
+        `SELECT users.*, user_profile.*,roles.id as role_id, roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile."user_Id" LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' `,
         { type: QueryTypes.SELECT }
       );
     }
-    // console.log(q);
+    console.log(q);
     let newRows = [];
     for (let pp in q) {
       delete q[pp].total_salary;
@@ -998,14 +1002,13 @@ let getEnabledUsersList = async (sorted_by = false, models) => {
       newRows.push(q[pp]);
     }
     // console.log(newRows);
-    // let slackUserList = await getSlackUsersList();
-    // we have make function related to slack user php code line no. 585 getSlackUsersList();
+    // we have mker function related to slack user php code line no. 585 getSlackUsersList();
     // if(newRows.length>0){
-    //   for(let key in newRows){
+    //  for(let key in newRow
     //     newRows[key][profileImage] = await _getEmployeeProfilePhoto(newRows[key].profileImage.values());
     //   }
     // }
-    return newRows
+    return newRows;
   } catch (error) {
     console.log(error);
     throw new Error(error);
@@ -1017,6 +1020,7 @@ let getEnabledUsersListWithoutPass = async (
   models
 ) => {
   let row = await getEnabledUsersList(sorted_by, models);
+  let rows = [];
   let secureKeys = [
     "bank_account_num",
     "blood_group",
@@ -1061,14 +1065,14 @@ let getEnabledUsersListWithoutPass = async (
         }
       }
     }
-    row.push(row[val]);
+    rows.push(row[val]);
   }
-  let Return = {
-    error: 0,
-    data: row,
-  };
-  // console.log(231);
-  return Return;
+  // let Return = {
+  //   error: 0,
+  //   data: rows,
+  // };
+  // // console.log(231);
+  return rows;
 };
 
 module.exports = {
@@ -1096,4 +1100,4 @@ module.exports = {
   copyExistingRoleRightsToNewRole,
   assignDefaultValuesToRole,
   assignAdminRoleToUserTypeAdminIfNoRoleAssigned,
-};
+}

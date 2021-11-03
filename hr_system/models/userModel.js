@@ -60,6 +60,8 @@ function user(database, type) {
         },
       });
       let userData = await getUserInfoByWorkEmail(email, models);
+      console.log(2342);
+      console.log(userData);
       if ((userData.userProfile.user_Id && userData.user.password) !== "") {
         if (userData.user.password == password) {
           login_by_email = true;

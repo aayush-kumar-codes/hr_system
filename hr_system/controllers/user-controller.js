@@ -146,11 +146,12 @@ exports.getEnableUser = async (req, res, next) => {
     }
     let sorted_by =
       typeof req.body.sorted_by != "undefined" ? req.body.sorted_by : false;
-    let result = await getEnabledUsersListWithoutPass(role, sorted_by, db);
+    let result = await getEnabledUsersListWithoutPass(role, sorted_by, db,res);
 	console.log(result.data);
     res.status_code = 200;
-    res.error = result.error;
-    res.data = result.data;
+    // res.send = result
+    res.error = 0;
+    res.data = result;
 	return next();
   } catch (error) {
     console.log(error);

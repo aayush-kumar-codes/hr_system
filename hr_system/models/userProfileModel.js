@@ -7,7 +7,7 @@ function user_profile(database, type) {
       name: type.STRING,
       jobtitle: type.STRING,
       dateofjoining: type.DATE,
-      user_id: type.INTEGER,
+      user_Id: type.INTEGER,
       dob: type.DATE,
       gender: type.STRING,
       marital_status: type.STRING,
