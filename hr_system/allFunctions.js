@@ -838,9 +838,9 @@ const api_addInventoryAudit = async (
   logged_user_id,
   audit_comment_type,
   audit_message,
-  models
+  models,req
 ) => {
-  const addInventoryAudit1=  await addInventoryAudit(loggedUserInfo,inventory_id,logged_user_id,audit_comment_type,audit_message);
+  const addInventoryAudit1=  await addInventoryAudit(loggedUserInfo,inventory_id,logged_user_id,audit_comment_type,audit_message,models,req);
   let messageBody = [];
   if (audit_comment_type == "issue" || audit_comment_type == "critical_issue") {
     let inventoryDetails = await getMachineDetail(inventory_id, models);
@@ -881,15 +881,36 @@ const api_addInventoryAudit = async (
   return Return;
 
 };
-// working on it
-// const addInventoryAudit= async(loggedUserInfo,inventory_id,updated_by_user_id,audit_comment_type,audit_message)=>{
-//   inventory_id = typeof inventory_id!="undefined" ? inventory_id : "";
-//   audit_done_by_user_id = updated_by_user_id ? updated_by_user_id : "";
-//   audit_comment_type    = comment_type ? comment_type : "";
-//   audit_message         = comment ? comment : "";
-//   let dateTimeData = await _getDateTimeData();
-//   console.log(dateTimeData)
-// }
+const addInventoryAudit= async(loggedUserInfo,inventory_id,updated_by_user_id,audit_comment_type,audit_comment,models,req)=>{
+  inventory_id = typeof inventory_id!="undefined" ? inventory_id : "";
+  audit_done_by_user_id = updated_by_user_id ? updated_by_user_id : "";
+  audit_comment_type    = audit_comment_type ? audit_comment_type : "";
+  audit_message         = audit_comment ? audit_comment : "";
+  let dateTimeData = await _getDateTimeData();
+  let audit_month  = dateTimeData.current_month_number;
+  let audit_year   = dateTimeData.current_year_number;
+  let inventory_comment_id  = await addInventoryComment(inventory_id,loggedUserInfo.id,models,req)
+  let q= await models.InventoryAuditMonthWise.create(inventory_id, audit_month, audit_year, audit_done_by_user_id, inventory_comment_id )
+  return true;
+}
+let addInventoryComment = async (machine_id, loggeduserid, models,req) => {
+  const inventoryComment = await models.InventoryCommentsModel.create({
+    inventory_id: machine_id,
+    updated_by_user_id: loggeduserid,
+    comment_type: req.body.comment_type,
+    comment: req.body.unassign_comment,
+  });
+  if (req.body.assign_unassign_user_id != null) {
+    const inventoryComment = await models.InventoryCommentsModel.create({
+      inventory_id: machine_id,
+      updated_by_user_id: loggeduserid,
+      comment_type: req.body.comment_type,
+      comment: req.body.unassign_comment,
+      assign_unassign_user_id: req.body.assign_unassign_user_id,
+    });
+  }
+  return inventoryComment.id;
+};
 
 module.exports = {
   getRolePagesForSuperAdmin,
@@ -916,5 +937,6 @@ module.exports = {
   isValidTokenAgainstTime,
   api_addInventoryAudit,
   addInventoryAudit,
+  addInventoryComment ,
   getMachineDetail,
 };

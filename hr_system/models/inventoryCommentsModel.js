@@ -66,7 +66,7 @@ function inventorycomments(database, type) {
         models,
         req
       );
-      if (
+          if (
         typeof req.body.do_refresh_token != "undefined" &&
         req.body.do_refresh_token == 1
       ) {

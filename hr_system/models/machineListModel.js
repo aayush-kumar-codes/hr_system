@@ -5,6 +5,7 @@ const {
   getUserRole,
   getInventoryFullDetails,is_policy_documents_read_by_user,getUserInfo,
   refreshToken,getInventoryHistory,
+  addInventoryComment,
 } = require("../allFunctions");
 
 function machinelist(database, type) {
@@ -325,24 +326,24 @@ function machinelist(database, type) {
       throw new Error("error in  getInventoryComments");
     }
   };
-let addInventoryComment = async (machine_id, loggeduserid, req, db) => {
-  const inventoryComment = await db.InventoryCommentsModel.create({
-    inventory_id: machine_id,
-    updated_by_user_id: loggeduserid,
-    comment_type: req.body.comment_type,
-    comment: req.body.unassign_comment,
-  });
-  if (req.body.assign_unassign_user_id != null) {
-    const inventoryComment = await db.InventoryCommentsModel.create({
-      inventory_id: machine_id,
-      updated_by_user_id: loggeduserid,
-      comment_type: req.body.comment_type,
-      comment: req.body.unassign_comment,
-      assign_unassign_user_id: req.body.assign_unassign_user_id,
-    });
-  }
-  return inventoryComment.id;
-};
+// let addInventoryComment = async (machine_id, loggeduserid, req, db) => {
+//   const inventoryComment = await db.InventoryCommentsModel.create({
+//     inventory_id: machine_id,
+//     updated_by_user_id: loggeduserid,
+//     comment_type: req.body.comment_type,
+//     comment: req.body.unassign_comment,
+//   });
+//   if (req.body.assign_unassign_user_id != null) {
+//     const inventoryComment = await db.InventoryCommentsModel.create({
+//       inventory_id: machine_id,
+//       updated_by_user_id: loggeduserid,
+//       comment_type: req.body.comment_type,
+//       comment: req.body.unassign_comment,
+//       assign_unassign_user_id: req.body.assign_unassign_user_id,
+//     });
+//   }
+//   return inventoryComment.id;
+// };
 const assignUserMachine = async (machine_id, req, loggeduserid) => {
   if (
     req.body.userid == "" ||
