@@ -112,7 +112,7 @@ let getRoleActions = async (roleid, models) => {
 //     return data;
 //   }
 // };
-
+// configured new laptop
 let getRolePagesForSuperAdmin = async () => {
   let data = await getGenericPagesForAllRoles();
   // console.log(data);
