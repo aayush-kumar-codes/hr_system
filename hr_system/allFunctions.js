@@ -780,7 +780,9 @@ let getMachineDetail = async (id, models, res) => {
   try {
     let error = 0;
     let row = {};
+    console.log(id)
     let query1 = await models.MachineList.findOne({ where: { id: id } });
+
     let query2 = await models.MachineUser.findOne(
       { attributes: ["user_Id", "assign_date"] },
       { where: { machine_id: query1.id } }
@@ -890,11 +892,54 @@ const addInventoryAudit= async(loggedUserInfo,inventory_id,updated_by_user_id,au
   let dateTimeData = await _getDateTimeData();
   let audit_month  = dateTimeData.current_month_number;
   let audit_year   = dateTimeData.current_year_number;
+
   let inventory_comment_id  = await addInventoryComment(inventory_id,loggedUserInfo.id,models,req)
+  console.log(123)
   let q= await models.InventoryAuditMonthWise.create(inventory_id, audit_month, audit_year, audit_done_by_user_id, inventory_comment_id )
   return true;
 }
-let addInventoryComment = async (machine_id, loggeduserid, models,req) => {
+let getMachineStatusList=async(req,models)=>{
+  let r_error=1;
+  let r_message="";
+  let r_data=[];
+  let q1 =await models.sequelize.query(`SELECT machine_status.*, (SELECT COUNT(*) FROM machinelist WHERE machinelist.status = machine_status.status) AS total_inventories FROM machine_status`, {type:QueryTypes.SELECT })
+  console.log(q1.length)
+  if(q1.length==0){
+    r_message="no machine status list found";
+  }else{
+    r_error = 0;
+    r_data  = q1;
+  }
+  let Return =[];
+  Return.error=r_error;
+  Return.data=r_data;
+  Return.message=r_message;
+  return Return;
+
+}
+//working on it
+let getMachineCount=async(req,models)=>{
+  let r_error=1;
+  let r_message = "";
+  let query=await models.sequelize.query( 'SELECT machinelist.*, machines_user."user_Id" FROM machinelist LEFT JOIN machines_user ON machinelist.id= machines_user."machine_id"',{type:QueryTypes.SELECT })
+  let arr_device=[];
+  arr_device.key=1
+  console.log(arr_device)
+  if(query.length>0){
+    count=1;  
+  for(let elem of query){
+    let key=elem.machine_type.trim();
+    let key2 = elem.status.toLowerCase().replace(/\b[a-z]/g, function(letter) {
+      return letter.toUpperCase(); });
+      console.log(arr_device)
+      // if(elem.hasOwnProperty("key")){
+      // }else{
+      //   console.log(2)
+      // }
+  }
+  }
+}
+let addInventoryComment = async (machine_id, loggeduserid,models,req) => {
   const inventoryComment = await models.InventoryCommentsModel.create({
     inventory_id: machine_id,
     updated_by_user_id: loggeduserid,
@@ -979,5 +1024,7 @@ module.exports = {
   addInventoryComment ,
   getMachineDetail,
   AddMachineStatus,
-  addInventoryStatusType
+  addInventoryStatusType,
+  getMachineStatusList,
+  getMachineCount
 };

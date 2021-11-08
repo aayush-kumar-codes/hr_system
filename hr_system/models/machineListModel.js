@@ -261,14 +261,14 @@ function machinelist(database, type) {
     }
   };
 
-  MachineList.getMachineCount = async () => {
-    try {
-      let machine_count = await MachineList.count();
-      return machine_count;
-    } catch (error) {
-      throw new Error("Unable to locate all machine count");
-    }
-  };
+  // MachineList.getMachineCount = async () => {
+  //   try {
+  //     let machine_count = await MachineList.count();
+  //     return machine_count;
+  //   } catch (error) {
+  //     throw new Error("Unable to locate all machine count");
+  //   }
+  // };
 
   MachineList.getMachinesDetail = async () => {
     try {

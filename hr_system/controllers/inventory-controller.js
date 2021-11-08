@@ -3,7 +3,7 @@ const providers = require("../providers/creation-provider");
 const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
-const {getMachineDetail,AddMachineStatus}= require("../allFunctions")
+const {getMachineDetail,AddMachineStatus,getMachineStatusList,getMachineCount}= require("../allFunctions")
 exports.inventoryController = async (req, res, next) => {
   try {
     let request_Validate = await reqValidate(req);
@@ -96,7 +96,7 @@ exports.getMyInventoryController = async (req, res, next) => {
 
 exports.getMachineController = async (req, res, next) => {
   try {
-    let machine_list = await getMachineDetail(req.body,db,res);
+    let machine_list = await getMachineDetail(req.body.id,db,res);
     res.status_code = 200;
     res.data = machine_list;
     return next();
@@ -154,9 +154,12 @@ exports.addMachineStatusController = async (req, res, next) => {
 
 exports.getMachineStatusController = async (req, res, next) => {
   try {
-    let machine_list = await db.MachineStatus.getAllStatus(req);
+    let machine_list = await getMachineStatusList(req,db);
+    console.log(machine_list.data)
     res.status_code = 200;
-    res.data = machine_list;
+    res.error=machine_list.error;
+    res.message=machine_list.message;
+    res.data = machine_list.data;
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -186,11 +189,12 @@ exports.deleteMachineStatusController = async (req, res, next) => {
 
 exports.getMachineCountController = async (req, res, next) => {
   try {
-    let machine_count = await db.MachineList.getMachineCount();
+    let machine_count = await getMachineCount(req,db);
     res.status_code = 200;
     res.data = machine_count;
     return next();
   } catch (error) {
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();

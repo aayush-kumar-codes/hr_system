@@ -57,6 +57,7 @@ function inventorycomments(database, type) {
           audit_message = req.body.audit_message;
         }
       }
+  
       let response = await api_addInventoryAudit(
         loggedUserInfo,
         inventory_id,
@@ -66,6 +67,7 @@ function inventorycomments(database, type) {
         models,
         req
       );
+      console.log(123243)
           if (
         typeof req.body.do_refresh_token != "undefined" &&
         req.body.do_refresh_token == 1
