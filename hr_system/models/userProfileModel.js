@@ -1,4 +1,6 @@
 const md5 = require("md5");
+const { randomString} = require("../allFunctions")
+const { Op, QueryTypes } = require("sequelize");
 const sendEmail = require("../util/sendEmail");
 function user_profile(database, type) {
   const user_profile = database.define(
@@ -45,7 +47,7 @@ function user_profile(database, type) {
     },
     {
       freezeTableName: true,
-      timestamps: false
+      timestamps: false,
     }
   );
 
@@ -101,8 +103,13 @@ function user_profile(database, type) {
   //   // });
   // };
 
-  user_profile.createProfile = async (reqBody, res, models) => {
+  user_profile.addNewEmployee = async (reqBody, models) => {
     try {
+      // console.log(1);
+      let error = 1;
+      let message;
+      let userId;
+      let password =  randomString(5);
       let username = await models.User.findAll({
         where: { username: reqBody.username },
       });
@@ -113,19 +120,17 @@ function user_profile(database, type) {
         where: { other_email: reqBody.email },
       });
       if (username.length !== 0) {
-        res.error = 1;
-        res.message = "username exists";
+        error = 1;
+        message = "username exists";
       } else if (workemail.length !== 0) {
-        res.error = 1;
-        res.message = "workemail exists";
+        error = 1;
+        message = "workemail exists";
       } else if (otheremail.length !== 0) {
-        res.error = 1;
-        res.message = "personal email exitsts";
+        error = 1;
+        message = "personal email exists";
       } else {
         let type = "Employee";
-        // let password = "asdfkjdf"
-        let passwordString = md5(Date.now());
-        // let passwordString = "myname";
+        passwordString = md5(password);
         let status = "Enabled";
         let userCreation = await models.User.create({
           username: reqBody.username,
@@ -133,11 +138,11 @@ function user_profile(database, type) {
           status: status,
           type: type,
         });
-        let userId = userCreation.id;
-        // console.log(userId);
+        userId = userCreation.id;
+        console.log(userId);
         if (!userId) {
-          res.error = 1;
-          res.message = "Error occured while adding user";
+          error = 1;
+          message = "Error occured while adding user";
         } else {
           // console.log("aditya");
           let userProfileData = await user_profile.create({
@@ -151,16 +156,16 @@ function user_profile(database, type) {
             training_month: reqBody.training_month,
             other_email: reqBody.email,
           });
-          // console.log(userProfileData);
+          console.log(userProfileData);
           if (!userProfileData) {
             let userDelete = await models.User.destroy({
               where: { id: userId },
             });
-            res.error = 1;
-            res.message = "Error in adding new.";
+            error = 1;
+            message = "Error in adding new.";
           } else {
-            res.error = 0;
-            res.message = "Employee added Successfully";
+            error = 0;
+            message = "Employee added Successfully";
             if (reqBody.notifyNewEmpHrms == true) {
               let username = reqBody.username;
               await sendEmail(
@@ -175,33 +180,29 @@ function user_profile(database, type) {
               console.log(allRoles[roles].name);
               if (allRoles[roles].name == "Employee") {
                 let defaultRoleId = allRoles[roles].id;
-                console.log(userId);
-                console.log(defaultRoleId);
                 if (userId && defaultRoleId !== "") {
                   let roleToAssign = await models.UserRole.assignRole(
                     userId,
                     defaultRoleId
                   );
                 } else {
-                  res.error = 1;
-                  res.message = "role not assigned";
+                  error = 1;
+                  message = "role not assigned";
                 }
-                // } else {
-                //   res.error = 1;
-                //   res.message = "roles dont match";
               }
             }
           }
         }
-        let Return = {};
-        let data = {};
-        data.userID = userId;
-        data.password = passwordString;
-        Return.error = res.error;
-        Return.message = res.message;
-        Return.data = data;
-        return Return;
       }
+      let Return = {};
+      let data = {};
+      data.userID = userId;
+      data.password = passwordString;
+      Return.error = error;
+      Return.message = message;
+      Return.data = data;
+      console.log(Return);
+      return Return;
     } catch (error) {
       console.log(error);
       throw new Error(error);
@@ -228,6 +229,19 @@ function user_profile(database, type) {
     }
   };
 
+  // user_profile.addNewEmployee = async (reqBody, models) => {
+  //   try {
+  //     let error =1;
+  //     let message = "";
+  //     let data = [];
+  //     let q =  await models.sequelize.query(
+  //       `select * from users where username='${reqBody.username}' `,
+  //       { type: QueryTypes.SELECT }
+  //     );
+  //   } catch (error) {
+  //     throw new Error (error);
+  //   }
+  // }
   user_profile.getUserPolicyDocument = async (req) => {
     try {
       const user_id = req.userData.user_id;

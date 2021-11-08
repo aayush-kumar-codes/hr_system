@@ -29,8 +29,6 @@ let getRolePages = async (roleid, models) => {
   let query = await models.RolesPage.findAll({
     where: { role_id: roleid },
   });
-  // console.log(8989);
-  // console.log(query.length);
   if (query.length > 0) {
     let data = await Promise.all(
       query.map(async (doc) => {
@@ -41,18 +39,20 @@ let getRolePages = async (roleid, models) => {
         return obj;
       })
     );
-    // console.log(data);
     return data;
   }
 };
 let getActionById = async (id) => {
   let data;
   let all = await getAllActions();
+  // console.log(all);
   for (let item in all) {
     if (all[item].id == id) {
       data = all[item];
     }
   }
+  // console.log(233);
+  // console.log(data);
   return data;
 };
 
@@ -67,6 +67,7 @@ let getRoleActions = async (roleid, models) => {
         doc = JSON.parse(JSON.stringify(doc));
         let obj = { ...doc };
         let action = await getActionById(doc.action_id);
+        // console.log(action);
         obj.action_name = action.name;
         return obj;
       })
@@ -171,26 +172,17 @@ let getGenericPagesForAllRoles = async () => {
 //   return profileImage;
 // };
 
-let getUserInfo = async (userId, models) => {
+let getUserInfo = async (userid, models) => {
   try {
-    let users = await models.User.findOne({ where: { id: userId } });
-    let user_profile = await models.UserProfile.findOne({
-      where: { user_Id: users.id },
-    });
-    let user_roles = await models.UserRole.findOne({
-      where: { user_id: users.id },
-    });
-    let roles = await models.Role.findOne({
-      where: { id: user_roles.role_id },
-    });
-    let data = {};
-    data.users = users;
-    data.user_profile = user_profile;
-    data.user_roles = user_roles;
-    data.roles = roles;
-    return data;
+    let isAdmin;
+    let q = await models.sequelize.query(`SELECT users.*, user_profile.*, roles.id as role_id, roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile."user_Id" LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.id = ${userid} `,{type: QueryTypes.SELECT});
+    if(isAdmin == null){
+      delete q.holding_comments;
+    }
+    // let userSlackInfo = await getSlackUserInfo(q.work_email);
+    // q.slack_profile = userSlackInfo;
+    return q;
   } catch (error) {
-    console.log(error);
     throw new Error(error);
   }
 };
@@ -199,10 +191,7 @@ let getUserInfoByWorkEmail = async (workEmailId, models) => {
   let userProfile = await models.UserProfile.findOne({
     where: { work_email: workEmailId },
   });
-  console.log(userProfile);
   let user = await models.User.findOne({ where: { id: userProfile.user_Id } });
-  console.log(234);
-  console.log(user);
   let user_roles = await models.UserRole.findOne({
     where: { user_id: user.id },
   });
@@ -224,10 +213,10 @@ let getRoleCompleteDetails = async (roleId, models) => {
   let query = await models.Role.findAll({
     where: { id: roleId },
   });
+  // console.log();
   // query = JSON.parse(JSON.stringify(query));
   if (query.length > 0) {
-    let role = [];
-    role.role = query[0];
+    let role = query[0];
     let pages = await getRolePages(roleId, models);
     let actions = await getRoleActions(roleId, models);
     // let notification = await getRoleNotifications(
@@ -238,19 +227,26 @@ let getRoleCompleteDetails = async (roleId, models) => {
     // role.role_notifications = notification;
     data = role;
   }
+  // console.log(data);
   return data;
 };
 
 let getUserRole = async (userId, models) => {
-  let data;
+  let data = false;
+  console.log(userId);
   let userInfo = await getUserInfo(userId, models);
-  if (userInfo.user_roles.role_id != null) {
+  console.log(8989);
+  console.log(userInfo);
+  if ((typeof userInfo[0].role_id !== "undefined") && ( userInfo[0].role_id !== null)) {
     let roleCompleteDetails = await getRoleCompleteDetails(
-      userInfo.user_roles.role_id,
+      userInfo[0].role_id,
       models
     );
+    // console.log(112);
+    // console.log(roleCompleteDetails);
     data = roleCompleteDetails;
   }
+  // console.log(data);
   return data;
 };
 
@@ -289,7 +285,7 @@ let getInventoriesRequestedForUnassign = async (models) => {
   return query;
 };
 
-let getInventoriesRequestedForOwnershipChange = async () => {
+let getInventoriesRequestedForOwnershipChange = async (models) => {
   let query = await models.MachineList.findAll(
     { attributes: [["id", "machine_id"]] },
     { where: { ownership_change_req_by_user: 1 } }
@@ -298,14 +294,27 @@ let getInventoriesRequestedForOwnershipChange = async () => {
   return query;
 };
 
+let randomString = async(length) => {
+  let result           = '';
+  let characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  var charactersLength = characters.length;
+  for ( let i = 0; i < length; i++ ) {
+    result += characters.charAt(Math.floor(Math.random() * 
+charactersLength));
+ }
+ return result;
+}
+
 let getUserInventories = async (userid, models, userRole = false) => {
   let data = false;
   let query = await models.MachineUser.findAll({ where: { user_Id: userid } });
   let roleName;
   if (userRole == false) {
     let roleDetails = await getUserRole(userid, models);
-    if (roleDetails.role.name) {
-      roleName = roleDetails.role.name;
+// console.log(23432);
+//     console.log(roleDetails);
+    if (roleDetails.name) {
+      roleName = roleDetails.name;
     }
   } else {
     roleName = userRole;
@@ -318,12 +327,12 @@ let getUserInventories = async (userid, models, userRole = false) => {
     let unassignRequestInventories = await getInventoriesRequestedForUnassign(
       models
     );
-    query = query.concate(unassignRequestInventories);
+    query = query.concat(unassignRequestInventories);
     if (query.length > 1) {
       let tempExists = [];
       query.forEach((key) => {
         if (tempExists.includes(key.machine_id)) {
-          key.pop();
+          delete key;
         }
         tempExists.push(key.machine_id);
       });
@@ -334,13 +343,13 @@ let getUserInventories = async (userid, models, userRole = false) => {
     roleName.toLowerCase() == "inventory manager"
   ) {
     let ownershipChangeRequestInventories =
-      await getInventoriesRequestedForOwnershipChange();
-    query = query.concate(ownershipChangeRequestInventories);
+      await getInventoriesRequestedForOwnershipChange(models);
+    query = query.concat(ownershipChangeRequestInventories);
     if (query.length > 1) {
       let tempExists = [];
       query.forEach((key) => {
         if (tempExists.includes(key.machine_id)) {
-          key.pop();
+          delete key;
         }
         tempExists.push(key.machine_id);
       });
@@ -358,22 +367,24 @@ let getRolesForPage = async (page_id, models) => {
   let query = await models.RolesPage.findAll({ where: { page_id: page_id } });
   for (let ele in query) {
     let role = await getRoleCompleteDetails(query[ele].role_id, models);
-    roles.push(role.role.name.toLowerCase());
+    // console.log(role);
+    roles.push(role.name.toLowerCase());
   }
   return roles;
 };
 // ---------------------------not remains--------------------------------
 let getInventoryComments = async (inventory_id, models) => {
-  let row = {};
-  let q1 = await models.InventoryCommentsModel.findAll({
-    where: { inventory_id: inventory_id },
-  });
-  let q2 = await models.UserProfile.findAll({
-    where: { user_id: q1.updated_by_user_id },
-  });
-  let q3 = await models.UserProfile.findAll({
-    where: { user_id: q1.assign_unassign_user_id },
-  });
+  // let row = {};
+  // let q1 = await models.InventoryCommentsModel.findAll({
+  //   where: { inventory_id: inventory_id },
+  // });
+  // let q2 = await models.UserProfile.findAll({
+  //   where: { user_id: q1.updated_by_user_id },
+  // });
+  // let q3 = await models.UserProfile.findAll({
+  //   where: { user_id: q1.assign_unassign_user_id },
+  // });
+  let row = await models.sequelize.query(`SELECT inventory_comments.*, p1.name as updated_by_user, p1.jobtitle as updated_by_user_job_title, p2.name as assign_unassign_user_name, p2.jobtitle as assign_unassign_job_title FROM inventory_comments LEFT JOIN user_profile as p1 ON inventory_comments.updated_by_user_id = p1.user_id LEFT JOIN user_profile as p2 ON inventory_comments.assign_unassign_user_id = p2.user_id where inventory_id=${inventory_id} ORDER BY updated_at DESC`,{type: QueryTypes.SELECT});
   row.inventory_comments = q1;
   row.update_by_user = q2;
   row.assign_unassign_user_name = q3;
@@ -458,31 +469,32 @@ let getInventoryFullDetails = async (
   hide_assigned_user_info = false,
   models
 ) => {
-  let row = {};
-  let query1 = await models.MachineList.findOne({ where: { id: id } });
-  let query2 = await models.MachineUser.findOne(
-    { attributes: ["user_Id", "assign_date"] },
-    { where: { machine_id: query1.id } }
-  );
-  let query3 = await models.UserProfile.findOne(
-    { attributes: ["name", "work_email"] },
-    { where: { user_id: query2.user_id } }
-  );
-  let query4 = await models.FilesModel.findOne({
-    where: { id: query1.file_inventory_invoice },
-  });
-  let query5 = await models.FilesModel.findOne({
-    where: { id: query1.file_inventory_warranty },
-  });
-  let query6 = await models.FilesModel.findOne({
-    where: { id: query1.file_inventory_photo },
-  });
-  row.machine_list = query1;
-  row.machine_user = query2;
-  row.user_profile = query3;
-  row.file_inventory_invoice = query4;
-  row.file_inventory_warranty = query5;
-  row.file_inventory_photo = query6;
+  let row = [];
+  // let query1 = await models.MachineList.findOne({ where: { id: id } });
+  // let query2 = await models.MachineUser.findOne(
+  //   { attributes: ["user_Id", "assign_date"] },
+  //   { where: { machine_id: query1.id } }
+  // );
+  // let query3 = await models.UserProfile.findOne(
+  //   { attributes: ["name", "work_email"] },
+  //   { where: { user_id: query2.user_id } }
+  // );
+  // let query4 = await models.FilesModel.findOne({
+  //   where: { id: query1.file_inventory_invoice },
+  // });
+  // let query5 = await models.FilesModel.findOne({
+  //   where: { id: query1.file_inventory_warranty },
+  // });
+  // let query6 = await models.FilesModel.findOne({
+  //   where: { id: query1.file_inventory_photo },
+  // });
+  // row.machine_list = query1;
+  // row.machine_user = query2;
+  // row.user_profile = query3;
+  // row.file_inventory_invoice = query4;
+  // row.file_inventory_warranty = query5;
+  // row.file_inventory_photo = query6;
+  row = await models.sequelize.query("select machines_list.*,machines_user.user_Id,machines_user.assign_date,user_profile.name,user_profile.work_email,f1.file_name as fileInventoryInvoice,f2.file_name as fileInventoryWarranty,f3.file_name as fileInventoryPhoto from machines_list left join machines_user on machines_list.id = machines_user.machine_id left join user_profile on machines_user.user_Id = user_profile.user_Id left join files as f1 ON machines_list.file_inventory_invoice = f1.id left join files as f2 ON machines_list.file_inventory_warranty = f2.id left join files as f3 ON machines_list.file_inventory_photo = f3.id where machines_list.id = $id",{type:QueryTypes.SELECT})
   let r_error = 0;
   let inventoryHistory = await getInventoryHistory(id, models);
   row.history = inventoryHistory;
@@ -548,20 +560,25 @@ let getInventoryFullDetails = async (
 let isInventoryAuditPending = async (userid, models) => {
   let isAuditPending = false;
   let userInventories = await getUserInventories(userid, models);
+  // console.log(8888);
   // console.log(userInventories);
   if (userInventories == false) {
   } else {
     let hide_assigned_user_info = true;
     for (let ele in userInventories) {
+      // console.log(8888);
       let i_details = await getInventoryFullDetails(
         userInventories[ele].machine_id,
         hide_assigned_user_info,
         models
       );
+      // console.log(i_details);
       if (i_details.audit_current_month_status.status == null) {
         isAuditPending = true;
       }
     }
+    // console.log(8888);
+    // console.log(isAuditPending);
     return isAuditPending;
   }
 };
@@ -570,12 +587,15 @@ let getUserPolicyDocument = async (userid, models) => {
   let r_error = 1;
   let r_message;
   let r_data = [];
+  // console.log(4234);
+  // console.log(userid);
   let q1 = await models.UserProfile.findOne({ where: { user_Id: userid } });
   let ar0 = JSON.parse(q1.policy_document);
   let q2 = await models.Config.findOne({ where: { type: "policy_document" } });
+  // console.log(q2);
   let ar1 = JSON.parse(q2.value);
   let arr = [];
-  if (ar0.length == 0) {
+  if (ar0 == 0) {
     for (let v2 in ar1) {
       ar1[v2].read = 0;
       let mandatory = 1;
@@ -586,7 +606,7 @@ let getUserPolicyDocument = async (userid, models) => {
       arr.push(ar1[v2]);
     }
   }
-  if (ar0.length != 0) {
+  if (ar0 != 0) {
     for (let v3 in ar1) {
       if (ar0.includes(ar1[v3].name)) {
         ar1[v3].read = 1;
@@ -605,7 +625,7 @@ let getUserPolicyDocument = async (userid, models) => {
   return data;
 };
 
-let is_policy_documents_read_by_user = async (userid, models) => {
+const is_policy_documents_read_by_user = async (userid, models) => {
   let data = true;
   let allDocumentsResult = await getUserPolicyDocument(userid, models);
   let allDocuments = allDocumentsResult.data;
@@ -639,44 +659,48 @@ let isOwnershipChangeInventoriesRequestPending = async (models) => {
 };
 
 let generateUserToken = async (userId, models) => {
+  // console.log(userId);
   let userInfo = await getUserInfo(userId, models);
+  // console.log(userInfo);
   if (userInfo == null) {
   } else {
     // let userProfileImage = await _getEmployeeProfilePhoto(userInfo);
     let userRole;
-    if (userInfo.users.type.toLowerCase() == "admin") {
-      userRole = userInfo.users.type;
+    if (userInfo[0].type.toLowerCase() == "admin") {
+      userRole = userInfo[0].type;
     } else {
-      let roleInfo = await getUserRole(userInfo.user_profile.user_Id, models);
+      let roleInfo = await getUserRole(userInfo[0].user_Id, models);
       if (roleInfo != null) {
-        userRole = roleInfo.role.name;
+        userRole = roleInfo.name;
       }
     }
+    // console.log(userRole);
     u = {
-      id: userInfo.user_profile.user_Id,
-      username: userInfo.users.username,
+      id: userInfo[0].user_Id,
+      username: userInfo[0].username,
       role: userRole,
-      name: userInfo.user_profile.name,
-      jobtitle: userInfo.user_profile.jobtitle,
+      name: userInfo[0].name,
+      jobtitle: userInfo[0].jobtitle,
       // profileImage : userProfileImage,
       login_time: new Date().getTime(),
       login_date_time: new Date(),
       // eth_token : userInfo.users.eth_token,
     };
     let roleAction = [];
-    if (userInfo.users.type.toLowerCase() == "admin") {
+    if (userInfo[0].type.toLowerCase() == "admin") {
       u.role_pages = await getRolePagesForSuperAdmin();
-      // console.log(u.role_pages);
     } else {
-      let roleInfo = await getUserRole(userInfo.user_profile.user_Id, models);
+      // console.log(2222222);
+      let roleInfo = await getUserRole(userInfo[0].user_Id, models);
       if (roleInfo != null) {
         let role_pages = await getRolePagesForApiToken(
-          roleInfo.role.id,
+          roleInfo.id,
           models
         );
         for (let page in role_pages) {
           if (!checkifPageEnabled(role_pages[page].page_id, models)) {
-            role_pages.page.pop();
+            // role_pages.page.pop();
+            delete role_pages.page;
           }
         }
         u.role_pages = role_pages;
@@ -693,15 +717,16 @@ let generateUserToken = async (userId, models) => {
     u.role_actions = roleAction;
     u.is_policy_documents_read_by_user = 1;
     u.is_inventory_audit_pending = 0;
-    if (userInfo.users.type.toLowerCase() == "admin") {
+    if (userInfo[0].type.toLowerCase() == "admin") {
       // console.log(2334234);
-      if (isInventoryAuditPending(userInfo.users.id, models)) {
+      if (isInventoryAuditPending(userInfo[0].id, models)) {
         let generic_pages = await getGenericPagesForAllRoles();
         u.right_to_skip_inventory_audit = 1;
         u.is_inventory_audit_pending = 1;
         generic_pages.forEach((ele) => {
           if (!checkifPageEnabled(ele.page_id, models)) {
-            key.pop();
+            // key.pop();
+            delete key;
           }
         });
         // console.log(generic_pages);
@@ -711,60 +736,62 @@ let generateUserToken = async (userId, models) => {
       // u.is_valid_google_drive_token_exists = isValidGoogleDriveTokenExistsStatus
       // console.log(u);
     } else {
-      // console.log(123123);
       let generic_pages = await getGenericPagesForAllRoles();
-      let is_policy_documents_read_by_user =
+      let is_policy_document_read_by_user =
         await is_policy_documents_read_by_user(
-          userInfo.user_profile.user_Id,
+          userInfo[0].user_Id,
           models
         );
-      if (is_policy_documents_read_by_user == false) {
+      if (is_policy_document_read_by_user == false) {
         u.is_policy_documents_read_by_user = 0;
         generic_pages.forEach((ele) => {
           if (!checkifPageEnabled(ele.page_id, models)) {
-            key.pop();
+            // key.pop();
+            delete key;
           }
         });
         u.role_pages = generic_pages;
       }
       let hasUnassignRequestInventories = false;
       let hasOwnershipChangeInventoriesRequestPending = false;
-      if (userInfo.users.type.toLowerCase() == ("hr" || "inventory manager")) {
+      if (userInfo[0].type.toLowerCase() == ("hr" || "inventory manager")) {    
         hasUnassignRequestInventories =
           await isUnassignInventoriesRequestPending(models);
         hasOwnershipChangeInventoriesRequestPending =
           await isOwnershipChangeInventoriesRequestPending(models);
       }
       if (
-        (await isInventoryAuditPending(userInfo.users.id, models)) ||
+        (await isInventoryAuditPending(userInfo[0].id, models)) ||
         hasUnassignRequestInventories ||
         hasOwnershipChangeInventoriesRequestPending
       ) {
         u.is_inventory_audit_pending = 1;
         generic_pages.forEach((ele) => {
           if (!checkifPageEnabled(ele.page_id, models)) {
-            key.pop();
+            delete key;
           }
         });
-        if (
-          addOns.skip_inventory_audit &&
-          userInfo.users.type.toLowerCase() ==
-            ("hr" || "inventory manager" || "hr payroll manager")
-        ) {
-        } else {
-          u.role_pages = generic_pages;
-        }
+        // if (
+        //   addOns.skip_inventory_audit &&
+        //   userInfo[0].type.toLowerCase() ==
+        //     ("hr" || "inventory manager" || "hr payroll manager")
+        // ) {
+        // } else {
+        //   u.role_pages = generic_pages;
+        // }
+        u.role_pages = generic_pages;
       }
       if (
-        userInfo.users.type.toLowerCase() ==
+        userInfo[0].type.toLowerCase() ==
         ("hr" || "inventory manager" || "hr payroll manager")
       ) {
         if (u.is_inventory_audit_pending == 1) {
-          if (addOns.skip_inventory_audit) {
-            u.is_inventory_audit_pending = 0;
-          } else {
-            u.right_to_skip_inventory_audit = 1;
-          }
+          // if (addOns.skip_inventory_audit) {
+          //   u.is_inventory_audit_pending = 0;
+          // } else {
+          //   u.right_to_skip_inventory_audit = 1;
+          // }
+          u.right_to_skip_inventory_audit = 1;
         }
       }
     }
@@ -772,12 +799,10 @@ let generateUserToken = async (userId, models) => {
       let roles = await getRolesForPage(u.role_pages[ele].page_id, models);
       u.role_pages[ele].roles = roles;
     }
-    // console.log(u);
   }
   let token = jwt.sign({ data: u }, secret.jwtSecret, {
     expiresIn: "2hr",
   });
-  // console.log(token);
   return token;
 };
 
@@ -861,7 +886,7 @@ let getAllRole = async (models) => {
 
 let manageUserTypeOnRoleChange = async (userid, models) => {
   let roleDetails = await getUserRole(userid, models);
-  let currentRoleName = roleDetails.role.name;
+  let currentRoleName = roleDetails.name;
   let q = await models.User.findOne({ where: { id: userid } });
   let userType = q.type;
   if (
@@ -887,7 +912,7 @@ let manageUserTypeOnRoleChange = async (userid, models) => {
 
 let isOnlyOneAdminRoleChanging = async (userid, models) => {
   let roleInfo = await getUserRole(userid, models);
-  if (typeof roleInfo.name != undefined && roleInfo.name == "admin") {
+  if (typeof roleInfo.name !== "undefined" && roleInfo.name == "admin") {
     let q = await models.User.findAll({ where: { type: "admin" } });
     if (q.length == 1) {
       return true;
@@ -973,7 +998,7 @@ let getEnabledUsersList = async (sorted_by = false, models) => {
   try {
     let q;
     let isAdmin;
-    console.log(typeof isAdmin);
+    // console.log(typeof isAdmin);
     if (sorted_by == "salary") {
       q = await models.sequelize.query(
         "SELECT users.*, user_profile.*,salary.total_salary,roles.id as role_id,roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile.user_Id LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id LEFT JOIN ( SELECT user_Id, MAX(total_salary) as total_salary FROM salary GROUP BY user_Id ) as salary ON users.id = salary.user_Id where users.status = 'Enabled' ORDER BY salary.total_salary DESC",
@@ -985,13 +1010,11 @@ let getEnabledUsersList = async (sorted_by = false, models) => {
         { type: QueryTypes.SELECT }
       );
     } else {
-      console.log(8787);
       q = await models.sequelize.query(
         `SELECT users.*, user_profile.*,roles.id as role_id, roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile."user_Id" LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' `,
         { type: QueryTypes.SELECT }
       );
     }
-    console.log(q);
     let newRows = [];
     for (let pp in q) {
       delete q[pp].total_salary;
@@ -1010,7 +1033,7 @@ let getEnabledUsersList = async (sorted_by = false, models) => {
     // }
     return newRows;
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     throw new Error(error);
   }
 };
@@ -1067,11 +1090,6 @@ let getEnabledUsersListWithoutPass = async (
     }
     rows.push(row[val]);
   }
-  // let Return = {
-  //   error: 0,
-  //   data: rows,
-  // };
-  // // console.log(231);
   return rows;
 };
 
@@ -1086,6 +1104,7 @@ module.exports = {
   getRolesForPage,
   getRoleActions,
   //   getRoleNotifications,
+  randomString,
   //   _getEmployeeProfilePhoto
   getUserInfo,
   getUserInfoByWorkEmail,

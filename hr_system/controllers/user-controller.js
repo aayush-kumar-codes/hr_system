@@ -39,14 +39,17 @@ exports.userLogin = async (req, res, next) => {
     // let user_details = await providers.validateCreation(req.body);
     let username = req.body.username;
     let password = md5(req.body.password);
-    let email = req.body.email;
-    let result = await db.User.login(username, password, email, db);
-    // console.log(result.data.userId);
+    // let password = req.body.password;
+    // let email = req.body.email;
+    let result = await db.User.login(username, password, db);
+    console.log(result);
     res.status_code = 200;
     res.error = result.error;
     res.message = result.message;
     res.token = result.data.token;
-    res.data = result.data.userId.toString();
+    if(result.data.userId){
+      res.userId = result.data.userId.toString();
+    }
     return next();
   } catch (error) {
     console.log(error);
@@ -58,10 +61,16 @@ exports.userLogin = async (req, res, next) => {
 
 exports.addNewEmployeeController = async (req, res, next) => {
   try {
-    let newEmployeeData = await db.UserProfile.createProfile(req.body, res, db);
+    // console.log(db);
+    let result = await db.UserProfile.addNewEmployee(req.body,db);
     res.status_code = 200;
-    console.log(newEmployeeData);
-    res.data = newEmployeeData;
+    console.log(result);
+    res.error = result.error;
+    res.message = result.message;
+    if(result.data.userID){
+      res.data = result.data
+    }
+    // res.data = newEmployeeData;
     return next();
   } catch (error) {
     console.log(error);
@@ -147,7 +156,7 @@ exports.getEnableUser = async (req, res, next) => {
     let sorted_by =
       typeof req.body.sorted_by != "undefined" ? req.body.sorted_by : false;
     let result = await getEnabledUsersListWithoutPass(role, sorted_by, db,res);
-	console.log(result.data);
+	// console.log(result.data);
     res.status_code = 200;
     // res.send = result
     res.error = 0;

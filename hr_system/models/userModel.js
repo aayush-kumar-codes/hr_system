@@ -4,9 +4,7 @@ function user(database, type) {
     getUserInfoByWorkEmail,
     getUserInfo,
   } = require("../allFunctions");
-  const jwt = require("jsonwebtoken");
-  const secret = require("../config");
-  const { Op } = require("sequelize");
+  const { Op, QueryTypes } = require("sequelize");
   const User = database.define(
     "user",
     {
@@ -34,67 +32,73 @@ function user(database, type) {
           });
         },
       },
-    }, { timestamps: false}
+    },
+    { timestamps: false }
   );
 
   User.login = async (
     username,
     password,
-    email,
     models,
-    forceLoginForUsername
+    forceLoginForUsername = false
   ) => {
     try {
       let error = 1;
       let message;
       let data = {};
       let login_by_email = false;
-      // if (!forceLoginForUsername) {
-      let query = await User.findOne({
-        where: {
-          [Op.and]: [
-            { username: username },
-            { password: password },
-            { status: "Enabled" },
-          ],
-        },
-      });
-      let userData = await getUserInfoByWorkEmail(email, models);
-      console.log(2342);
-      console.log(userData);
-      if ((userData.userProfile.user_Id && userData.user.password) !== "") {
-        if (userData.user.password == password) {
-          login_by_email = true;
-        } else {
-          login_by_email = false;
+      let query = await models.sequelize.query(
+        `select * from users where username = '${username}' and password = '${password}' AND status='Enabled' `,
+        { type: QueryTypes.SELECT }
+      );
+      if (forceLoginForUsername != false) {
+        query = await models.sequelize.query(
+          `select * from users where username='${forceLoginForUsername}' AND status='Enabled' `,
+          { type: QueryTypes.SELECT }
+        );
+      }
+      const re =
+        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+      let value = re.test(String(username).toLowerCase());
+      let userData;
+      // console.log(query);
+      if (value == true) {
+        userData = await getUserInfoByWorkEmail(username, models);
+        if ((userData.userProfile.user_Id && userData.user.password) !== "") {
+          if (userData.user.password == password) {
+            login_by_email = true;
+          }
         }
       }
-      if (query == null) {
+      if (query.length == 0 && !login_by_email) {
         error = 1;
         message = "invalid login";
       } else {
-        let userId = query.id != null ? query.id : userData.userProfile.user_Id;
+        let userId = (query[0].id != null) ? query[0].id : userData.userProfile.user_Id;
+        // console.log(userId);
         let userInfo = await getUserInfo(userId, models);
+        console.log(userInfo);
         if (userInfo == null) {
           message = "Invalid Login";
         } else {
+          // console.log(userInfo);
           is_super_admin = false;
-          if (userInfo.users.type.toLowerCase() == "admin") {
+          if (userInfo[0].type.toLowerCase() == "admin") {
             is_super_admin = true;
           }
-          if (is_super_admin == false && userInfo.user_roles.role_id == null) {
+          if (is_super_admin == false && userInfo[0].role_id == null) {
             error = 1;
             message = "Role is not assigned.Contact Admin";
           } else {
             error = 0;
             message = "Success login";
             let jwtToken = await generateUserToken(
-              userInfo.user_profile.user_Id,
+              userInfo[0].user_Id,
               models
             );
             // console.log(jwtToken);
             data.token = jwtToken;
-            data.userId = userInfo.user_profile.user_Id;
+            data.userId = userInfo[0].user_Id;
           }
         }
       }
