@@ -14,17 +14,6 @@ function config(database, type) {
       freezeTableName: true,
     }
   );
-  config.addMachineType = async (reqBody) => {
-    try {
-      let addMachine = await config.create({
-        type: reqBody.type,
-        value: reqBody.value,
-      });
-      return addMachine;
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
   config.getMachineTypeList = async () => {
     try {
       let machineTypeList = await config.findAll({type:"machine_type"});

@@ -10,7 +10,7 @@ const {
 const jwt = require("jsonwebtoken");
 const secret = require("./config.json");
 
-const {Op,QueryTypes } = require("sequelize");
+const {Op,QueryTypes, json } = require("sequelize");
 const db = require("./db");
 const { sequelize } = require("./db");
 
@@ -917,14 +917,12 @@ let getMachineStatusList=async(req,models)=>{
   return Return;
 
 }
-//working on it
+//working on it 
 let getMachineCount=async(req,models)=>{
   let r_error=1;
   let r_message = "";
   let query=await models.sequelize.query( 'SELECT machinelist.*, machines_user."user_Id" FROM machinelist LEFT JOIN machines_user ON machinelist.id= machines_user."machine_id"',{type:QueryTypes.SELECT })
   let arr_device=[];
-  arr_device.key=1
-  console.log(arr_device)
   if(query.length>0){
     count=1;  
   for(let elem of query){
@@ -932,12 +930,58 @@ let getMachineCount=async(req,models)=>{
     let key2 = elem.status.toLowerCase().replace(/\b[a-z]/g, function(letter) {
       return letter.toUpperCase(); });
       console.log(arr_device)
-      // if(elem.hasOwnProperty("key")){
-      // }else{
-      //   console.log(2)
-      // }
+      if(arr_device.hasOwnProperty("key")){
+         arr_device[key]['total']=+1;
+         if(arr_device.key.hasOwnProperty("key2")){
+           arr_device[key][key2]=+1;
+           console.log(1)
+         }else{
+           arr_device[key][key2]=1;
+           console.log(2)
+         }
+         if(elem.user_Id!=""||elem.user_Id!=null){
+          arr_device[key]["User_Assign"]=+1;
+          console.log(3)
+         }else{
+           arr_device[key]["User_Not_Assign"]=+1;
+           console.log(4)
+         }
+      }else{
+        console.log(5)
+        arr_device[key]=[]
+        arr_device[key]['total'] = 1
+        console.log(arr_device)
+        if(arr_device[key].hasOwnProperty("key2")){
+          console.log(6)
+          arr_device[key][key2]=+1;
+        }else{
+          console.log(7)
+          arr_device[key][key2]= 1;
+        }
+        if(elem.user_Id!=""||elem.user_Id!=null){
+          console.log(8)
+          arr_device[key]["User_Assign"]=+1;
+        }else{
+          console.log(9)
+          arr_device[key]["User_Not_Assign"]=+1;
+        }
+      }
   }
   }
+  console.log(arr_device)
+  if(arr_device.length>0){
+    r_error=0;
+    r_message = "Data found";
+  }else{
+    r_error = 1;
+    r_message = "No Data found";
+  }
+  Return = [];
+  console.log(arr_device)
+  Return.error = r_error;
+  Return.data= arr_device;
+  Return.message = r_message;
+  return Return;
 }
 let addInventoryComment = async (machine_id, loggeduserid,models,req) => {
   const inventoryComment = await models.InventoryCommentsModel.create({
@@ -957,6 +1001,52 @@ let addInventoryComment = async (machine_id, loggeduserid,models,req) => {
   }
   return inventoryComment.id;
 };
+let addMachineType=async(req,models)=>{
+  let r_error=1;
+  let not_deleted="";
+  let r_message="";
+  let r_data=[];
+  let ins={}
+  ins.type=req.body.type;
+  ins.value=req.body.value;
+  let q=await models.sequelize.query(`select * from config where type ='${req.body.type}'`,{type:QueryTypes.SELECT})
+  if(q.length==0){
+    await models.Config.create(ins)
+    let r_error=0;
+    let r_message = "Variable Successfully Inserted";
+    r_data.message= r_message;
+  }
+  if(q.length!=0){
+    const arr1=await q.map( (value)=>{
+      return value.value;
+    })
+    let arr2=req.body;
+    arr2=Object.values(arr2);
+    let s = arr1
+    .filter(x => !arr2.includes(x))
+    .concat(arr2.filter(x => !arr1.includes(x)));
+    if(s.length>0){
+        for(let v of s){
+        let query=await models.sequelize.query(`select * from machinelist where machine_type ='${v}'`,{type:QueryTypes.SELECT})
+         if(query.length>0){
+          r_data['not_delete']=v;
+          arr2.push(v)
+         }
+      }
+    }
+    let res=JSON.stringify(arr2);
+   await models.Config.update({value:res},{
+     where:{type:req.body.type}
+   })
+   let r_error=0;
+   let r_message = "Variable updated successfully";
+   r_data.message = r_message;
+}
+   let Return=[];
+   Return.error=r_error;
+   Return.data= r_data;
+   return Return;
+}
 const AddMachineStatus =async(req,models)=>{
   let addInventoryStatusType1 = await addInventoryStatusType(req,models)
 }
@@ -1024,6 +1114,7 @@ module.exports = {
   addInventoryComment ,
   getMachineDetail,
   AddMachineStatus,
+  addMachineType,
   addInventoryStatusType,
   getMachineStatusList,
   getMachineCount
