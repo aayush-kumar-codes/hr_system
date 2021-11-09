@@ -61,7 +61,6 @@ function user(database, type) {
         /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
       let value = re.test(String(username).toLowerCase());
       let userData;
-      // console.log(query);
       if (value == true) {
         userData = await getUserInfoByWorkEmail(username, models);
         if ((userData.userProfile.user_Id && userData.user.password) !== "") {
@@ -70,18 +69,15 @@ function user(database, type) {
           }
         }
       }
-      if (query.length == 0 && !login_by_email) {
+      else if (query.length == 0 && !login_by_email) {
         error = 1;
         message = "invalid login";
       } else {
         let userId = (query[0].id != null) ? query[0].id : userData.userProfile.user_Id;
-        // console.log(userId);
         let userInfo = await getUserInfo(userId, models);
-        console.log(userInfo);
         if (userInfo == null) {
           message = "Invalid Login";
         } else {
-          // console.log(userInfo);
           is_super_admin = false;
           if (userInfo[0].type.toLowerCase() == "admin") {
             is_super_admin = true;
@@ -96,7 +92,6 @@ function user(database, type) {
               userInfo[0].user_Id,
               models
             );
-            // console.log(jwtToken);
             data.token = jwtToken;
             data.userId = userInfo[0].user_Id;
           }
@@ -107,7 +102,6 @@ function user(database, type) {
       Return.message = message;
       Return.data = data;
       return Return;
-      // }
     } catch (error) {
       console.log(error);
       throw new Error(error);

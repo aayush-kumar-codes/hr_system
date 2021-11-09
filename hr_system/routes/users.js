@@ -8,7 +8,7 @@ const middleware = require("../middleware/Auth");
 router.post('/register', validators.userCreationValidator, userController.userRegister,handlers.responseForData);
 router.post('/login',validators.userLoginValidator,userController.userLogin,handlers.responseHandle);
 router.post('/add_roles',middleware.AuthForAdmin,validators.addRoleValidator,userController.addUserRole,handlers.addNewEmployeeResponseHandle);
-router.get('/list_all_roles',middleware.AuthForAdmin,userController.getUserRole,handlers.responseHandle);
+router.get('/list_all_roles',middleware.AuthForAdmin,userController.getUserRole,handlers.resForList);
 router.post("/add_new_employee", middleware.AuthForHr, validators.addNewEmployeeValidator ,userController.addNewEmployeeController, handlers.addNewEmployeeResponseHandle);
 router.post("/assign_user_role", middleware.AuthForAdmin, validators.assignUserRoleValidator, userController.assignUserRoleController, handlers.addNewEmployeeResponseHandle);
 router.post("/get_enable_user", middleware.AuthForAdmin, userController.getEnableUser, handlers.newResponse);

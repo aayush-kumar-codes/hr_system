@@ -27,10 +27,15 @@ let newResponse = async (req, res) => {
   });
 };
 
+let resForList = async(req,res) =>{
+  res.status(res.status_code).json(res.data);
+}
+
 let addNewEmployeeResponseHandle = async (req, res) => {
   res.status(res.status_code).json({
     error: res.error,
     message: res.message,
+    data: res.data,
   });
 };
 
@@ -38,5 +43,6 @@ module.exports = {
   responseHandle,
   responseForData,
   addNewEmployeeResponseHandle,
-  newResponse
+  newResponse,
+  resForList
 };

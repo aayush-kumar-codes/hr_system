@@ -109,10 +109,11 @@ function user_profile(database, type) {
       let error = 1;
       let message;
       let userId;
-      let password =  randomString(5);
+      let password =  await randomString(5);
       let username = await models.User.findAll({
         where: { username: reqBody.username },
       });
+      // console.log(username);
       let workemail = await user_profile.findAll({
         where: { work_email: reqBody.workemail },
       });
@@ -139,7 +140,7 @@ function user_profile(database, type) {
           type: type,
         });
         userId = userCreation.id;
-        console.log(userId);
+        // console.log(userId);
         if (!userId) {
           error = 1;
           message = "Error occured while adding user";
@@ -156,8 +157,8 @@ function user_profile(database, type) {
             training_month: reqBody.training_month,
             other_email: reqBody.email,
           });
-          console.log(userProfileData);
-          if (!userProfileData) {
+          // console.log(userProfileData);
+          if (userProfileData == null) {
             let userDelete = await models.User.destroy({
               where: { id: userId },
             });
@@ -177,7 +178,7 @@ function user_profile(database, type) {
             }
             let allRoles = await models.Role.findAll({});
             for (let roles in allRoles) {
-              console.log(allRoles[roles].name);
+              // console.log(allRoles[roles].name);
               if (allRoles[roles].name == "Employee") {
                 let defaultRoleId = allRoles[roles].id;
                 if (userId && defaultRoleId !== "") {
@@ -197,14 +198,14 @@ function user_profile(database, type) {
       let Return = {};
       let data = {};
       data.userID = userId;
-      data.password = passwordString;
+      data.password = password;
       Return.error = error;
       Return.message = message;
       Return.data = data;
-      console.log(Return);
+      // console.log(Return);
       return Return;
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       throw new Error(error);
     }
   };
@@ -262,7 +263,7 @@ function user_profile(database, type) {
       );
       return userPolicyDocument;
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       throw new Error(error);
     }
   };
@@ -310,14 +311,14 @@ function user_profile(database, type) {
         },
         { where: { user_Id: reqBody.user_id } }
       );
-      console.log(userToUpdate[0] !== 0);
+      // console.log(userToUpdate[0] !== 0);
       if (userToUpdate[0] !== 0) {
         return "updated";
       } else {
         return "not updated";
       }
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       throw new Error(error);
     }
   };

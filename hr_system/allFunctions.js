@@ -21,38 +21,40 @@ let getPageById = async (id) => {
       data = all[item];
     }
   }
-  // console.log(data);
   return data;
 };
 
 let getRolePages = async (roleid, models) => {
-  let query = await models.RolesPage.findAll({
+  let rows = await models.RolesPage.findAll({
     where: { role_id: roleid },
   });
-  if (query.length > 0) {
-    let data = await Promise.all(
-      query.map(async (doc) => {
-        doc = JSON.parse(JSON.stringify(doc));
-        let obj = { ...doc };
-        let page = await getPageById(doc.page_id);
-        obj.page_name = page.name;
-        return obj;
-      })
-    );
-    return data;
+  if (rows.length > 0) {
+    for(let [key, row] of Object.entries(rows)){
+      let page = await getPageById(row.page_id);
+      row.page_name = page.name;
+      rows[key] = row;
+    }
+  //   let data = await Promise.all(
+  //     query.map(async (doc) => {
+  //       doc = JSON.parse(JSON.stringify(doc));
+  //       let obj = { ...doc };
+  //       let page = await getPageById(doc.page_id);
+  //       obj.page_name = page.name;
+  //       return obj;
+  //     })
+  //   );
+  //   rows = data;
   }
+  return rows;
 };
 let getActionById = async (id) => {
   let data;
   let all = await getAllActions();
-  // console.log(all);
   for (let item in all) {
     if (all[item].id == id) {
       data = all[item];
     }
   }
-  // console.log(233);
-  // console.log(data);
   return data;
 };
 
@@ -60,24 +62,20 @@ let getRoleActions = async (roleid, models) => {
   let query = await models.RolesAction.findAll({
     where: { role_id: roleid },
   });
-  let data;
+  let rows;
   if (query.length > 0) {
-    data = await Promise.all(
+    let data = await Promise.all(
       query.map(async (doc) => {
         doc = JSON.parse(JSON.stringify(doc));
         let obj = { ...doc };
         let action = await getActionById(doc.action_id);
-        // console.log(action);
         obj.action_name = action.name;
         return obj;
       })
     );
-    // console.log(4343);
-    // console.log(data);
-    return data;
+    rows =  data;
   }
-  // console.log(9090);
-  // console.log(data);
+  return rows;
 };
 
 // let getRoleNotifications = async (roleid, models) => {
@@ -174,6 +172,8 @@ let getGenericPagesForAllRoles = async () => {
 
 let getUserInfo = async (userid, models) => {
   try {
+    // console.log(0909);
+    // console.log(userid, 'INININ')
     let isAdmin;
     let q = await models.sequelize.query(`SELECT users.*, user_profile.*, roles.id as role_id, roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile."user_Id" LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.id = ${userid} `,{type: QueryTypes.SELECT});
     if(isAdmin == null){
@@ -233,10 +233,10 @@ let getRoleCompleteDetails = async (roleId, models) => {
 
 let getUserRole = async (userId, models) => {
   let data = false;
-  console.log(userId);
+  // console.log(userId, "---");
   let userInfo = await getUserInfo(userId, models);
-  console.log(8989);
-  console.log(userInfo);
+  // console.log(8989);
+  // console.log(userInfo);
   if ((typeof userInfo[0].role_id !== "undefined") && ( userInfo[0].role_id !== null)) {
     let roleCompleteDetails = await getRoleCompleteDetails(
       userInfo[0].role_id,
@@ -374,20 +374,7 @@ let getRolesForPage = async (page_id, models) => {
 };
 // ---------------------------not remains--------------------------------
 let getInventoryComments = async (inventory_id, models) => {
-  // let row = {};
-  // let q1 = await models.InventoryCommentsModel.findAll({
-  //   where: { inventory_id: inventory_id },
-  // });
-  // let q2 = await models.UserProfile.findAll({
-  //   where: { user_id: q1.updated_by_user_id },
-  // });
-  // let q3 = await models.UserProfile.findAll({
-  //   where: { user_id: q1.assign_unassign_user_id },
-  // });
-  let row = await models.sequelize.query(`SELECT inventory_comments.*, p1.name as updated_by_user, p1.jobtitle as updated_by_user_job_title, p2.name as assign_unassign_user_name, p2.jobtitle as assign_unassign_job_title FROM inventory_comments LEFT JOIN user_profile as p1 ON inventory_comments.updated_by_user_id = p1.user_id LEFT JOIN user_profile as p2 ON inventory_comments.assign_unassign_user_id = p2.user_id where inventory_id=${inventory_id} ORDER BY updated_at DESC`,{type: QueryTypes.SELECT});
-  row.inventory_comments = q1;
-  row.update_by_user = q2;
-  row.assign_unassign_user_name = q3;
+  let row = await models.sequelize.query(`SELECT inventory_comments.*, p1.name as updated_by_user, p1.jobtitle as updated_by_user_job_title, p2.name as assign_unassign_user_name, p2.jobtitle as assign_unassign_job_title FROM inventory_comments LEFT JOIN user_profile as p1 ON inventory_comments.updated_by_user_id = p1."user_Id" LEFT JOIN user_profile as p2 ON inventory_comments.assign_unassign_user_id = p2."user_Id" where inventory_id=${inventory_id} ORDER BY updated_at DESC`,{type: QueryTypes.SELECT});
   return row;
 };
 
@@ -470,39 +457,15 @@ let getInventoryFullDetails = async (
   models
 ) => {
   let row = [];
-  // let query1 = await models.MachineList.findOne({ where: { id: id } });
-  // let query2 = await models.MachineUser.findOne(
-  //   { attributes: ["user_Id", "assign_date"] },
-  //   { where: { machine_id: query1.id } }
-  // );
-  // let query3 = await models.UserProfile.findOne(
-  //   { attributes: ["name", "work_email"] },
-  //   { where: { user_id: query2.user_id } }
-  // );
-  // let query4 = await models.FilesModel.findOne({
-  //   where: { id: query1.file_inventory_invoice },
-  // });
-  // let query5 = await models.FilesModel.findOne({
-  //   where: { id: query1.file_inventory_warranty },
-  // });
-  // let query6 = await models.FilesModel.findOne({
-  //   where: { id: query1.file_inventory_photo },
-  // });
-  // row.machine_list = query1;
-  // row.machine_user = query2;
-  // row.user_profile = query3;
-  // row.file_inventory_invoice = query4;
-  // row.file_inventory_warranty = query5;
-  // row.file_inventory_photo = query6;
-  row = await models.sequelize.query("select machines_list.*,machines_user.user_Id,machines_user.assign_date,user_profile.name,user_profile.work_email,f1.file_name as fileInventoryInvoice,f2.file_name as fileInventoryWarranty,f3.file_name as fileInventoryPhoto from machines_list left join machines_user on machines_list.id = machines_user.machine_id left join user_profile on machines_user.user_Id = user_profile.user_Id left join files as f1 ON machines_list.file_inventory_invoice = f1.id left join files as f2 ON machines_list.file_inventory_warranty = f2.id left join files as f3 ON machines_list.file_inventory_photo = f3.id where machines_list.id = $id",{type:QueryTypes.SELECT})
+  row = await models.sequelize.query(`select machinelist.*,machines_user."user_Id",machines_user.assign_date,user_profile.name,user_profile.work_email,f1.file_name as fileInventoryInvoice,f2.file_name as fileInventoryWarranty,f3.file_name as fileInventoryPhoto from machinelist left join machines_user on machinelist.id = machines_user.machine_id left join user_profile on machines_user."user_Id" = user_profile."user_Id" left join files as f1 ON machinelist.file_inventory_invoice = f1.id left join files as f2 ON machinelist.file_inventory_warranty = f2.id left join files as f3 ON machinelist.file_inventory_photo = f3.id where machinelist.id = ${id}`,{type:QueryTypes.SELECT})
   let r_error = 0;
   let inventoryHistory = await getInventoryHistory(id, models);
   row.history = inventoryHistory;
   let assignedUserInfo = {};
   if (hide_assigned_user_info == false) {
-    if (row.machine_user.user_Id != null) {
+    if (row.user_Id != null) {
       let raw_assignedUserInfo = await getUserInfo(
-        row.machine_user.user_Id,
+        row.user_Id,
         models
       );
       assignedUserInfo.name = raw_assignedUserInfo.name;
@@ -514,11 +477,11 @@ let getInventoryFullDetails = async (
   }
   row.assigned_user_info = assignedUserInfo;
   if (
-    typeof row.machine_list.ownership_change_req_by_user != "undefined" &&
-    row.machine_list.ownership_change_req_by_user * 1 > 0
+    typeof row.ownership_change_req_by_user != "undefined" &&
+    row.ownership_change_req_by_user * 1 > 0
   ) {
     let ownershipRequestedByUser = await getUserInfo(
-      row.machine_list.ownership_change_req_by_user
+      row.ownership_change_req_by_user,models
     );
     if (typeof ownershipRequestedByUser.name !== "undefined") {
       row.ownership_change_req_by_user = ownershipRequestedByUser.name;
@@ -560,25 +523,19 @@ let getInventoryFullDetails = async (
 let isInventoryAuditPending = async (userid, models) => {
   let isAuditPending = false;
   let userInventories = await getUserInventories(userid, models);
-  // console.log(8888);
-  // console.log(userInventories);
   if (userInventories == false) {
   } else {
     let hide_assigned_user_info = true;
     for (let ele in userInventories) {
-      // console.log(8888);
       let i_details = await getInventoryFullDetails(
-        userInventories[ele].machine_id,
+        userInventories[ele].dataValues.machine_id,
         hide_assigned_user_info,
         models
       );
-      // console.log(i_details);
       if (i_details.audit_current_month_status.status == null) {
         isAuditPending = true;
       }
     }
-    // console.log(8888);
-    // console.log(isAuditPending);
     return isAuditPending;
   }
 };
@@ -587,8 +544,7 @@ let getUserPolicyDocument = async (userid, models) => {
   let r_error = 1;
   let r_message;
   let r_data = [];
-  // console.log(4234);
-  // console.log(userid);
+
   let q1 = await models.UserProfile.findOne({ where: { user_Id: userid } });
   let ar0 = JSON.parse(q1.policy_document);
   let q2 = await models.Config.findOne({ where: { type: "policy_document" } });
@@ -659,9 +615,7 @@ let isOwnershipChangeInventoriesRequestPending = async (models) => {
 };
 
 let generateUserToken = async (userId, models) => {
-  // console.log(userId);
   let userInfo = await getUserInfo(userId, models);
-  // console.log(userInfo);
   if (userInfo == null) {
   } else {
     // let userProfileImage = await _getEmployeeProfilePhoto(userInfo);
@@ -674,7 +628,6 @@ let generateUserToken = async (userId, models) => {
         userRole = roleInfo.name;
       }
     }
-    // console.log(userRole);
     u = {
       id: userInfo[0].user_Id,
       username: userInfo[0].username,
@@ -690,7 +643,6 @@ let generateUserToken = async (userId, models) => {
     if (userInfo[0].type.toLowerCase() == "admin") {
       u.role_pages = await getRolePagesForSuperAdmin();
     } else {
-      // console.log(2222222);
       let roleInfo = await getUserRole(userInfo[0].user_Id, models);
       if (roleInfo != null) {
         let role_pages = await getRolePagesForApiToken(
@@ -719,7 +671,7 @@ let generateUserToken = async (userId, models) => {
     u.is_inventory_audit_pending = 0;
     if (userInfo[0].type.toLowerCase() == "admin") {
       // console.log(2334234);
-      if (isInventoryAuditPending(userInfo[0].id, models)) {
+      if (isInventoryAuditPending(userInfo[0].user_Id, models)) {
         let generic_pages = await getGenericPagesForAllRoles();
         u.right_to_skip_inventory_audit = 1;
         u.is_inventory_audit_pending = 1;
@@ -736,6 +688,8 @@ let generateUserToken = async (userId, models) => {
       // u.is_valid_google_drive_token_exists = isValidGoogleDriveTokenExistsStatus
       // console.log(u);
     } else {
+      
+      // console.log(userInfo[0].user_Id);
       let generic_pages = await getGenericPagesForAllRoles();
       let is_policy_document_read_by_user =
         await is_policy_documents_read_by_user(
@@ -760,8 +714,10 @@ let generateUserToken = async (userId, models) => {
         hasOwnershipChangeInventoriesRequestPending =
           await isOwnershipChangeInventoriesRequestPending(models);
       }
+      // console.log(6767,"+++++++++")
+      // console.log(userInfo[0]);
       if (
-        (await isInventoryAuditPending(userInfo[0].id, models)) ||
+        (await isInventoryAuditPending(userInfo[0].user_Id, models)) ||
         hasUnassignRequestInventories ||
         hasOwnershipChangeInventoriesRequestPending
       ) {
@@ -994,11 +950,11 @@ let validateSecretKey = async (secret_key, models) => {
   return Return;
 };
 
-let getEnabledUsersList = async (sorted_by = false, models) => {
+let getEnabledUsersList = async (sorted_by=false, models) => {
   try {
     let q;
     let isAdmin;
-    // console.log(typeof isAdmin);
+    // console.log(models);
     if (sorted_by == "salary") {
       q = await models.sequelize.query(
         "SELECT users.*, user_profile.*,salary.total_salary,roles.id as role_id,roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile.user_Id LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id LEFT JOIN ( SELECT user_Id, MAX(total_salary) as total_salary FROM salary GROUP BY user_Id ) as salary ON users.id = salary.user_Id where users.status = 'Enabled' ORDER BY salary.total_salary DESC",
@@ -1038,9 +994,9 @@ let getEnabledUsersList = async (sorted_by = false, models) => {
   }
 };
 let getEnabledUsersListWithoutPass = async (
-  role = false,
-  sorted_by = false,
-  models
+  models,
+  role = null,
+  sorted_by = null,
 ) => {
   let row = await getEnabledUsersList(sorted_by, models);
   let rows = [];
@@ -1079,6 +1035,7 @@ let getEnabledUsersListWithoutPass = async (
   ];
   for (let val in row) {
     delete row[val].password;
+    if(role !==null){
     if (role.toLowerCase() == "guest") {
       for (let key in val) {
         for (let secureKey in secureKeys) {
@@ -1090,8 +1047,22 @@ let getEnabledUsersListWithoutPass = async (
     }
     rows.push(row[val]);
   }
+}
   return rows;
 };
+
+let getSystemDefaultRoles = async() => {
+  let array = [
+    {"name": "Admin","description":"Role Admin", "sortOrder" : 1 },
+    {"name": "HR Payroll Manager","description":"Role HR Payroll Manager", "sortOrder" : 2 },
+    {"name": "HR","description":"Role HR", "sortOrder" : 3 },
+    {"name": "Inventory Manager","description":"Role Inventory Manager", "sortOrder" : 4 },
+    {"name": "Attendance Uploader","description":"Role Attendance Uploader", "sortOrder" : 5 },
+    {"name": "Employee","description":"Role Employee", "sortOrder" : 6 },
+    // {"name": "Admin","description":"Role Admin", "sortOrder" : 7 },
+  ]
+  return array;
+}
 
 module.exports = {
   getEnabledUsersListWithoutPass,
@@ -1119,4 +1090,5 @@ module.exports = {
   copyExistingRoleRightsToNewRole,
   assignDefaultValuesToRole,
   assignAdminRoleToUserTypeAdminIfNoRoleAssigned,
+  getSystemDefaultRoles
 }

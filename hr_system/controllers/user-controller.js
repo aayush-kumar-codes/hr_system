@@ -35,6 +35,7 @@ exports.userRegister = async (req, res, next) => {
 
 exports.userLogin = async (req, res, next) => {
   try {
+    console.log('iN CONTROLLER')
     let request_Validate = await reqUser(req);
     // let user_details = await providers.validateCreation(req.body);
     let username = req.body.username;
