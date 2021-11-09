@@ -14,6 +14,7 @@ const {Op,QueryTypes, json } = require("sequelize");
 const db = require("./db");
 const { sequelize } = require("./db");
 
+
 let getPageById = async (id) => {
   let data;
   let all = await getAllPages();
@@ -24,6 +25,7 @@ let getPageById = async (id) => {
   }
   return data;
 };
+
 
 let getRolePages = async (roleid, models) => {
   let query = await models.RolesPage.findAll({
@@ -42,6 +44,7 @@ let getRolePages = async (roleid, models) => {
     return data;
   }
 };
+
 
 let getRoleActions = async (roleid, models) => {
   let query = await models.RolesAction.findAll({
@@ -70,6 +73,7 @@ let getRoleActions = async (roleid, models) => {
     return data;
   }
 };
+
 
 // let getRoleNotifications = async (roleid, models) => {
 //   let query =
@@ -104,6 +108,7 @@ let getRoleActions = async (roleid, models) => {
 //   }
 // };
 
+
 let getRolePagesForSuperAdmin = async () => {
   let data = await getGenericPagesForAllRoles();
   let allPages = await getAllPages();
@@ -114,6 +119,7 @@ let getRolePagesForSuperAdmin = async () => {
   let sorted_Data = data.sort();
   return sorted_Data;
 };
+
 
 let getGenericPagesForAllRoles = async () => {
   let data = [];
@@ -135,6 +141,7 @@ let getGenericPagesForAllRoles = async () => {
   }
   return data;
 };
+
 
 // let _getEmployeeProfilePhoto = async (profileInfo) => {
 //   let profileImage;
@@ -158,6 +165,7 @@ let getGenericPagesForAllRoles = async () => {
 //   return profileImage;
 // };
 
+
 let getUserInfo = async (userId, models) => {
   let users = await models.User.findOne({ where: { id: userId } });
   let user_profile = await models.UserProfile.findOne({
@@ -177,6 +185,7 @@ let getUserInfo = async (userId, models) => {
   data.roles = roles;
   return data;
 };
+
 
 let getUserInfoByWorkEmail = async (workEmailId, models) => {
   let userProfile = await models.UserProfile.findOne({
@@ -198,6 +207,7 @@ let getUserInfoByWorkEmail = async (workEmailId, models) => {
   //  data.slack_profile = userSlackInfo;
   return data;
 };
+
 
 let getRoleCompleteDetails = async (roleId, models) => {
   let data;
@@ -221,6 +231,7 @@ let getRoleCompleteDetails = async (roleId, models) => {
   return data;
 };
 
+
 let getUserRole = async (userId, models) => {
   let data;
   let userInfo = await getUserInfo(userId, models);
@@ -234,6 +245,7 @@ let getUserRole = async (userId, models) => {
   return data;
 };
 
+
 let getRolePagesForApiToken = async (roleid, models) => {
   let data = await getGenericPagesForAllRoles();
   let rolesPages = await getRolePages(roleid, models);
@@ -245,6 +257,8 @@ let getRolePagesForApiToken = async (roleid, models) => {
   let sorted_Data = data.sort();
   return sorted_Data;
 };
+
+
 
 let checkifPageEnabled = async (page_id, models) => {
   let query = await models.RolesPage.findAll({
@@ -259,6 +273,7 @@ let checkifPageEnabled = async (page_id, models) => {
   }
 };
 
+
 let getInventoriesRequestedForUnassign = async (models) => {
   let query = await models.MachineList.findAll(
     { attributes: [["id", "machine_id"]] },
@@ -267,6 +282,7 @@ let getInventoriesRequestedForUnassign = async (models) => {
   return query;
 };
 
+
 let getInventoriesRequestedForOwnershipChange = async (models) => {
   let query = await models.MachineList.findAll(
     { attributes: [["id", "machine_id"]] },
@@ -274,6 +290,7 @@ let getInventoriesRequestedForOwnershipChange = async (models) => {
   );
   return query;
 };
+
 
 let getUserInventories = async (userid, models, userRole = false) => {
   let data = false;
@@ -329,6 +346,7 @@ let getUserInventories = async (userid, models, userRole = false) => {
   return data;
 };
 
+
 let getRolesForPage = async (page_id, models) => {
   let roles = [];
   let query = await models.RolesPage.findAll({ where: { page_id: page_id } });
@@ -338,6 +356,7 @@ let getRolesForPage = async (page_id, models) => {
   }
   return roles;
 };
+
 // ---------------------------remains--------------------------------
 let getInventoryComments = async (inventory_id, models) => {
   let row = {};
@@ -358,10 +377,12 @@ let getInventoryComments = async (inventory_id, models) => {
   return row;
 };
 
+
 let getInventoryHistory = async (inventory_id, models) => {
   let inventoryComments = await getInventoryComments(inventory_id, models);
   return inventoryComments;
 };
+
 
 let _getDateTimeData = async () => {
   let data = {};
@@ -375,6 +396,7 @@ let _getDateTimeData = async () => {
     date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
   return data;
 };
+
 
 let getInvenoryAuditFullDetails = async (audit_id, models) => {
   let Return = {};
@@ -406,6 +428,7 @@ let getInvenoryAuditFullDetails = async (audit_id, models) => {
   return Return;
 };
 
+
 let getInventoryAuditStatusforYearMonth = async (
   inventory_id,
   year,
@@ -430,6 +453,7 @@ let getInventoryAuditStatusforYearMonth = async (
   return data;
 };
 
+
 let getInventoryFullDetails = async (
   id,
   hide_assigned_user_info = false,
@@ -437,6 +461,7 @@ let getInventoryFullDetails = async (
 ) => {
   let row = {};
   let query1 = await models.MachineList.findOne({ where: { id: id } });
+  console.log(query1)
   let query2 = await models.MachineUser.findOne(
     { attributes: ["user_Id", "assign_date"] },
     { where: { machine_id: query1.id } }
@@ -520,6 +545,7 @@ let getInventoryFullDetails = async (
   }
   return row;
 };
+
 // -------------------------------remanis--------------------------------
 
 let isInventoryAuditPending = async (userid, models) => {
@@ -541,6 +567,7 @@ let isInventoryAuditPending = async (userid, models) => {
     return isAuditPending;
   }
 };
+
 
 let getUserPolicyDocument = async (userid, models) => {
   let r_error = 1;
@@ -581,6 +608,7 @@ let getUserPolicyDocument = async (userid, models) => {
   return data;
 };
 
+
 let is_policy_documents_read_by_user = async (userid, models) => {
   let data = true;
   let allDocumentsResult = await getUserPolicyDocument(userid, models);
@@ -595,6 +623,7 @@ let is_policy_documents_read_by_user = async (userid, models) => {
   return data;
 };
 
+
 let isUnassignInventoriesRequestPending = async (models) => {
   let unassignRequestInventories = await getInventoriesRequestedForUnassign(
     models
@@ -605,6 +634,7 @@ let isUnassignInventoriesRequestPending = async (models) => {
   return false;
 };
 
+
 let isOwnershipChangeInventoriesRequestPending = async (models) => {
   let ownershipChangeRequestInventories =
     await getInventoriesRequestedForOwnershipChange(models);
@@ -613,6 +643,7 @@ let isOwnershipChangeInventoriesRequestPending = async (models) => {
   }
   return false;
 };
+
 
 let generateUserToken = async (userId, models) => {
   let userInfo = await getUserInfo(userId, models);
@@ -747,6 +778,8 @@ let generateUserToken = async (userId, models) => {
   });
   return token;
 };
+
+
 const refreshToken = async (oldToken, models, addOns = false) => {
   let Return = oldToken;
   let ReturnedData = await isValidTokenAgainstTime(oldToken);
@@ -759,6 +792,7 @@ const refreshToken = async (oldToken, models, addOns = false) => {
   }
   return Return;
 };
+
 const isValidTokenAgainstTime = async (token) => {
   let Return = true;
   token = token.split(" ");
@@ -776,6 +810,7 @@ const isValidTokenAgainstTime = async (token) => {
     Return = false;
   }
 };
+
 let getMachineDetail = async (id, models, res) => {
   try {
     let error = 0;
@@ -835,6 +870,7 @@ let getMachineDetail = async (id, models, res) => {
     throw new Error("Unable to locate all users");
   }
 };
+
 const api_addInventoryAudit = async (
   loggedUserInfo,
   inventory_id,
@@ -884,6 +920,7 @@ const api_addInventoryAudit = async (
   return Return;
 
 };
+
 const addInventoryAudit= async(loggedUserInfo,inventory_id,updated_by_user_id,audit_comment_type,audit_comment,models,req)=>{
   inventory_id = typeof inventory_id!="undefined" ? inventory_id : "";
   audit_done_by_user_id = updated_by_user_id ? updated_by_user_id : "";
@@ -898,6 +935,7 @@ const addInventoryAudit= async(loggedUserInfo,inventory_id,updated_by_user_id,au
   let q= await models.InventoryAuditMonthWise.create(inventory_id, audit_month, audit_year, audit_done_by_user_id, inventory_comment_id )
   return true;
 }
+
 let getMachineStatusList=async(req,models)=>{
   let r_error=1;
   let r_message="";
@@ -917,59 +955,47 @@ let getMachineStatusList=async(req,models)=>{
   return Return;
 
 }
-//working on it 
+
 let getMachineCount=async(req,models)=>{
   let r_error=1;
   let r_message = "";
   let query=await models.sequelize.query( 'SELECT machinelist.*, machines_user."user_Id" FROM machinelist LEFT JOIN machines_user ON machinelist.id= machines_user."machine_id"',{type:QueryTypes.SELECT })
-  let arr_device=[];
+  let arr_device={};
   if(query.length>0){
     count=1;  
   for(let elem of query){
     let key=elem.machine_type.trim();
     let key2 = elem.status.toLowerCase().replace(/\b[a-z]/g, function(letter) {
       return letter.toUpperCase(); });
-      console.log(arr_device)
-      if(arr_device.hasOwnProperty("key")){
-         arr_device[key]['total']=+1;
-         if(arr_device.key.hasOwnProperty("key2")){
-           arr_device[key][key2]=+1;
-           console.log(1)
+      if(arr_device.hasOwnProperty(key)){
+         arr_device[key].total++;
+         if(arr_device[key].hasOwnProperty(key2)){
+           arr_device[key][key2]++;
          }else{
            arr_device[key][key2]=1;
-           console.log(2)
          }
          if(elem.user_Id!=""||elem.user_Id!=null){
-          arr_device[key]["User_Assign"]=+1;
-          console.log(3)
+          arr_device[key]["User_Assign"]++;
          }else{
-           arr_device[key]["User_Not_Assign"]=+1;
-           console.log(4)
+           arr_device[key]["User_Not_Assign"]++;
          }
       }else{
-        console.log(5)
-        arr_device[key]=[]
-        arr_device[key]['total'] = 1
-        console.log(arr_device)
-        if(arr_device[key].hasOwnProperty("key2")){
-          console.log(6)
+        arr_device[key] ={'total':1}
+        if(arr_device[key].hasOwnProperty(key2)){
           arr_device[key][key2]=+1;
         }else{
-          console.log(7)
-          arr_device[key][key2]= 1;
+          arr_device[key][key2] =  1;
         }
         if(elem.user_Id!=""||elem.user_Id!=null){
-          console.log(8)
-          arr_device[key]["User_Assign"]=+1;
+          arr_device[key]["User_Assign"]= 1;
         }else{
-          console.log(9)
           arr_device[key]["User_Not_Assign"]=+1;
         }
       }
   }
   }
-  console.log(arr_device)
-  if(arr_device.length>0){
+  let a =Object.keys(arr_device).length;
+  if(Object.keys(arr_device).length){
     r_error=0;
     r_message = "Data found";
   }else{
@@ -977,12 +1003,12 @@ let getMachineCount=async(req,models)=>{
     r_message = "No Data found";
   }
   Return = [];
-  console.log(arr_device)
   Return.error = r_error;
   Return.data= arr_device;
   Return.message = r_message;
   return Return;
 }
+
 let addInventoryComment = async (machine_id, loggeduserid,models,req) => {
   const inventoryComment = await models.InventoryCommentsModel.create({
     inventory_id: machine_id,
@@ -1001,6 +1027,7 @@ let addInventoryComment = async (machine_id, loggeduserid,models,req) => {
   }
   return inventoryComment.id;
 };
+
 let addMachineType=async(req,models)=>{
   let r_error=1;
   let not_deleted="";
@@ -1047,9 +1074,11 @@ let addMachineType=async(req,models)=>{
    Return.data= r_data;
    return Return;
 }
+
 const AddMachineStatus =async(req,models)=>{
   let addInventoryStatusType1 = await addInventoryStatusType(req,models)
 }
+
 const addInventoryStatusType = async(req,models)=>{
 let r_error = 0;
 let r_message = "";
@@ -1086,6 +1115,8 @@ Return['data']    = r_data;
 console.log(Return)
 return Return;
 }
+
+
 module.exports = {
   getRolePagesForSuperAdmin,
   getGenericPagesForAllRoles,
