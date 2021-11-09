@@ -3,7 +3,7 @@ const providers = require("../providers/creation-provider");
 const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
-const {getMachineDetail,AddMachineStatus,getMachineStatusList,getMachineCount,addMachineType}= require("../allFunctions")
+const {getMachineDetail,AddMachineStatus,getMachineStatusList,getMachineCount,addMachineType,getAllMachinesDetail}= require("../allFunctions")
 exports.inventoryController = async (req, res, next) => {
   try {
     let request_Validate = await reqValidate(req);
@@ -209,7 +209,7 @@ exports.addMachineTypeController = async (req, res, next) => {
     let machineType = await addMachineType(req,db);
     res.status_code = 200;
     res.error=machineType.error;
-    res.data = machineType.data;
+    res.message = machineType.data.message;
     return next();
   } catch (error) {
     console.log(error)
@@ -222,16 +222,18 @@ exports.addMachineTypeController = async (req, res, next) => {
 exports.getMachineTypeController = async (req, res, next) => {
   try {
     let machine_type_list = await db.Config.getMachineTypeList();
-    if(machine_type_list.length!==0){
-    res.status_code = 200;
-    res.data = machine_type_list;
+    if(machine_type_list.message!==1){
+      res.status_code = 200;
+      res.error=machine_type_list.error;
+      console.log(machine_type_list.message)
+      res.message=machine_type_list.message;
     return next();
-  }else{
-      res.status_code=500;
-      res.error=1,
-      res.message="no machine type list found"
-      return next();
-  }
+    }else{    
+      res.status_code = 200;
+      res.error=machine_type_list.error
+      res.data=machine_type_list.data;
+     return next();
+    }
   } catch (error) {
     res.status_code = 500;
     res.message = error.message;
@@ -241,9 +243,20 @@ exports.getMachineTypeController = async (req, res, next) => {
 
 exports.getMachinesDetailController = async (req, res, next) => {
   try {
-    let machineDetails = await db.MachineList.getMachinesDetail();
+    let machineDetails;
+    if(typeof req.body.sort!="undefined"&&req.body.sort!=""){
+     let sort=(req.body.sort).trim();
+     machineDetails = await getAllMachinesDetail(req,db,sort);
+    }
+    if(typeof req.body.status_sort!="undefined"&&req.body.status_sort!=""){
+      let status_sort=(req.body.status_sort).trim();
+      machineDetails = await getAllMachinesDetail(req,db,sort=false,status_sort);
+     }else{
+    machineDetails = await getAllMachinesDetail(req,db);
+  }
     res.status_code = 200;
-    res.data = machineDetails;
+    res.data = machineDetails.data;
+    res.error=machineDetails.error;
     return next();
   } catch (error) {
     res.status_code = 500;

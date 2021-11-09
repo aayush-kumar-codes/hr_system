@@ -1043,10 +1043,11 @@ let addMachineType=async(req,models)=>{
     let r_message = "Variable Successfully Inserted";
     r_data.message= r_message;
   }
+  let arr1=[]
   if(q.length!=0){
-    const arr1=await q.map( (value)=>{
-      return value.value;
-    })
+    for(i=0;i<q.length;i++){
+      arr1.push(q[i].value)
+    }
     let arr2=req.body;
     arr2=Object.values(arr2);
     let s = arr1
@@ -1061,7 +1062,7 @@ let addMachineType=async(req,models)=>{
          }
       }
     }
-    let res=JSON.stringify(arr2);
+    let res=JSON.stringify(req.body.dataValues);
    await models.Config.update({value:res},{
      where:{type:req.body.type}
    })
@@ -1078,7 +1079,45 @@ let addMachineType=async(req,models)=>{
 const AddMachineStatus =async(req,models)=>{
   let addInventoryStatusType1 = await addInventoryStatusType(req,models)
 }
+const getAllMachinesDetail =async(req,models,sort=null,status_sort=null)=>{
+  try{
+  if(sort!==null){
+    let q=await models.sequelize.query(`select machinelist.*, machines_user."user_Id", machines_user.assign_date, user_profile.name, user_profile.work_email, f1.file_name as fileInventoryInvoice, f2.file_name as fileInventoryWarranty, f3.file_name as fileInventoryPhoto from machinelist left join machines_user on machinelist.id = machines_user.machine_id left join user_profile on machines_user."user_Id" = user_profile."user_Id" left join files as f1 ON machinelist.file_inventory_invoice = f1.id left join files as f2 ON machinelist.file_inventory_warranty = f2.id left join files as f3 ON machinelist.file_inventory_photo = f3.id where machinelist.machine_type='${sort}' and machinelist.approval_status = 1`,{type:QueryTypes.SELECT})
+  }
+  if(status_sort!==null){
+     let q=await models.sequelize.query(`select machinelist.*, machines_user."user_Id",machines_user.assign_date,user_profile.name,user_profile.work_email,f1.file_name as fileInventoryInvoice,f2.file_name as fileInventoryWarranty,f3.file_name as fileInventoryPhoto from machinelist left join machines_user on machinelist.id = machines_user.machine_id left join user_profile on machines_user."user_Id" = user_profile."user_Id" left join files as f1 ON machinelist.file_inventory_invoice = f1.id left join files as f2 ON machinelist.file_inventory_warranty = f2.id left join files as f3 ON machinelist.file_inventory_photo = f3.id where machinelist.status='${status_sort}' and machinelist.approval_status = 1`,{type:QueryTypes.SELECT})
+    }else{
+      q=await models.sequelize.query(`select machinelist.*, machines_user."user_Id",machines_user.assign_date,user_profile.name,user_profile.work_email,f1.file_name as fileInventoryInvoice,f2.file_name as fileInventoryWarranty,f3.file_name as fileInventoryPhoto from machinelist left join machines_user on machinelist.id = machines_user.machine_id left join user_profile on machines_user."user_Id" = user_profile."user_Id" left join files as f1 ON machinelist.file_inventory_invoice = f1.id left join files as f2 ON machinelist.file_inventory_warranty = f2.id left join files as f3 ON machinelist.file_inventory_photo = f3.id where machinelist.approval_status = 1 ORDER BY machinelist.id DESC`,{type:QueryTypes.SELECT})
+    }
+    for(let [key,row]of Object.entries(q)){
+     let inventoryHistory= await getInventoryHistory(row.id,models);
+     q[key]["history"]=inventoryHistory;
+     if(typeof row['fileInventoryInvoice']!="undefined"&& row['fileInventoryInvoice']!="")
+     {
+      q[key]["file_inventory_invoice"] = `${process.env.ENV_BASE_URL}.'attendance/uploads/inventories/'.${row.file_inventory_invoice}`;
+     }
+     if (
+      typeof row["file_inventory_photo"] != "undefined" &&
+      row["file_inventory_photo"] != null
+    ) {
+      q[key]["file_inventory_photo"] = `${process.env.ENV_BASE_URL}.'attendance/uploads/inventories/'.${row.file_inventory_photo}`;
+    }
+    if (
+      typeof row[key]["file_inventory_warranty"] != "undefined" &&
+      row[key]["file_inventory_warranty"] != null
+    ) {
+      q[key]["file_inventory_warranty"] = `${process.env.ENV_BASE_URL}.'attendance/uploads/inventories/'.${row.file_inventory_warranty}`;
+    }
+    }
+    let Return=[];
+    Return.error=0;
+    Return.data=q;
+    return Return;
 
+  }catch(error){
+console.log(error)
+  }
+}
 const addInventoryStatusType = async(req,models)=>{
 let r_error = 0;
 let r_message = "";
@@ -1148,5 +1187,6 @@ module.exports = {
   addMachineType,
   addInventoryStatusType,
   getMachineStatusList,
-  getMachineCount
+  getMachineCount,
+  getAllMachinesDetail
 };

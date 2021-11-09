@@ -19,10 +19,10 @@ router.get("/get_machine_status_list",middleware.AuthForAdmin,inventoryControlle
 router.post("/add_machine_status",middleware.AuthForAdmin,validators.MachineStatusValidator,inventoryControllers.addMachineStatusController,handlers.responseForInventory);//done
 router.post("/delete_machine_status",middleware.AuthForAdmin,validators.MachineStatusDeleteValidator,inventoryControllers.deleteMachineStatusController,handlers.responseForInventory);  //done
 
-router.get("/get_machine_count",middleware.AuthForAdmin,inventoryControllers.getMachineCountController,handlers.responseForInventory); // working on it
+router.get("/get_machine_count",middleware.AuthForAdmin,inventoryControllers.getMachineCountController,handlers.responseForInventory); // done
 router.get("/get_machine_type_list", middleware.AuthForAdmin,inventoryControllers.getMachineTypeController, handlers.responseForInventory);   //done
 
-router.post("/add_machine_type",middleware.AuthForAdmin, validators.addMachineTypeValidator,inventoryControllers.addMachineTypeController, handlers.responseForInventory)
+router.post("/add_machine_type",middleware.AuthForAdmin, validators.addMachineTypeValidator,inventoryControllers.addMachineTypeController, handlers.responseForAddMachine)//done
 
 router.get("/get_machines_detail", middleware.AuthForAdmin, inventoryControllers.getMachinesDetailController, handlers.responseForInventory);
 router.get("/get_unapproved_inventories", middleware.AuthForAdmin, inventoryControllers.getUnapprovedInventoryControllers, handlers.responseForInventory);

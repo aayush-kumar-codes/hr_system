@@ -270,14 +270,6 @@ function machinelist(database, type) {
   //   }
   // };
 
-  MachineList.getMachinesDetail = async () => {
-    try {
-      let machinesDetail = await MachineList.findAll({});
-      return machinesDetail;
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
   MachineList.getUnapprovedInventory = async () => {
     try {
       let unapprovedInventory = await MachineList.findAll({

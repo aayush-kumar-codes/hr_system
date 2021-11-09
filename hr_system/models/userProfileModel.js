@@ -40,7 +40,12 @@ function user_profile(database, type) {
     slack_msg: type.INTEGER,
     signature: type.STRING,
     meta_data: type.STRING,
-  });
+  },
+  {
+    freezeTableName:true,
+    timestamps:false,
+  }
+  );
 
   // user_profile. = async(reqBody) => {
   // user_profile.registerProfile = async (reqBody, user_id) => {

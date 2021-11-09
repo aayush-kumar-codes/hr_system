@@ -1,3 +1,5 @@
+const { responseForData } = require("../util/responseHandlers");
+
 function config(database, type) {
   const config = database.define(
     "config",
@@ -16,8 +18,23 @@ function config(database, type) {
   );
   config.getMachineTypeList = async () => {
     try {
+      let r_error;
+      let r_data;
+      let r_message;
       let machineTypeList = await config.findAll({type:"machine_type"});
-      return machineTypeList;
+      if(machineTypeList.length!==0){
+        r_error=0,
+        r_data = machineTypeList;
+        r_message=1;
+      }else{
+          r_error=1,
+          r_message="no machine type list found"
+      }
+     let Return =[];
+      Return.error=r_error;
+      Return.data= r_data;
+      Return.message=r_message
+    return Return
     } catch (error) {
       throw new Error("Unable to locate all machine types");
     }
