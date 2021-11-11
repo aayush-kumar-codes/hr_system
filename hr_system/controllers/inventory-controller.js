@@ -3,7 +3,7 @@ const providers = require("../providers/creation-provider");
 const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
-const {getMachineDetail,AddMachineStatus,getMachineStatusList,getMachineCount,addMachineType,getAllMachinesDetail}= require("../allFunctions")
+const {getMachineDetail,AddMachineStatus,getMachineStatusList,getMachineCount,addMachineType,getAllMachinesDetail,UpdateOfficeMachine}= require("../allFunctions")
 exports.inventoryController = async (req, res, next) => {
   try {
     let request_Validate = await reqValidate(req);
@@ -109,7 +109,7 @@ exports.getMachineController = async (req, res, next) => {
 
 exports.inventoryUpdateMachineController = async (req, res, next) => {
   try {
-    let updatedMachine = await db.MachineList.updateMachine(req.body);
+    let updatedMachine = await UpdateOfficeMachine(req.body,db);
     res.status_code = 200;
     // res.message = "machine updated";
     res.data = updatedMachine;
@@ -187,7 +187,6 @@ exports.deleteMachineStatusController = async (req, res, next) => {
   }
 };
 
-//working on it
 exports.getMachineCountController = async (req, res, next) => {
   try {
     let machine_count = await getMachineCount(req,db);

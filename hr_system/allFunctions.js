@@ -811,7 +811,7 @@ const isValidTokenAgainstTime = async (token) => {
   }
 };
 
-let getMachineDetail = async (id, models, res) => {
+let getMachineDetail = async (id, models,) => {
   try {
     let error = 0;
     let row = {};
@@ -1154,7 +1154,51 @@ Return['data']    = r_data;
 console.log(Return)
 return Return;
 }
+//working on it 
+const UpdateOfficeMachine=async(req,models)=>{
+let r_error=1;
+let r_message="";
+let logged_user_id=req.userData
+console.log(req.userData)
+console.log(logged_user_id)
+data =[];
+  data.machine_type=req.body.machine_type,
+  data.machine_name =req.body.machine_name,
+  data.machine_price =req.body.machine_price,
+  data.serial_number =req.body.serial_no,
+  data.mac_address =req.body.mac_address,
+  data.date_of_purchase =req.body.purchase_date,
+  data.operating_system =req.body.operating_system,
+  data.status =req.body.status,
+  data.comments =req.body.comment,
+  data.warranty_end_date =req.body.warranty,
+  data.bill_number =req.body.bill_no,
+  data.warranty_comment =req.body.warranty_comment,
+  data.repair_comment =req.body.repair_comment,
+  data.warranty_years =req.body.warranty_years,
 
+console.log(data)
+let inventory_id=req.body.id;
+let machine_detail=await getMachineDetail(inventory_id,models);
+let priorCheckError = false;
+let newStatus=req.body.status;
+let oldStatus=machine_detail['data']['status'];
+if(newStatus.toLowerCase()=='sold'&&newStatus!=oldStatus){
+  if(typeof machine_detail['data']['user_Id']!=="undefined"&&machine_detail['data']['user_Id']!=null){
+    r_error=1;
+    r_message="You need to unassign this inventory before setting its status to Sold";
+    priorCheckError = true;
+  }
+}
+if(priorCheckError==false){
+  addInventoryComment(inventory_id,logged_user_id,models,req)
+  let whereField = 'id';
+  let whereFieldVal = inventory_id ;
+  for(let [key,value] of Object.entries(machine_detail['data'])){
+    if(data.includes(key)){}
+  }
+}
+}
 
 module.exports = {
   getRolePagesForSuperAdmin,
@@ -1188,5 +1232,6 @@ module.exports = {
   addInventoryStatusType,
   getMachineStatusList,
   getMachineCount,
-  getAllMachinesDetail
+  getAllMachinesDetail,
+  UpdateOfficeMachine
 };
