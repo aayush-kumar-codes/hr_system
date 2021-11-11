@@ -1037,16 +1037,20 @@ const AddMachineStatus =async(req,models)=>{
 }
 const getAllMachinesDetail =async(req,models,sort=null,status_sort=null)=>{
   try{
+    let q;
   if(sort!==null){
-    let q=await models.sequelize.query(`select machinelist.*, machines_user."user_Id", machines_user.assign_date, user_profile.name, user_profile.work_email, f1.file_name as fileInventoryInvoice, f2.file_name as fileInventoryWarranty, f3.file_name as fileInventoryPhoto from machinelist left join machines_user on machinelist.id = machines_user.machine_id left join user_profile on machines_user."user_Id" = user_profile."user_Id" left join files as f1 ON machinelist.file_inventory_invoice = f1.id left join files as f2 ON machinelist.file_inventory_warranty = f2.id left join files as f3 ON machinelist.file_inventory_photo = f3.id where machinelist.machine_type='${sort}' and machinelist.approval_status = 1`,{type:QueryTypes.SELECT})
+   q=await models.sequelize.query(`select machinelist.*, machines_user."user_Id", machines_user.assign_date, user_profile.name, user_profile.work_email, f1.file_name as fileInventoryInvoice, f2.file_name as fileInventoryWarranty, f3.file_name as fileInventoryPhoto from machinelist left join machines_user on machinelist.id = machines_user.machine_id left join user_profile on machines_user."user_Id" = user_profile."user_Id" left join files as f1 ON machinelist.file_inventory_invoice = f1.id left join files as f2 ON machinelist.file_inventory_warranty = f2.id left join files as f3 ON machinelist.file_inventory_photo = f3.id where machinelist.machine_type='${sort}' and machinelist.approval_status = 1`,{type:QueryTypes.SELECT})
   }
   if(status_sort!==null){
-     let q=await models.sequelize.query(`select machinelist.*, machines_user."user_Id",machines_user.assign_date,user_profile.name,user_profile.work_email,f1.file_name as fileInventoryInvoice,f2.file_name as fileInventoryWarranty,f3.file_name as fileInventoryPhoto from machinelist left join machines_user on machinelist.id = machines_user.machine_id left join user_profile on machines_user."user_Id" = user_profile."user_Id" left join files as f1 ON machinelist.file_inventory_invoice = f1.id left join files as f2 ON machinelist.file_inventory_warranty = f2.id left join files as f3 ON machinelist.file_inventory_photo = f3.id where machinelist.status='${status_sort}' and machinelist.approval_status = 1`,{type:QueryTypes.SELECT})
+    q=await models.sequelize.query(`select machinelist.*, machines_user."user_Id",machines_user.assign_date,user_profile.name,user_profile.work_email,f1.file_name as fileInventoryInvoice,f2.file_name as fileInventoryWarranty,f3.file_name as fileInventoryPhoto from machinelist left join machines_user on machinelist.id = machines_user.machine_id left join user_profile on machines_user."user_Id" = user_profile."user_Id" left join files as f1 ON machinelist.file_inventory_invoice = f1.id left join files as f2 ON machinelist.file_inventory_warranty = f2.id left join files as f3 ON machinelist.file_inventory_photo = f3.id where machinelist.status='${status_sort}' and machinelist.approval_status = 1`,{type:QueryTypes.SELECT})
     }else{
       q=await models.sequelize.query(`select machinelist.*, machines_user."user_Id",machines_user.assign_date,user_profile.name,user_profile.work_email,f1.file_name as fileInventoryInvoice,f2.file_name as fileInventoryWarranty,f3.file_name as fileInventoryPhoto from machinelist left join machines_user on machinelist.id = machines_user.machine_id left join user_profile on machines_user."user_Id" = user_profile."user_Id" left join files as f1 ON machinelist.file_inventory_invoice = f1.id left join files as f2 ON machinelist.file_inventory_warranty = f2.id left join files as f3 ON machinelist.file_inventory_photo = f3.id where machinelist.approval_status = 1 ORDER BY machinelist.id DESC`,{type:QueryTypes.SELECT})
     }
+    ( async(q)=>{
     for(let [key,row]of Object.entries(q)){
+      console.log(12345)
      let inventoryHistory= await getInventoryHistory(row.id,models);
+    //  console.log(inventoryHistory)
      q[key]["history"]=inventoryHistory;
      if(typeof row['fileInventoryInvoice']!="undefined"&& row['fileInventoryInvoice']!="")
      {
@@ -1059,17 +1063,15 @@ const getAllMachinesDetail =async(req,models,sort=null,status_sort=null)=>{
       q[key]["file_inventory_photo"] = `${process.env.ENV_BASE_URL}.'attendance/uploads/inventories/'.${row.file_inventory_photo}`;
     }
     if (
-      typeof row[key]["file_inventory_warranty"] != "undefined" &&
-      row[key]["file_inventory_warranty"] != null
-    ) {
+      typeof row["file_inventory_warranty"] != "undefined" && row["file_inventory_warranty"] != null) {
       q[key]["file_inventory_warranty"] = `${process.env.ENV_BASE_URL}.'attendance/uploads/inventories/'.${row.file_inventory_warranty}`;
     }
     }
+  })(q);
     let Return=[];
     Return.error=0;
     Return.data=q;
     return Return;
-
   }catch(error){
 console.log(error)
   }

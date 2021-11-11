@@ -185,7 +185,7 @@ exports.addMachineStatusController = async (req, res, next) => {
 exports.getMachineStatusController = async (req, res, next) => {
   try {
     let machine_list = await getMachineStatusList(req,db);
-    console.log(machine_list.data)
+    // console.log(machine_list.data)
     res.status_code = 200;
     res.error=machine_list.error;
     res.message=machine_list.message;
@@ -254,7 +254,7 @@ exports.getMachineTypeController = async (req, res, next) => {
     if(machine_type_list.message!==1){
       res.status_code = 200;
       res.error=machine_type_list.error;
-      console.log(machine_type_list.message)
+      // console.log(machine_type_list.message)
       res.message=machine_type_list.message;
     return next();
     }else{    
@@ -276,15 +276,12 @@ exports.getMachinesDetailController = async (req, res, next) => {
     if(typeof req.body.sort!="undefined"&&req.body.sort!=""){
      let sort=(req.body.sort).trim();
      machineDetails = await getAllMachinesDetail(req,db,sort);
-    //  console.log(machineDetails)
     }
     if(typeof req.body.status_sort!="undefined"&&req.body.status_sort!=""){
       let status_sort=(req.body.status_sort).trim();
       machineDetails = await getAllMachinesDetail(req,db,sort=false,status_sort);
-      console.log(machineDetails)
      }else{
     machineDetails = await getAllMachinesDetail(req,db);
-    console.log(machineDetails)
   }
     res.status_code = 200;
     res.data = machineDetails.data;
