@@ -506,7 +506,7 @@ let getAllPages = async () => {
       id: PAGE_uploadAttendance,
       name: "uploadAttendance",
       description: "Can upload attendance sheet",
-      defaultForRole: ["HR", "HR Payroll Manager", "Attendance Uploader"],
+      defaultForRoles: ["HR", "HR Payroll Manager", "Attendance Uploader"],
       actions_list: [
         {
           id: ACTION_get_enable_user,
@@ -525,7 +525,7 @@ let getAllPages = async () => {
       id: PAGE_manage_holidays,
       name: "manageolidays",
       description: "PAGE - Manage Holidays",
-      defaultForRole: [
+      defaultForRoles: [
         "HR",
         "HR Payroll Manager",
         // "Attendance Uploader",/
@@ -553,7 +553,7 @@ let getAllPages = async () => {
       id: PAGE_inventory_system,
       name: "inventryOverviewDetail",
       description: "Manage Inventory - Can overview inventories",
-      deaultForRole: [
+      defaultForRoles: [
         "HR",
         "HR Payroll Manager",
         "Inventory Manager",
@@ -1532,6 +1532,7 @@ let getAllPages = async () => {
       ],
     },
   ];
+  // console.log(array);
   return array;
 };
 

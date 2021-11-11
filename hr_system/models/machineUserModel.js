@@ -38,8 +38,10 @@ function machineuser(database, type) {
     }
   };
 
-  machines_user.AssignMachine = async (reqBody) => {
+  machines_user.AssignMachine = async (reqBody,db) => {
     try {
+      const machineinfo=await db.MachineStatus.findOne({where:{id:reqBody.body.machine_id}});
+      if(machineinfo.status!="sold"){
       let find_machine = await machines_user.findOne({
         where: { machine_id: reqBody.body.machine_id },
       });
@@ -63,7 +65,13 @@ function machineuser(database, type) {
           }
         );
       }
+      let updatedMachine=await db.MachineList({is_unassign_request:0,ownership_change_req_by_user:0},
+        {where:{id:machine_id}})
       return "Done";
+    }
+    else{
+      return "error"; 
+    }
     } catch (error) {
       console.log(error, "error from assign machine");
       throw new Error(error);

@@ -4,7 +4,7 @@ const Models = require("./models/index");
 const Op = Sequelize.Op;
 const db = {};
 
-const sequelize = new Sequelize(databaseUri.psql_url);
+const sequelize = new Sequelize(databaseUri.psql_url,{logging: false});
 
 Object.keys(Models).forEach((modelName) => {
   const model = Models[modelName](sequelize, Sequelize.DataTypes);
