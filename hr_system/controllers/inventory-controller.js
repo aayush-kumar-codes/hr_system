@@ -3,7 +3,7 @@ const providers = require("../providers/creation-provider");
 const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
-const {getMachineDetail,AddMachineStatus,getMachineStatusList,getMachineCount,addMachineType,getAllMachinesDetail,UpdateOfficeMachine}= require("../allFunctions")
+const {getMachineDetail,AddMachineStatus,getMachineStatusList,getMachineCount,addMachineType,getAllMachinesDetail,UpdateOfficeMachine,api_getMyInventories}= require("../allFunctions")
 exports.inventoryController = async (req, res, next) => {
   try {
     let request_Validate = await reqValidate(req);
@@ -83,11 +83,41 @@ exports.inventoryAuditController = async (req, res, next) => {
 
 exports.getMyInventoryController = async (req, res, next) => {
   try {
-    let machine_list = await db.MachineList.GetMachine(req, db);
+    // let machine_list = await db.MachineList.GetMachine(req, db);
+    // console.log(machine_list)
+    const loggeduserid = req.userData.data.id;
+    const loggeduser_role = req.userData.data.role;
+    let result = await api_getMyInventories(
+      loggeduserid,
+      loggeduser_role,
+      db
+    );
+     if (
+      typeof req.body.skip_inventory_audit != undefined &&
+      req.body.skip_inventory_audit == 1
+    ) {
+      let lowerCaseLoggedUserRole = loggeduser_role.toLowerCase();
+      if (
+        lowerCaseLoggedUserRole == "hr" ||
+        lowerCaseLoggedUserRole == "inventory manager" ||
+        lowerCaseLoggedUserRole == "hr payroll manager" ||
+        lowerCaseLoggedUserRole == "admin"
+      ) {
+        let addOnsRefreshToken = [];
+        addOnsRefreshToken.skip_inventory_audit = true;
+        let newToken = await refreshToken(
+          req.headers.authorization,
+          models,
+          addOnsRefreshToken
+        );
+        res.data.new_token = newToken;
+      }
+    }
     res.status_code = 200;
-    res.data = machine_list;
+    res.data = result;
     return next();
   } catch (error) {
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();
@@ -246,12 +276,15 @@ exports.getMachinesDetailController = async (req, res, next) => {
     if(typeof req.body.sort!="undefined"&&req.body.sort!=""){
      let sort=(req.body.sort).trim();
      machineDetails = await getAllMachinesDetail(req,db,sort);
+    //  console.log(machineDetails)
     }
     if(typeof req.body.status_sort!="undefined"&&req.body.status_sort!=""){
       let status_sort=(req.body.status_sort).trim();
       machineDetails = await getAllMachinesDetail(req,db,sort=false,status_sort);
+      console.log(machineDetails)
      }else{
     machineDetails = await getAllMachinesDetail(req,db);
+    console.log(machineDetails)
   }
     res.status_code = 200;
     res.data = machineDetails.data;

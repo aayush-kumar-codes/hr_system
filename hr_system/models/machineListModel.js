@@ -3,8 +3,11 @@ const db = require("../db");
 const {
   getUserInventories,
   getUserRole,
-  getInventoryFullDetails,is_policy_documents_read_by_user,getUserInfo,
-  refreshToken,getInventoryHistory,
+  getInventoryFullDetails,
+  is_policy_documents_read_by_user,
+  getUserInfo,
+  refreshToken,
+  getInventoryHistory,
   addInventoryComment,
 } = require("../allFunctions");
 
@@ -98,6 +101,7 @@ function machinelist(database, type) {
             const addInventoryComment1 = await addInventoryComment(
               creation.id,
               loggeduserid,
+              db,
               req
             );
           } else {
@@ -128,28 +132,41 @@ function machinelist(database, type) {
       throw new Error("Unable to locate all users");
     }
   };
-//working
-  MachineList.GetMachine = async (reqBody, models) => {
-    try {
-      const loggeduserid = reqBody.userData.data.id;
-      const loggeduser_role=reqBody.userData.data.role;
-      let res = await api_getMyInventories(loggeduserid,loggeduser_role,models);
-      if(typeof reqBody.body.skip_inventory_audit!=undefined  && reqBody.body.skip_inventory_audit==1){
-        let lowerCaseLoggedUserRole = loggeduser_role.toLowerCase()
-        if(lowerCaseLoggedUserRole=='hr' || lowerCaseLoggedUserRole == 'inventory manager' || 
-        lowerCaseLoggedUserRole == 'hr payroll manager' ||
-        lowerCaseLoggedUserRole == 'admin'){
-          let addOnsRefreshToken=[]
-          addOnsRefreshToken.skip_inventory_audit=true;
-          let newToken=await refreshToken( reqBody.headers.authorization,models, addOnsRefreshToken );
-          res.data.new_token=newToken;
-        }
-      }
-    } catch (error) {
-      console.log(error)
-      throw new Error("Unable to locate all users");
-    }
-  };
+  // MachineList.GetMachine = async (reqBody, models) => {
+  //   try {
+  //     const loggeduserid = reqBody.userData.data.id;
+  //     const loggeduser_role = reqBody.userData.data.role;
+  //     let res = await api_getMyInventories(
+  //       loggeduserid,
+  //       loggeduser_role,
+  //       models
+  //     );
+  //     if (
+  //       typeof reqBody.body.skip_inventory_audit != undefined &&
+  //       reqBody.body.skip_inventory_audit == 1
+  //     ) {
+  //       let lowerCaseLoggedUserRole = loggeduser_role.toLowerCase();
+  //       if (
+  //         lowerCaseLoggedUserRole == "hr" ||
+  //         lowerCaseLoggedUserRole == "inventory manager" ||
+  //         lowerCaseLoggedUserRole == "hr payroll manager" ||
+  //         lowerCaseLoggedUserRole == "admin"
+  //       ) {
+  //         let addOnsRefreshToken = [];
+  //         addOnsRefreshToken.skip_inventory_audit = true;
+  //         let newToken = await refreshToken(
+  //           reqBody.headers.authorization,
+  //           models,
+  //           addOnsRefreshToken
+  //         );
+  //         res.data.new_token = newToken;
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.log(error);
+  //     throw new Error("Unable to locate all users");
+  //   }
+  // };
 
   // MachineList.getMachineDetail = async (reqBody,models, res) => {
   //   try {
@@ -292,11 +309,9 @@ function machinelist(database, type) {
   };
   let getInventoryComments = async (inventory_id, db) => {
     try {
-      console.log(12453)
       let inventory_comments = await db.InventoryCommentsModel.findAll({
         where: { inventory_id: inventory_id },
       });
-      console.log(211334)
       let userProfileData = [];
       inventory_comments.forEach(async (comments) => {
         let ProfileData = await db.UserProfile.findAll({
@@ -318,141 +333,76 @@ function machinelist(database, type) {
       throw new Error("error in  getInventoryComments");
     }
   };
-// let addInventoryComment = async (machine_id, loggeduserid, req, db) => {
-//   const inventoryComment = await db.InventoryCommentsModel.create({
-//     inventory_id: machine_id,
-//     updated_by_user_id: loggeduserid,
-//     comment_type: req.body.comment_type,
-//     comment: req.body.unassign_comment,
-//   });
-//   if (req.body.assign_unassign_user_id != null) {
-//     const inventoryComment = await db.InventoryCommentsModel.create({
-//       inventory_id: machine_id,
-//       updated_by_user_id: loggeduserid,
-//       comment_type: req.body.comment_type,
-//       comment: req.body.unassign_comment,
-//       assign_unassign_user_id: req.body.assign_unassign_user_id,
-//     });
-//   }
-//   return inventoryComment.id;
-// };
-const assignUserMachine = async (machine_id, req, loggeduserid) => {
-  if (
-    req.body.userid == "" ||
-    req.body.userid == 0 ||
-    req.body.userid == null
-  ) {
-    await removeMachineAssignToUser(machine_id, loggeduserid, req);
-  } else {
-    const machine_info = await getMachineDetails(machine_id);
-    let checkpass = true;
-    if (machine_info.status == "sold") {
-      checkpass = false;
-      message = "Sold status inventory cannnot be assign to any employee";
-    }
-  }
-};
-const updateInventoryWithTempFile = async (
-  loggeduserid,
-  machine_id,
-  db,
-  req
-) => {
-  const file_id = await db.InventoryTempFiles.findOne({
-    where: { id: req.body.temp_inventory_photo_id },
-  });
-  await updateInventoryFilePhoto(loggeduserid, machine_id, file_id, db, req);
-};
-const updateInventoryFilePhoto = async (
-  loggeduserid,
-  machine_id,
-  file_id,
-  db,
-  req
-) => {
-  await db.MachineList.update(
-    { file_inventory_photo: file_id },
-    { where: { id: machine_id } }
-  );
-  await addInventoryComment(machine_id, loggeduserid, req, db);
-};
-const removeMachineAssignToUser = async (machine_id, loggeduserid, req) => {
-  const machine_Info = await getMachineDetail(machine_id);
-  if (machine_Info != null) {
-    const message = [];
-    message.inventoryName = machine_Info.machine_name;
-    message.invetoryType = machine_Info.machine_type;
-    addInventoryComment(machine_id, loggeduserid, req, db);
-  }
-  await db.MachineUser.destroy({ where: { machine_id: machine_id } });
-  return message;
-};
-const api_getMyInventories = async (user_id, user_role,models) => {
-  let error=0;
-  let message='';
-  let data={};
-  let userInventories = await getUserInventories(user_id,models, user_role);
-  if (!userInventories) {
-    message="no inventories assigned to user";
-  } else {
-    let roleName;
-    if (user_role == null) {
-      let roleDetails = await getUserRole(userid);
-      if (typeof roleDetails.name != undefined) {
-        let roleName = roleDetails.name;
-      }
+  // let addInventoryComment = async (machine_id, loggeduserid, req, db) => {
+  //   const inventoryComment = await db.InventoryCommentsModel.create({
+  //     inventory_id: machine_id,
+  //     updated_by_user_id: loggeduserid,
+  //     comment_type: req.body.comment_type,
+  //     comment: req.body.unassign_comment,
+  //   });
+  //   if (req.body.assign_unassign_user_id != null) {
+  //     const inventoryComment = await db.InventoryCommentsModel.create({
+  //       inventory_id: machine_id,
+  //       updated_by_user_id: loggeduserid,
+  //       comment_type: req.body.comment_type,
+  //       comment: req.body.unassign_comment,
+  //       assign_unassign_user_id: req.body.assign_unassign_user_id,
+  //     });
+  //   }
+  //   return inventoryComment.id;
+  // };
+  const assignUserMachine = async (machine_id, req, loggeduserid) => {
+    if (
+      req.body.userid == "" ||
+      req.body.userid == 0 ||
+      req.body.userid == null
+    ) {
+      await removeMachineAssignToUser(machine_id, loggeduserid, req);
     } else {
-      roleName = user_role;
-    }
-    roleName = roleName.toLowerCase();
-    let user_assign_machine = [];
-    let hide_assigned_user_info = true;
-    for (let key in userInventories) {
-      let i_details = await getInventoryFullDetails(
-        userInventories[key].dataValues.machine_id,
-        hide_assigned_user_info,
-        models
-      );
-      if (typeof i_details.is_unassign_request!= undefined && i_details.is_unassign_request == 1) {
-        if (
-          roleName == "admin" ||
-          roleName == "hr" ||
-          roleName == "inventory manager"
-        ) {
-          i_details.is_unassign_request_handler = 1;
-        }
+      const machine_info = await getMachineDetails(machine_id);
+      let checkpass = true;
+      if (machine_info.status == "sold") {
+        checkpass = false;
+        message = "Sold status inventory cannnot be assign to any employee";
       }
-      if (typeof i_details.ownership_change_req_by_user != undefined && i_details.ownership_change_req_by_user == 1) {
-        if (
-          roleName == "admin" ||
-          roleName == "hr" ||
-          roleName == "inventory manager"
-        ) {
-          i_details.is_ownership_change_req_handler = 1;
-        }
-      }
-      user_assign_machine.push(i_details);
     }
-    data.user_assign_machine = user_assign_machine;
+  };
+  const updateInventoryWithTempFile = async (
+    loggeduserid,
+    machine_id,
+    db,
+    req
+  ) => {
+    const file_id = await db.InventoryTempFiles.findOne({
+      where: { id: req.body.temp_inventory_photo_id },
+    });
+    await updateInventoryFilePhoto(loggeduserid, machine_id, file_id, db, req);
+  };
+  const updateInventoryFilePhoto = async (
+    loggeduserid,
+    machine_id,
+    file_id,
+    db,
+    req
+  ) => {
+    await db.MachineList.update(
+      { file_inventory_photo: file_id },
+      { where: { id: machine_id } }
+    );
+    await addInventoryComment(machine_id, loggeduserid, db, req);
+  };
+  const removeMachineAssignToUser = async (machine_id, loggeduserid, req) => {
+    const machine_Info = await getMachineDetail(machine_id);
+    if (machine_Info != null) {
+      const message = [];
+      message.inventoryName = machine_Info.machine_name;
+      message.invetoryType = machine_Info.machine_type;
+      addInventoryComment(machine_id, loggeduserid, req, db);
+    }
+    await db.MachineUser.destroy({ where: { machine_id: machine_id } });
+    return message;
+  };
 
-    let user_profile_detail=await getUserInfo(user_id,models)
-    let upd={};
-    upd.name = user_profile_detail.name
-    upd.jobtitle = user_profile_detail.jobtitle
-    upd.work_email = user_profile_detail.work_email
-    upd.slack_profile = user_profile_detail.slack_profile
-    upd.role_name = user_profile_detail.role_name
-    upd.gender = user_profile_detail.gender
-    upd.user_Id = user_profile_detail.user_Id;
-
-    data.user_profile_detail=upd;
-  }
-  let Return={};
-  Return.error=error;
-  Return.message=message;
-  Return.data=data;
-  return Return;
-};
-return MachineList;
+  return MachineList;
 }
 module.exports = machinelist;

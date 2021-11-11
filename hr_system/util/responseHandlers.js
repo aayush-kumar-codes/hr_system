@@ -2,9 +2,9 @@ let responseHandle = async (req, res) => {
   res.status(res.status_code).json({
     error: res.error,
     data: {
-      message: res.message,
       token: res.token,
-     userid: res.data,
+      message: res.message,
+      userid: res.data,
     },
   });
 };
@@ -26,8 +26,6 @@ let responseForData = async (req, res) => {
        data: res.data,
     });
   };
-
-
   let responseForEmployee = async (req, res) => {
     res.status(res.status_code).json({
       error: res.error,
@@ -45,7 +43,31 @@ let responseForAddMachine=async(req,res)=>{
     }
   })
 }
-let addNewEmployeeResponseHandle = async (req, res) => {
-  res.status(res.status_code).json(res.data);
+let newResponse = async (req, res) => {
+  res.status(res.status_code).json({
+    error: res.error,
+    data: res.data,
+  });
 };
-module.exports = { responseHandle ,responseForData,responseForInventory,responseForEmployee,addNewEmployeeResponseHandle,responseForAddMachine};
+
+let resForList = async(req,res) =>{
+  res.status(res.status_code).json(res.data);
+}
+
+let addNewEmployeeResponseHandle = async (req, res) => {
+  res.status(res.status_code).json({
+    error: res.error,
+    message: res.message,
+    data: res.data,
+  });
+};
+module.exports = { 
+  responseHandle ,
+  responseForData,
+  responseForInventory,
+  responseForEmployee,
+  addNewEmployeeResponseHandle,
+  responseForAddMachine,
+  newResponse,
+  resForList
+};

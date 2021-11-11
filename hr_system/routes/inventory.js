@@ -24,7 +24,7 @@ router.get("/get_machine_type_list", middleware.AuthForAdmin,inventoryController
 
 router.post("/add_machine_type",middleware.AuthForAdmin, validators.addMachineTypeValidator,inventoryControllers.addMachineTypeController, handlers.responseForAddMachine)//done
 
-router.get("/get_machines_detail", middleware.AuthForAdmin, inventoryControllers.getMachinesDetailController, handlers.responseForInventory);//done
+router.get("/get_machines_detail", middleware.AuthForAdmin, inventoryControllers.getMachinesDetailController, handlers.responseForInventory);// working
 router.get("/get_unapproved_inventories", middleware.AuthForAdmin, inventoryControllers.getUnapprovedInventoryControllers, handlers.responseForInventory);
 
 router.post("/update_office_machine",middleware.AuthForAdmin,validators.UpdateMachineValidator,inventoryControllers.inventoryUpdateMachineController,handlers.responseForInventory);

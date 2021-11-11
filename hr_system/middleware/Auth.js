@@ -11,6 +11,7 @@ exports.AuthForAdmin = async (req, res, next) => {
   let token = req.headers.authorization.split(" ");
   try {
     const checkJwt = await jwt.verify(token[1], secret.jwtSecret);
+    console.log(checkJwt)
     const user = await db.User.findOne({ where: { id: checkJwt.data.id } });
     if (user.type == "admin") {
       req.userData = checkJwt.data;
@@ -56,7 +57,6 @@ exports.AuthForHr = async (req, res, next) => {
   try {
     const checkJwt = await jwt.verify(token[1], secret.jwtSecret);
     const user = await db.User.findOne({ where: { id: checkJwt.data.id } });
-    // console.log(user)
     if (user.type == "hr") {
       req.userData = checkJwt;
       next();
