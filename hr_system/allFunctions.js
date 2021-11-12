@@ -12,6 +12,7 @@ const secret = require("./config.json");
 const {Op,QueryTypes, json } = require("sequelize");
 const db = require("./db");
 const { sequelize } = require("./db");
+const { MachineStatusDeleteValidator } = require("./validators/req-validators");
 
 
 let getPageById = async (id) => {
@@ -371,7 +372,14 @@ let getRolesForPage = async (page_id, models) => {
 };
 
 let getInventoryComments = async (inventory_id, models) => {
-  let row = await models.sequelize.query(`SELECT inventory_comments.*, p1.name as updated_by_user, p1.jobtitle as updated_by_user_job_title, p2.name as assign_unassign_user_name, p2.jobtitle as assign_unassign_job_title FROM inventory_comments LEFT JOIN user_profile as p1 ON inventory_comments.updated_by_user_id = p1."user_Id" LEFT JOIN user_profile as p2 ON inventory_comments.assign_unassign_user_id = p2."user_Id" where inventory_id=${inventory_id} ORDER BY updated_at DESC`,{type: QueryTypes.SELECT});
+  let row = await models.sequelize.query(`SELECT inventory_comments.*, 
+  p1.name as updated_by_user, 
+  p1.jobtitle as updated_by_user_job_title, 
+  p2.name as assign_unassign_user_name, 
+  p2.jobtitle as assign_unassign_job_title FROM inventory_comments 
+  LEFT JOIN user_profile as p1 ON inventory_comments.updated_by_user_id = p1."user_Id" 
+  LEFT JOIN user_profile as p2 ON inventory_comments.assign_unassign_user_id = p2."user_Id" 
+  where inventory_id=${inventory_id} ORDER BY updated_at DESC`,{type: QueryTypes.SELECT});
   return row;
 };
 
@@ -813,7 +821,8 @@ let getMachineDetail = async (id, models,) => {
       left join files as f2 ON machinelist.file_inventory_warranty = f2.id
       left join files as f3 ON machinelist.file_inventory_photo = f3.id
       where 
-      machinelist.id = ${id}`,{type:QueryTypes.SELECT})
+      machinelist.id = ${id}`,{ type:QueryTypes.SELECT});
+      row.q=q;
     const inventoryHistory = await getInventoryHistory(id, models);
     row.history = inventoryHistory;
     let Return = {};
@@ -965,7 +974,6 @@ let getMachineCount=async(req,models)=>{
 }
 
 let addInventoryComment = async (machine_id, loggeduserid,models,req) => {
-  console.log(req)
   const inventoryComment = await models.InventoryCommentsModel.create({
     inventory_id: machine_id,
     updated_by_user_id: loggeduserid,
@@ -1113,49 +1121,110 @@ console.log(Return)
 return Return;
 }
 //working on it 
-const UpdateOfficeMachine=async(req,models)=>{
+const UpdateOfficeMachine=async(logged_user_id,req,models)=>{
+  try{
 let r_error=1;
 let r_message="";
-let logged_user_id=req.userData
-console.log(req.userData)
-console.log(logged_user_id)
-data =[];
-  data.machine_type=req.body.machine_type,
-  data.machine_name =req.body.machine_name,
-  data.machine_price =req.body.machine_price,
-  data.serial_number =req.body.serial_no,
-  data.mac_address =req.body.mac_address,
-  data.date_of_purchase =req.body.purchase_date,
-  data.operating_system =req.body.operating_system,
-  data.status =req.body.status,
-  data.comments =req.body.comment,
-  data.warranty_end_date =req.body.warranty,
-  data.bill_number =req.body.bill_no,
-  data.warranty_comment =req.body.warranty_comment,
-  data.repair_comment =req.body.repair_comment,
-  data.warranty_years =req.body.warranty_years,
-
-console.log(data)
+let r_data=[];
+let data =[];
+  data.machine_type=req.body.machine_type;
+  data.machine_name =req.body.machine_name;
+  data.machine_price =req.body.machine_price;
+  data.serial_number =req.body.serial_no;
+  data.mac_address =req.body.mac_address;
+  data.date_of_purchase =req.body.purchase_date;
+  data.operating_system =req.body.operating_system;
+  data.status =req.body.status;
+  data.comments =req.body.comment;
+  data.warranty_end_date =req.body.warranty;
+  data.bill_number =req.body.bill_no;
+  data.warranty_comment =req.body.warranty_comment;
+  data.repair_comment =req.body.repair_comment;
+  data.warranty_years =req.body.warranty_years;
 let inventory_id=req.body.id;
 let machine_detail=await getMachineDetail(inventory_id,models);
 let priorCheckError = false;
-let newStatus=req.body.status;
-let oldStatus=machine_detail['data']['status'];
+let newStatus=data.status;
+let oldStatus=machine_detail.data.q[0].status
 if(newStatus.toLowerCase()=='sold'&&newStatus!=oldStatus){
-  if(typeof machine_detail['data']['user_Id']!=="undefined"&&machine_detail['data']['user_Id']!=null){
+  if(typeof machine_detail['data'].q[0]['user_Id']!=="undefined"&&machine_detail.data.q[0].user_Id!=null){
     r_error=1;
     r_message="You need to unassign this inventory before setting its status to Sold";
     priorCheckError = true;
   }
 }
 if(priorCheckError==false){
-  addInventoryComment(inventory_id,logged_user_id,models,req)
+  await addInventoryComment(inventory_id,logged_user_id,models,req)
   let whereField = 'id';
   let whereFieldVal = inventory_id ;
-  for(let [key,value] of Object.entries(machine_detail['data'])){
-    if(data.includes(key)){}
+  let resp;
+  let msg=[];
+  for(let [key,value] of  Object.entries(machine_detail.data.q[0])){
+    if(key in data){
+      if (data[key]!= machine_detail.data.q[0].key) {
+        let arr =[];
+        arr[key]=data[key];
+        resp = await DBupdateBySingleWhere('MachineList', whereField, whereFieldVal, arr,key,models);
+        msg[key]=data[key]
+    }
   }
 }
+if(resp==false){
+  r_error = 1;
+  r_message = "No fields updated into table";
+  r_data['message'] = r_message;
+}else{
+  if (data['send_slack_msg'] == "") {
+      if (sizeof(msg > 0)) {
+          let updatedDetails = "";
+          for(let [key,value] of  Object.entries(msg))
+           {
+            updatedDetails [key] = value;
+          }
+          $messageBody = [
+              inventoryName =machine_detail['data'].q[0]['machine_name'],
+              inventoryType= machine_detail['data']['machine_type'],
+              updatedDetails= updatedDetails
+          ];
+          // $slackMessageStatus = self::sendNotification( "inventory_details_update", $logged_user_id, $messageBody);
+      }
+  }
+  r_error = 0;
+  r_message = "Successfully Updated into table";
+  r_data.message = r_message;
+}
+}
+Return = [];
+Return.error = r_error;
+Return.message = r_message;
+return Return;
+  }catch(err){
+    console.log(err)
+  }
+}
+let DBupdateBySingleWhere= async (tableName, whereField, whereFieldVal,updateData,key,models) =>{
+ let Return = false;
+//  console.log(updateData.length) 
+//  console.log(Array.isArray(updateData))
+ if(Array.isArray(updateData)&& updateData!==null&&updateData!="undefined"){
+   let updateFieldString='';
+    if( updateFieldString == '' ){
+      updateFieldString.key= updateData[key];
+  }else{
+      updateFieldString = updateFieldString[key]=value;
+  }
+  // console.log(key)
+  console.log(updateData[key])
+  // console.log(whereField,whereFieldVal)
+  updateQuery=await models.sequelize.query(`Update ${tableName} set ${key}=${updateData[key]} where ${whereField}=${whereFieldVal}`,{type:QueryTypes.UPDATE})
+  console.log(updateQuery)
+  //  updateQuery=await models.MachineList.update({key:updateData[key]},{where:{whereField:whereFieldVal}})
+  //  console.log(updateQuery)
+   if(updateQuery.length>0){
+     Return=true;
+   }
+ }
+    return Return;
 }
 let copyExistingRoleRightsToNewRole = async (base_role_id, new_role_id) => {
   let baseRoleData = await getRoleCompleteDetails(base_role_id);

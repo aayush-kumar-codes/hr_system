@@ -3,7 +3,7 @@ const providers = require("../providers/creation-provider");
 const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
-const {getMachineDetail,AddMachineStatus,getMachineStatusList,getMachineCount,addMachineType,getAllMachinesDetail,UpdateOfficeMachine,api_getMyInventories}= require("../allFunctions")
+const {getMachineDetail,AddMachineStatus,getMachineStatusList,getMachineCount,addMachineType,getAllMachinesDetail,api_getMyInventories,UpdateOfficeMachine}= require("../allFunctions")
 exports.inventoryController = async (req, res, next) => {
   try {
     let request_Validate = await reqValidate(req);
@@ -139,10 +139,11 @@ exports.getMachineController = async (req, res, next) => {
 
 exports.inventoryUpdateMachineController = async (req, res, next) => {
   try {
-    let updatedMachine = await UpdateOfficeMachine(req.body,db);
+    let logged_user_id=req.userData.id;
+    let updatedMachine = await UpdateOfficeMachine(logged_user_id,req,db);
     res.status_code = 200;
-    // res.message = "machine updated";
-    res.data = updatedMachine;
+    res.message =updatedMachine.message;
+    res.error=updatedMachine.error;
     return next();
   } catch (error) {
     res.status_code = 500;
