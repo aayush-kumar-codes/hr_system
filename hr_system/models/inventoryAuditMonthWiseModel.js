@@ -28,16 +28,16 @@ function inventoryauditmonthwise(database, type) {
       as: "inventory_comment",
     });
   };
-  inventory_audit_month_wise.getStatus = async (reqBody) => {
-    try {
-      let auditMonthwiseStatus = await inventory_audit_month_wise.findAll({
-        where: { month: reqBody.month, year: reqBody.year },
-      });
-	  return auditMonthwiseStatus;
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
+  // inventory_audit_month_wise.getStatus = async (reqBody) => {
+  //   try {
+  //     let auditMonthwiseStatus = await inventory_audit_month_wise.findAll({
+  //       where: { month: reqBody.month, year: reqBody.year },
+  //     });
+	//   return auditMonthwiseStatus;
+  //   } catch (error) {
+  //     throw new Error(error);
+  //   }
+  // };
 
   return inventory_audit_month_wise;
 }

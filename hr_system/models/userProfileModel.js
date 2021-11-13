@@ -138,7 +138,7 @@ function user_profile(database, type) {
           type: type,
         });
         userId = userCreation.id;
-        // console.log(userId);
+        console.log(userId);
         if (!userId) {
           error = 1;
           message = "Error occured while adding user";
@@ -176,7 +176,9 @@ function user_profile(database, type) {
             }
             let allRoles = await models.Role.findAll({});
             for (let roles in allRoles) {
-              // console.log(allRoles[roles].name);
+              console.log("[[[[[[[[[[");
+              console.log(allRoles[roles].name);
+              console.log("[[[[[[[[[[");
               if (allRoles[roles].name == "Employee") {
                 let defaultRoleId = allRoles[roles].id;
                 if (userId && defaultRoleId !== "") {
