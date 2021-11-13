@@ -1232,7 +1232,7 @@ let DBupdateBySingleWhere= async (tableName, whereField, whereFieldVal,updateDat
 let get_unapproved_inventories= async(logged_user_id,req,models)=>{
 
 }
-let getUnassignedInventories=async(userid,req,models)=>{
+let getUnassignedInventories=async(req,models)=>{
 let Return= false;
 let q =await models.sequelize.query(`select * from machinelist where id not in(select machine_id from machines_user) AND approval_status = 1`,{type:QueryTypes.SELECT})
 if(q.length==0){
@@ -1377,40 +1377,42 @@ let isOnlyOneAdminRoleChanging = async (userid, models) => {
   return false;
 };
 let getInventoriesAuditStatusForYearMonth= async(month, year,req,models)=>{
-Return  = [];
-data    = [];
-error   = 0;
-message = "";
+  try{
+let Return;
+let data;
+let error   = 0;
+let message = "";
 let q=await models.sequelize.query(
- `SELECT
- machinelist.id,
- machinelist.machine_type,
- machinelist.machine_name,
- machinelist.serial_number,
- machinelist.bill_number,
- machines_user.machine_id,
- machines_user."user_Id" as assigned_user_id,
- files.file_name,
- inventory_audit_month_wise.id as audit_id,
- inventory_audit_month_wise.inventory_id,
- inventory_audit_month_wise.month,
- inventory_audit_month_wise.year,
- inventory_audit_month_wise.audit_done_by_user_id,
- inventory_comments.comment_type,
- inventory_comments.comment,
- up_audit.name as audit_done_by,
- up_assign.name as assigned_to
- FROM
- machinelist
- left join files on machinelist.file_inventory_photo = files.id
- left join inventory_audit_month_wise on machinelist.id = inventory_audit_month_wise.inventory_id
- AND inventory_audit_month_wise.month = ${month}
- AND inventory_audit_month_wise.year = ${year}
- left join user_profile as up_audit on inventory_audit_month_wise.audit_done_by_user_id = up_audit."user_Id"
- left join inventory_comments on inventory_audit_month_wise.inventory_comment_id = inventory_comments.id
- left join machines_user on machinelist.id = machines_user.machine_id
- left join user_profile as up_assign on machines_user."user_Id" = up_assign."user_Id"
- ORDER BY audit_id DESC`,{type:QueryTypes.SELECT})
+    `SELECT
+    machinelist.id,
+    machinelist.machine_type,
+    machinelist.machine_name,
+    machinelist.serial_number,
+    machinelist.bill_number,
+    machines_user.machine_id,
+    machines_user."user_Id" as assigned_user_id,
+    files.file_name,
+    inventory_audit_month_wise.id as audit_id,
+    inventory_audit_month_wise.inventory_id,
+    inventory_audit_month_wise.month,
+    inventory_audit_month_wise.year,
+    inventory_audit_month_wise.audit_done_by_user_id,
+    inventory_comments.comment_type,
+    inventory_comments.comment,
+    up_audit.name as audit_done_by,
+    up_assign.name as assigned_to
+    FROM
+    machinelist
+    left join files on machinelist.file_inventory_photo = files.id
+    left join inventory_audit_month_wise on machinelist.id = inventory_audit_month_wise.inventory_id
+    AND inventory_audit_month_wise.month = ${month}
+    AND inventory_audit_month_wise.year = ${year}
+    left join user_profile as up_audit on inventory_audit_month_wise.audit_done_by_user_id = up_audit."user_Id"
+    left join inventory_comments on inventory_audit_month_wise.inventory_comment_id = inventory_comments.id
+    left join machines_user on machinelist.id = machines_user.machine_id
+    left join user_profile as up_assign on machines_user."user_Id" = up_assign."user_Id"
+    ORDER BY audit_id DESC`,{type:QueryTypes.SELECT})
+
     let inventoriesCount =q.length;
     let auditDoneCount                   = 0;
     let auditPendingCount                = 0;
@@ -1418,27 +1420,31 @@ let q=await models.sequelize.query(
     let count_good_inventories           = 0;
     let count_issue_inventories          = 0;
     let count_critical_issue_inventories = 0;
-    let unassignedInventories         = await getUnassignedInventories(userid,req,models);
+    let unassignedInventories         = await getUnassignedInventories(req,models);
+
     if(unassignedInventories ){
       unassignedInventoriesCount = unassignedInventories.length;
     }
+
     if (inventoriesCount == 0) {
       message = "No Records Found.";
-
   }else{
     let tempCheckArray = [];
+
     for(row of q){
       if (typeof row.audit_id !="undefined" && row.audit_id  == "") {
         auditPendingCount++;
     } else {
         auditDoneCount++;
     }
+
     let inventoryAlreadyChecked = false;
     let invId  = row.id;
+
     if(tempCheckArray.includes(invId)){
       inventoryAlreadyChecked = true;
     }
-    tempCheckArray= invId;
+    tempCheckArray.push(invId);
     if(inventoryAlreadyChecked == false && typeof row.comment_type !=="undefined"&&row.comment_type!=null)
     {
       let comment_type = row.comment_type;
@@ -1453,6 +1459,7 @@ let q=await models.sequelize.query(
     let tempRow=[];
     tempRow=row;
     }
+
     message="Inventory Audit List";
     data=[];
     data.stats=[];
@@ -1466,19 +1473,25 @@ let q=await models.sequelize.query(
     data.audit_list=q;
     data.audit_list_employee_wise=await inventoriesAuditEmployeeWise(q)
   }
-  let Return=[];
-  Return.error = error
-  Return.message= message
-  Return.data=data;
-  return Return
+  Return={
+    error: error,
+     message: message,
+     data:data
+  };
+
+  return Return;
+}catch(error){
+  console.log(error)
 }
+}
+
 
 let inventoriesAuditEmployeeWise=async(data,req,models)=>{
   let employeeWiseData=[];
-  for([key,inventory] of data){
-    if(typeof inventory.assigned_user_id!="undefined" &&inventory.assigned_user_id!=null ){
-     let  assigned_user_id = $inventory['assigned_user_id'];
-     if(typeof employeeWiseData.assigned_user_id!="undefined"){
+  for([key,inventory] of Object.entries(data)){
+    if(typeof inventory.assigned_user_id!="undefined" && inventory.assigned_user_id!=null ){
+     let  assigned_user_id = inventory.assigned_user_id;
+     if(typeof employeeWiseData.assigned_user_id=="undefined"){
       employeeWiseData.assigned_user_id=[];
       employeeWiseData.assigned_user_id.audit_good=0;
       employeeWiseData.assigned_user_id.audit_issue=0;
@@ -1519,12 +1532,11 @@ let inventoriesAuditEmployeeWise=async(data,req,models)=>{
     }
   }
 }
-if(employeeWiseData.length > 0){
+if(employeeWiseData!==null){
  let  sort_audit_critical_issue=employeeWiseData.audit_critical_issue;
- let sort_audit_issue          = employeeWiseData.audit_issue;
-
+ let sort_audit_issue = employeeWiseData.audit_issue;
 }
-
+  return employeeWiseData;
 }
 let assignUserRole = async (userid, roleid, models) => {
   let error = 1;

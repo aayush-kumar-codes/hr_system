@@ -30,7 +30,7 @@ router.get("/get_unapproved_inventories", middleware.AuthForAdmin, inventoryCont
 router.post("/update_office_machine",middleware.AuthForAdmin,validators.UpdateMachineValidator,inventoryControllers.inventoryUpdateMachineController,handlers.responseForInventory);//done
 
 router.get("/get_unassigned_inventories",middleware.AuthForAdmin,inventoryControllers.getUnassignedInventoryController,handlers.responseForInventory);//done
-router.get("/get_inventory_audit_status_month_wise", middleware.AuthForAdmin , inventoryControllers.monthwiseAuditStatusController, handlers.responseForInventory);
+router.get("/get_inventory_audit_status_month_wise", middleware.AuthForAdmin , inventoryControllers.monthwiseAuditStatusController, handlers.responseForInventory);//about to done
 router.get("/get_temp_uploaded_inventory_files", middleware.AuthForAdmin , inventoryControllers.getTempFilesController, handlers.responseForInventory);
 
 router.post("/delete_temp_uploaded_inventory_file", middleware.AuthForAdmin , inventoryControllers.deleteTempFilesControllers, handlers.responseForInventory);
