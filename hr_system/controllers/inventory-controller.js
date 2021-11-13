@@ -3,7 +3,7 @@ const providers = require("../providers/creation-provider");
 const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
-const {getMachineDetail,AddMachineStatus,getMachineStatusList,getMachineCount,addMachineType,getAllMachinesDetail,api_getMyInventories,UpdateOfficeMachine}= require("../allFunctions")
+const {getMachineDetail,AddMachineStatus,getMachineStatusList,getMachineCount,addMachineType,getAllMachinesDetail,api_getMyInventories,UpdateOfficeMachine,get_unapproved_inventories,api_getUnassignedInventories,_getDateTimeData, getInventoriesAuditStatusForYearMonth}= require("../allFunctions")
 exports.inventoryController = async (req, res, next) => {
   try {
     let request_Validate = await reqValidate(req);
@@ -154,14 +154,15 @@ exports.inventoryUpdateMachineController = async (req, res, next) => {
 
 exports.getUnassignedInventoryController = async (req, res, next) => {
   try {
-    let unassignedInventory = await db.MachineList.getUnassignedInventory(
-      req.body,
-      db
-    );
+    let logged_user_id=req.userData.id
+    let unassignedInventory = await api_getUnassignedInventories(logged_user_id,req,db);
     res.status_code = 200;
-    res.data = unassignedInventory;
+    res.error=unassignedInventory.error;
+    res.message=unassignedInventory.message;
+    res.data = unassignedInventory.data;
     return next();
   } catch (error) {
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();
@@ -297,7 +298,9 @@ exports.getMachinesDetailController = async (req, res, next) => {
 
 exports.getUnapprovedInventoryControllers = async (req, res, next) => {
   try {
-    let unapprovedInventory = await db.MachineList.getUnapprovedInventory();
+    let logged_user_id=req.userData.id;
+    console.log(logged_user_id)
+    let unapprovedInventory = await get_unapproved_inventories(logged_user_id,req,db);
     res.status_code = 200;
     res.data = unapprovedInventory;
     return next();
@@ -310,13 +313,23 @@ exports.getUnapprovedInventoryControllers = async (req, res, next) => {
 
 exports.monthwiseAuditStatusController = async (req, res, next) => {
   try {
-    let monthwiseAuditStatus = await db.InventoryAuditMonthWise.getStatus(
-      req.body
-    );
+  let currentTime=await _getDateTimeData();
+  let month;
+  if(typeof req.body.month=="undefined"&&req.body.month!=''){
+    month=req.body.month;
+  }else{
+    month = currentTime['current_month_number'];
+  }
+  if(typeof req.body.year=="undefined"&&req.body.year!=''){
+    year=req.body.year;
+  }else{
+    year = currentTime['current_year_number'];
+  }
+  let resp=await getInventoriesAuditStatusForYearMonth( month, year,req,db );
     res.status_code = 200;
-    res.data = monthwiseAuditStatus;
     return next();
   } catch (error) {
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();

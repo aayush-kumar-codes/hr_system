@@ -168,9 +168,9 @@ let getGenericPagesForAllRoles = async () => {
 
 let getUserInfo = async (userid, models) => {
   try {
-    // console.log(userid)
-    // console.log(0909);
-    // console.log(userid, 'INININ')
+    console.log("======");
+    console.log(userid);
+    console.log("======");
     let isAdmin;
     let q = await models.sequelize.query(`SELECT users.*, user_profile.*, roles.id as role_id, roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile."user_Id" LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.id = ${userid} `,{type: QueryTypes.SELECT});
     if(isAdmin == null){
@@ -626,6 +626,9 @@ let isOwnershipChangeInventoriesRequestPending = async (models) => {
 };
 
 let generateUserToken = async (userId, models) => {
+  console.log("||||||||");
+  console.log(userId)
+  console.log("|||||||||");
   let userInfo = await getUserInfo(userId, models);
   // console.log(userInfo)
   if (userInfo == null) {
@@ -895,7 +898,6 @@ const addInventoryAudit= async(loggedUserInfo,inventory_id,updated_by_user_id,au
   let audit_year   = dateTimeData.current_year_number;
 
   let inventory_comment_id  = await addInventoryComment(inventory_id,loggedUserInfo.id,models,req)
-  console.log(123)
   let q= await models.InventoryAuditMonthWise.create(inventory_id, audit_month, audit_year, audit_done_by_user_id, inventory_comment_id )
   return true;
 }
@@ -1226,6 +1228,40 @@ let DBupdateBySingleWhere= async (tableName, whereField, whereFieldVal,updateDat
  }
     return Return;
 }
+//function not found in php code
+let get_unapproved_inventories= async(logged_user_id,req,models)=>{
+
+}
+let getUnassignedInventories=async(userid,req,models)=>{
+let Return= false;
+let q =await models.sequelize.query(`select * from machinelist where id not in(select machine_id from machines_user) AND approval_status = 1`,{type:QueryTypes.SELECT})
+if(q.length==0){
+}else{
+  return q;
+}return Return;
+}
+let api_getUnassignedInventories=async(userid,req,models)=>{
+  let error=0;
+  let message='';
+  let unassignedInventories =[];
+  let unassignedInventoriesList = await getUnassignedInventories(userid,req,models);
+  if(unassignedInventoriesList.length==0){
+   message = "No unassigned inventories found!!";
+  }else{
+    for(elem of unassignedInventoriesList){
+      i_details=await getInventoryFullDetails(elem.id,req,models);
+      unassignedInventories= i_details;
+    }
+  }
+  let Return=[];
+  Return.error=error;
+  Return.message=message;
+  Return.data=unassignedInventories;
+  console.log(Return)
+  return Return;
+
+};
+
 let copyExistingRoleRightsToNewRole = async (base_role_id, new_role_id) => {
   let baseRoleData = await getRoleCompleteDetails(base_role_id);
   if (baseRoleData != null && new_role_id != null) {
@@ -1340,7 +1376,156 @@ let isOnlyOneAdminRoleChanging = async (userid, models) => {
   }
   return false;
 };
+let getInventoriesAuditStatusForYearMonth= async(month, year,req,models)=>{
+Return  = [];
+data    = [];
+error   = 0;
+message = "";
+let q=await models.sequelize.query(
+ `SELECT
+ machinelist.id,
+ machinelist.machine_type,
+ machinelist.machine_name,
+ machinelist.serial_number,
+ machinelist.bill_number,
+ machines_user.machine_id,
+ machines_user."user_Id" as assigned_user_id,
+ files.file_name,
+ inventory_audit_month_wise.id as audit_id,
+ inventory_audit_month_wise.inventory_id,
+ inventory_audit_month_wise.month,
+ inventory_audit_month_wise.year,
+ inventory_audit_month_wise.audit_done_by_user_id,
+ inventory_comments.comment_type,
+ inventory_comments.comment,
+ up_audit.name as audit_done_by,
+ up_assign.name as assigned_to
+ FROM
+ machinelist
+ left join files on machinelist.file_inventory_photo = files.id
+ left join inventory_audit_month_wise on machinelist.id = inventory_audit_month_wise.inventory_id
+ AND inventory_audit_month_wise.month = ${month}
+ AND inventory_audit_month_wise.year = ${year}
+ left join user_profile as up_audit on inventory_audit_month_wise.audit_done_by_user_id = up_audit."user_Id"
+ left join inventory_comments on inventory_audit_month_wise.inventory_comment_id = inventory_comments.id
+ left join machines_user on machinelist.id = machines_user.machine_id
+ left join user_profile as up_assign on machines_user."user_Id" = up_assign."user_Id"
+ ORDER BY audit_id DESC`,{type:QueryTypes.SELECT})
+    let inventoriesCount =q.length;
+    let auditDoneCount                   = 0;
+    let auditPendingCount                = 0;
+    let unassignedInventoriesCount       = 0;
+    let count_good_inventories           = 0;
+    let count_issue_inventories          = 0;
+    let count_critical_issue_inventories = 0;
+    let unassignedInventories         = await getUnassignedInventories(userid,req,models);
+    if(unassignedInventories ){
+      unassignedInventoriesCount = unassignedInventories.length;
+    }
+    if (inventoriesCount == 0) {
+      message = "No Records Found.";
 
+  }else{
+    let tempCheckArray = [];
+    for(row of q){
+      if (typeof row.audit_id !="undefined" && row.audit_id  == "") {
+        auditPendingCount++;
+    } else {
+        auditDoneCount++;
+    }
+    let inventoryAlreadyChecked = false;
+    let invId  = row.id;
+    if(tempCheckArray.includes(invId)){
+      inventoryAlreadyChecked = true;
+    }
+    tempCheckArray= invId;
+    if(inventoryAlreadyChecked == false && typeof row.comment_type !=="undefined"&&row.comment_type!=null)
+    {
+      let comment_type = row.comment_type;
+      if(comment_type == "all_good"){
+        count_good_inventories++;
+      }else if(comment_type == "issue"){
+        count_issue_inventories++;
+      }else  if (comment_type == "critical_issue") {
+        count_critical_issue_inventories++;
+    }
+    }
+    let tempRow=[];
+    tempRow=row;
+    }
+    message="Inventory Audit List";
+    data=[];
+    data.stats=[];
+    data.stats.total_inventories=inventoriesCount,
+    data.stats.audit_done=auditDoneCount,
+    data.stats.audit_pending=auditPendingCount,
+    data.stats.unassigned_inventories=unassignedInventoriesCount,
+    data.stats.audit_good=count_good_inventories,
+    data.stats.audit_issue=count_issue_inventories,
+    data.stats.audit_critical_issue=count_critical_issue_inventories
+    data.audit_list=q;
+    data.audit_list_employee_wise=await inventoriesAuditEmployeeWise(q)
+  }
+  let Return=[];
+  Return.error = error
+  Return.message= message
+  Return.data=data;
+  return Return
+}
+
+let inventoriesAuditEmployeeWise=async(data,req,models)=>{
+  let employeeWiseData=[];
+  for([key,inventory] of data){
+    if(typeof inventory.assigned_user_id!="undefined" &&inventory.assigned_user_id!=null ){
+     let  assigned_user_id = $inventory['assigned_user_id'];
+     if(typeof employeeWiseData.assigned_user_id!="undefined"){
+      employeeWiseData.assigned_user_id=[];
+      employeeWiseData.assigned_user_id.audit_good=0;
+      employeeWiseData.assigned_user_id.audit_issue=0;
+      employeeWiseData.assigned_user_id.audit_critical_issue=0;
+      employeeWiseData.assigned_user_id.audit_done_count=0;
+      employeeWiseData.assigned_user_id.audit_pending_count=0;
+      employeeWiseData.assigned_user_id.employee=[];
+      employeeWiseData.assigned_user_id.inventories=[];
+      
+      employeeWiseData.assigned_user_id.employee.emp_userid=inventory.assigned_user_id;
+      employeeWiseData.assigned_user_id.employee.emp_name =inventory.assigned_to;
+     }
+     let addInventoryToList = true;
+     for([key,inv] of employeeWiseData.assigned_user_id.inventories){
+      if(inv.id==inventory.id){
+        addInventoryToList = false;
+        break;
+      }
+     }
+     if (addInventoryToList){
+       if(typeof inventory.comment_type!="undefined"&&inventory.comment_type!=null){
+       let comment_type = inventory.comment_type;
+       if (comment_type == "all_good") {
+        employeeWiseData.assigned_user_id.audit_good++;
+       }else if(comment_type == "issue"){
+        employeeWiseData.assigned_user_id.audit_issue++;
+       }else if(comment_type == "critical_issue"){
+        employeeWiseData.assigned_user_id.audit_critical_issue++;
+       }
+     }
+     if (typeof inventory.audit_id!="undefined" || inventory.audit_id == "") {
+      employeeWiseData.assigned_user_id.audit_pending_count++;
+     }else{
+      employeeWiseData.assigned_user_id.audit_done_count++;
+     }
+     employeeWiseData.assigned_user_id.inventories=[];
+     employeeWiseData.assigned_user_id.inventories =inventory;
+    }
+  }
+}
+if(employeeWiseData.length > 0){
+ let  sort_audit_critical_issue=employeeWiseData.audit_critical_issue;
+ let sort_audit_issue          = employeeWiseData.audit_issue;
+
+}
+
+}
 let assignUserRole = async (userid, roleid, models) => {
   let error = 1;
   let message;
@@ -1643,5 +1828,9 @@ module.exports = {
   assignDefaultValuesToRole,
   assignAdminRoleToUserTypeAdminIfNoRoleAssigned,
   getSystemDefaultRoles,
-  api_getMyInventories
+  api_getMyInventories,
+  get_unapproved_inventories,
+  api_getUnassignedInventories,
+  _getDateTimeData,
+  getInventoriesAuditStatusForYearMonth
 }

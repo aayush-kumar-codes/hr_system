@@ -61,7 +61,6 @@ exports.addNewEmployeeController = async (req, res, next) => {
     // console.log(db);
     let result = await db.UserProfile.addNewEmployee(req.body,db);
     res.status_code = 200;
-    console.log(result);
     res.error = result.error;
     res.message = result.message;
     if(result.data.userID){
