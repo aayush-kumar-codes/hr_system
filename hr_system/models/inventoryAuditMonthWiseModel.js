@@ -14,6 +14,7 @@ function inventoryauditmonthwise(database, type) {
       freezeTableName: true,
     }
   );
+
   
   inventoryauditmonthwise.associate = (models) => {
     models.inventoryauditmonthwise.hasOne(models.MachineList, {
