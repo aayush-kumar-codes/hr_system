@@ -8,24 +8,6 @@ function inventoryTempFiles(database, type) {
       as: "file",
     });
   };
-  InventoryTempFiles.getTempFiles = async () => {
-    try {
-      let foundTempFiles = await InventoryTempFiles.findAll({});
-      return foundTempFiles;
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
-  InventoryTempFiles.deleteTempFiles = async (reqBody) => {
-    try {
-      let tempFilesToDelete = await InventoryTempFiles.destroy({
-        where: { file_id: reqBody.file_id },
-      });
-      return tempFilesToDelete;
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
 
   return InventoryTempFiles;
 }

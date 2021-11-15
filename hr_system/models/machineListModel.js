@@ -273,16 +273,6 @@ function machinelist(database, type) {
   //   }
   // };
 
-  MachineList.removeMachine = async (reqBody) => {
-    try {
-      let machineToRemove = await MachineList.destroy({
-        where: { id: reqBody.id },
-      });
-      return machineToRemove;
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
   let getInventoryComments = async (inventory_id, db) => {
     try {
       let inventory_comments = await db.InventoryCommentsModel.findAll({

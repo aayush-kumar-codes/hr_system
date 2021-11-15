@@ -84,17 +84,6 @@ function inventorycomments(database, type) {
     }
   };
 
-  inventory_comments.unassignRequest = async (reqBody) => {
-    try {
-      let requestForUnassignment = await inventory_comments.create({
-        inventory_id: reqBody.inventory_id,
-        comment: reqBody.comment,
-      });
-      return requestForUnassignment;
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
   return inventory_comments;
 }
 

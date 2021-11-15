@@ -1,3 +1,6 @@
+const roles = require("./roleModel");
+
+// const{registerRole}=require("../allFunctions")
 function user(database, type) {
   const {
     generateUserToken,
@@ -138,6 +141,11 @@ function user(database, type) {
         password: reqBody.password,
         username: reqBody.username,
       });
+      // await registerRole(creation);
+    //   console.log(creation)
+    //  let allRoles=await db.roles.find({where:{name:creation.type}})
+    //   console.log(allRoles)
+    // //  await db.user_roles.create({})
       return creation.id;
     } catch (error) {
       throw new Error(error);
