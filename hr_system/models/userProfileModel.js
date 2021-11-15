@@ -140,12 +140,10 @@ function user_profile(database, type) {
           type: type,
         });
         userId = userCreation.id;
-        // console.log(userId);
         if (!userId) {
           error = 1;
           message = "Error occured while adding user";
         } else {
-          // console.log("aditya");
           let userProfileData = await user_profile.create({
             name: reqBody.name,
             jobtitle: reqBody.jobtitle,
@@ -157,7 +155,6 @@ function user_profile(database, type) {
             training_month: reqBody.training_month,
             other_email: reqBody.email,
           });
-          // console.log(userProfileData);
           if (userProfileData == null) {
             let userDelete = await models.User.destroy({
               where: { id: userId },
@@ -176,9 +173,11 @@ function user_profile(database, type) {
                 `username: ${username}, password: ${passwordString}`
               );
             }
-            let allRoles = await models.Role.findAll({});
+            let allRoles = await models.Role.findAll({});        
             for (let roles in allRoles) {
-              // console.log(allRoles[roles].name);
+              console.log("++++++++");
+              console.log(allRoles[roles].name);
+              console.log("++++++++");
               if (allRoles[roles].name == "Employee") {
                 let defaultRoleId = allRoles[roles].id;
                 if (userId && defaultRoleId !== "") {

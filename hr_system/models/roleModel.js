@@ -56,6 +56,7 @@ function roles(database, type) {
       arr.message = message;
       return arr;
     } catch (error) {
+      console.log(error);
       throw new Error(error);
     }
   };

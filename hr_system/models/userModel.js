@@ -75,6 +75,9 @@ function user(database, type) {
       } else {
         let userId = (query[0].id != null) ? query[0].id : userData.userProfile.user_Id;
         let userInfo = await getUserInfo(userId, models);
+        console.log(userId);
+        console.log(123);
+        console.log(userInfo);
         if (userInfo == null) {
           message = "Invalid Login";
         } else {

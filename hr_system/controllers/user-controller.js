@@ -35,15 +35,10 @@ exports.userRegister = async (req, res, next) => {
 
 exports.userLogin = async (req, res, next) => {
   try {
-    console.log('iN CONTROLLER')
     let request_Validate = await reqUser(req);
-    // let user_details = await providers.validateCreation(req.body);
     let username = req.body.username;
     let password = md5(req.body.password);
-    // let password = req.body.password;
-    // let email = req.body.email;
     let result = await db.User.login(username, password, db);
-    console.log(result);
     res.status_code = 200;
     res.error = result.error;
     res.message = result.message;
@@ -62,7 +57,6 @@ exports.userLogin = async (req, res, next) => {
 
 exports.addNewEmployeeController = async (req, res, next) => {
   try {
-    // console.log(db);
     let result = await db.UserProfile.addNewEmployee(req.body,db);
     res.status_code = 200;
     console.log(result);
@@ -71,7 +65,6 @@ exports.addNewEmployeeController = async (req, res, next) => {
     if(result.data.userID){
       res.data = result.data
     }
-    // res.data = newEmployeeData;
     return next();
   } catch (error) {
     console.log(error);

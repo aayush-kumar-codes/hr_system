@@ -59,13 +59,12 @@ let getActionById = async (id) => {
 };
 
 let getRoleActions = async (roleid, models) => {
-  let query = await models.RolesAction.findAll({
+  let rows = await models.RolesAction.findAll({
     where: { role_id: roleid },
   });
-  let rows;
-  if (query.length > 0) {
+  if (rows.length > 0) {
     let data = await Promise.all(
-      query.map(async (doc) => {
+      rows.map(async (doc) => {
         doc = JSON.parse(JSON.stringify(doc));
         let obj = { ...doc };
         let action = await getActionById(doc.action_id);
@@ -172,8 +171,7 @@ let getGenericPagesForAllRoles = async () => {
 
 let getUserInfo = async (userid, models) => {
   try {
-    // console.log(0909);
-    // console.log(userid, 'INININ')
+    
     let isAdmin;
     let q = await models.sequelize.query(`SELECT users.*, user_profile.*, roles.id as role_id, roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile."user_Id" LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.id = ${userid} `,{type: QueryTypes.SELECT});
     if(isAdmin == null){
@@ -616,7 +614,9 @@ let isOwnershipChangeInventoriesRequestPending = async (models) => {
 
 let generateUserToken = async (userId, models) => {
   let userInfo = await getUserInfo(userId, models);
-  if (userInfo == null) {
+  console.log(userInfo);
+  let u;
+  if (userInfo.length == 0) {
   } else {
     // let userProfileImage = await _getEmployeeProfilePhoto(userInfo);
     let userRole;

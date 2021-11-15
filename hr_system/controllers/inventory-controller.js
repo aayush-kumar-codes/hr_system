@@ -67,6 +67,7 @@ exports.inventoryAuditController = async (req, res, next) => {
 
 exports.getMyInventoryController = async (req, res, next) => {
   try {
+    console.log("getMyInventoryController")
     let machine_list = await db.MachineList.GetMachine(req, db);
     res.status_code = 200;
     res.data = machine_list;
