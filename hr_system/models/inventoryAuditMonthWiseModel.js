@@ -16,6 +16,7 @@ function inventoryauditmonthwise(database, type) {
   );
 
   
+  
   inventoryauditmonthwise.associate = (models) => {
     models.inventoryauditmonthwise.hasOne(models.MachineList, {
       foreignKey: "inventory_id",
