@@ -52,6 +52,8 @@ function user(database, type) {
         `select * from users where username = '${username}' and password = '${password}' AND status='Enabled' `,
         { type: QueryTypes.SELECT }
       );
+      console.log("+++++++++");
+      console.log(query);
       if (forceLoginForUsername != false) {
         query = await models.sequelize.query(
           `select * from users where username='${forceLoginForUsername}' AND status='Enabled' `,
@@ -198,6 +200,7 @@ function user(database, type) {
       Return.message = message;
       return Return;
     } catch (error) {
+      console.log(error);
       throw new Error(error);
     }
   };

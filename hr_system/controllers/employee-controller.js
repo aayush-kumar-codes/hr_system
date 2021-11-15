@@ -3,10 +3,11 @@ const providers = require("../providers/creation-provider");
 const reqUser = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
+const{getUserDetailInfo}=require("../allFunctions")
 
 exports.getUserProfileController = async (req, res, next) => {
   try {
-    let userProfileDetails = await db.UserProfile.getUserProfile();
+    let userProfileDetails = await  getUserDetailInfo(userid,req,db);
     res.data = userProfileDetails;
     res.status_code = 200;
     return next();

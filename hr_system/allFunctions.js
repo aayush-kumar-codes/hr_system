@@ -69,6 +69,7 @@ let getRoleActions = async (roleid, models) => {
   if (rows.length > 0) {
     for(let [key, row] of Object.entries(rows)){
       let action = await getActionById(row.action_id);
+      console.log(action)
       row.action_name = action.name;
       rows[key] = row;
     }
@@ -76,7 +77,34 @@ let getRoleActions = async (roleid, models) => {
   return rows;
 };
 
+let getUserDetailInfo =async(userid,req,models)=>{
+  let r_error=1;
+  let r_message = "";
+  user_bank_detail = await getUserBankDetail(userid,req,models);
+  user_profile_detail =await getUserprofileDetail(userid,req,models);
+  user_assign_machine = await getUserAssignMachines(userid,req,models);
+  let Return ={};
+  Return.error=r_error;
+  Return.data.user_profile_detail;
+  Return.data.user_bank_detail;
+  Return.data.user_assign_machine;
+  return Return;
+}
 
+let getUserBankDetail=async(userid,req,models)=>{
+  let query=await models.sequelize.query(`SELECT * FROM user_bank_details WHERE "user_Id" = ${userid}`,{type:QueryTypes.SELECT})
+  let arr="";
+  arr=query;
+  return arr;
+}
+let getUserprofileDetail=async(userid,req,models)=>{
+  let query=await models.sequelize.query(`SELECT users.status, users.username, users.type, user_profile.* 
+  FROM users 
+  LEFT JOIN user_profile ON users.id = user_profile."user_Id" 
+  where 
+  users.status = 'Enabled' AND users.id = ${userid}`,{type:QueryTypes.SELECT})
+
+}
 // let getRoleNotifications = async (roleid, models) => {
 //   let query =
 //     await models.RolesNotification.findAll({
@@ -168,9 +196,6 @@ let getGenericPagesForAllRoles = async () => {
 
 let getUserInfo = async (userid, models) => {
   try {
-    console.log("======");
-    console.log(userid);
-    console.log("======");
     let isAdmin;
     let q = await models.sequelize.query(`SELECT users.*, user_profile.*, roles.id as role_id, roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile."user_Id" LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.id = ${userid} `,{type: QueryTypes.SELECT});
     if(isAdmin == null){
@@ -212,8 +237,6 @@ let getRoleCompleteDetails = async (roleId, models) => {
   let query = await models.Role.findAll({
     where: { id: roleId },
   });
-  // console.log();
-  // query = JSON.parse(JSON.stringify(query));
   if (query.length > 0) {
     let role = query[0];
     let pages = await getRolePages(roleId, models);
@@ -310,8 +333,8 @@ let getUserInventories = async (userid, models, userRole = false) => {
     let roleDetails = await getUserRole(userid, models);
   
 // console.log(23432);
-//     console.log(roleDetails);
-    if (roleDetails.name) {
+//     console.log(roleDetails.name);
+    if (typeof roleDetails.name!="undefined") {
       roleName = roleDetails.name;
     }
   } else {
@@ -328,12 +351,12 @@ let getUserInventories = async (userid, models, userRole = false) => {
     query = query.concat(unassignRequestInventories);
     if (query.length > 1) {
       let tempExists = [];
-      query.forEach((key) => {
-        if (tempExists.includes(key.machine_id)) {
+     for(let [key,inv] of Object.entries(query)){
+        if (tempExists.includes(inv.machine_id)) {
           delete key;
         }
-        tempExists.push(key.machine_id);
-      });
+        tempExists.push(inv.machine_id)
+    }
     }
   }
   if (
@@ -345,12 +368,12 @@ let getUserInventories = async (userid, models, userRole = false) => {
     query = query.concat(ownershipChangeRequestInventories);
     if (query.length > 1) {
       let tempExists = [];
-      query.forEach((key) => {
-        if (tempExists.includes(key.machine_id)) {
+      for(let[key,inv] of Object.entries(query)){
+        if (tempExists.includes(inv.machine_id)) {
           delete key;
         }
-        tempExists.push(key.machine_id);
-      });
+        tempExists.push(inv.machine_id);
+      }
     }
   }
   if (query.length == 0) {
