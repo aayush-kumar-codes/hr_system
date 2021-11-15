@@ -40,6 +40,7 @@ function machineuser(database, type) {
 
   machines_user.AssignMachine = async (reqBody,db) => {
     try {
+      console.log(23456433)
       const machineinfo=await db.MachineStatus.findOne({where:{id:reqBody.body.machine_id}});
       if(machineinfo.status!="sold"){
       let find_machine = await machines_user.findOne({
