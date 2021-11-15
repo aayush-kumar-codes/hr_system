@@ -49,61 +49,8 @@ function user_profile(database, type) {
   }
   );
 
-  // user_profile. = async(reqBody) => {
-  // user_profile.registerProfile = async (reqBody, user_id) => {
-  //   try {
-  //     let creation = await user_profile.create({
-  //       name: reqBody.name,
-  //       jobtitle: reqBody.jobtitle,
-  //       dateofjoining: reqBody.dateofjoining,
-  //       user_Id: user_id,
-  //       dob: reqBody.dateofjoining,
-  //       gender: reqBody.gender,
-  //       marital_status: reqBody.marital_status,
-  //       address1: reqBody.address1,
-  //       address2: reqBody.address2,
-  //       city: reqBody.city,
-  //       state: reqBody.state,
-  //       zip_postal: reqBody.zip_postal,
-  //       country: reqBody.country,
-  //       home_ph: reqBody.home_ph,
-  //       mobile_ph: reqBody.mobile_ph,
-  //       work_email: reqBody.workemail,
-  //       other_email: reqBody.email,
-  //       image: reqBody.image,
-  //       bank_account_num: reqBody.bank_account_num,
-  //       special_instructions: reqBody.special_instructions,
-  //       pan_card_num: reqBody.pan_card_num,
-  //       permanent_address: reqBody.permanent_address,
-  //       current_address: reqBody.current_address,
-  //       emergency_ph1: reqBody.emergency_ph1,
-  //       emergency_ph2: reqBody.emergency_ph2,
-  //       blood_group: reqBody.blood_group,
-  //       medical_condition: reqBody.medical_condition,
-  //       updated_on: reqBody.updated_on,
-  //       slack_id: reqBody.slack_id,
-  //       policy_document: reqBody.policy_document,
-  //       team: reqBody.team,
-  //       training_completion_date: reqBody.training_completion_date,
-  //       termination_date: reqBody.termination_date,
-  //       holding_comments: reqBody.holding_comments,
-  //       training_month: reqBody.training_month,
-  //       slack_msg: reqBody.slack_msg,
-  //       signature: reqBody.signature,
-  //       meta_data: reqBody.meta_data,
-  //     });
-  //     return creation.id;
-  //   } catch (error) {
-  //     throw new Error(error);
-  //   }
-  //   // let username = await models.User.findAll({
-  //   //   where: { username: reqBody.username },
-  //   // });
-  // };
-
   user_profile.addNewEmployee = async (reqBody, models) => {
     try {
-      // console.log(1);
       let error = 1;
       let message;
       let userId;
@@ -111,7 +58,6 @@ function user_profile(database, type) {
       let username = await models.User.findAll({
         where: { username: reqBody.username },
       });
-      // console.log(username);
       let workemail = await user_profile.findAll({
         where: { work_email: reqBody.workemail },
       });
@@ -138,12 +84,10 @@ function user_profile(database, type) {
           type: type,
         });
         userId = userCreation.id;
-        console.log(userId);
         if (!userId) {
           error = 1;
           message = "Error occured while adding user";
         } else {
-          // console.log("aditya");
           let userProfileData = await user_profile.create({
             name: reqBody.name,
             jobtitle: reqBody.jobtitle,
@@ -155,7 +99,6 @@ function user_profile(database, type) {
             training_month: reqBody.training_month,
             other_email: reqBody.email,
           });
-          // console.log(userProfileData);
           if (userProfileData == null) {
             let userDelete = await models.User.destroy({
               where: { id: userId },
@@ -165,20 +108,8 @@ function user_profile(database, type) {
           } else {
             error = 0;
             message = "Employee added Successfully";
-            if (reqBody.notifyNewEmpHrms == true) {
-              let username = reqBody.username;
-              await sendEmail(
-                reqBody.workemail,
-                reqBody.email,
-                "welcome email",
-                `username: ${username}, password: ${passwordString}`
-              );
-            }
             let allRoles = await models.Role.findAll({});
             for (let roles in allRoles) {
-              console.log("[[[[[[[[[[");
-              console.log(allRoles[roles].name);
-              console.log("[[[[[[[[[[");
               if (allRoles[roles].name == "Employee") {
                 let defaultRoleId = allRoles[roles].id;
                 if (userId && defaultRoleId !== "") {
@@ -202,10 +133,8 @@ function user_profile(database, type) {
       Return.error = error;
       Return.message = message;
       Return.data = data;
-      // console.log(Return);
       return Return;
     } catch (error) {
-      // console.log(error);
       throw new Error(error);
     }
   };
