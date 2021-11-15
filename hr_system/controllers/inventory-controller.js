@@ -327,6 +327,10 @@ exports.monthwiseAuditStatusController = async (req, res, next) => {
   }
   let resp=await getInventoriesAuditStatusForYearMonth( month, year,req,db );
     res.status_code = 200;
+    res.error=resp.error;
+    res.message=resp.message;
+    res.data=resp.data;
+    // console.log(resp.data)
     return next();
   } catch (error) {
     console.log(error)

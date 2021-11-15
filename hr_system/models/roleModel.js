@@ -113,20 +113,6 @@ function roles(database, type) {
             }
             v2.is_assigned = p;
           }
-          // for(let v3 of allnotifications){
-          //   let p = 0;
-          //   for(let u2 of role_notify){
-          //     if(u2.notification_id == v3.id){
-          //       p=1
-          //     }
-          //   }
-          //   v3.is_assigned = p;
-          //   val.push(v3) = v3;
-          // }
-          // result.roles.push(key);
-          // --------start from here
-          // }
-          // }
           result.users_list = await getEnabledUsersListWithoutPass(models);
           if (typeof result[roles] != "undefined" && result[roles] > 0) {
             let systemDefaultRolesList = await getSystemDefaultRoles();
@@ -149,7 +135,6 @@ function roles(database, type) {
         error: 0,
         data: result,
       };
-      // console.log(Return);
       return Return;
     } catch (error) {
       console.log(error);

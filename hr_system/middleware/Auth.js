@@ -25,7 +25,7 @@ exports.AuthForAdmin = async (req, res, next) => {
   }
 };
 
-exports.AuthForUser = async (req, res, next) => {
+exports.AuthForHrAdmin = async (req, res, next) => {
   if (!req.headers.authorization) {
     return res.status(401).json({
       message: "Auth token missing in header",
@@ -34,9 +34,13 @@ exports.AuthForUser = async (req, res, next) => {
   let token = req.headers.authorization.split(" ");
   try {
     const checkJwt = await jwt.verify(token[1], secret.jwtSecret);
-    const user = await db.User.findOne({ where: { id: checkJwt.user_id } });
-    req.userData = checkJwt;
-    next();
+    const user = await db.User.findOne({ where: { id: checkJwt.data.id } });
+    if (user.type == "hr"||user.type =="admin") {
+      req.userData = checkJwt;
+      next();
+    } else {
+      res.send("you are not authorized");
+    }
   } catch (error) {
     return res.status(401).json({
       message: "Auth token invalid",
@@ -44,8 +48,28 @@ exports.AuthForUser = async (req, res, next) => {
   }
 };
 
-exports.Auth = async (req, res, next) => {};
-
+exports.AuthForEmployee = async (req, res, next) => {
+  if (!req.headers.authorization) {
+    return res.status(401).json({
+      message: "Auth token missing in header",
+    });
+  }
+  let token = req.headers.authorization.split(" ");
+  try {
+    const checkJwt = await jwt.verify(token[1], secret.jwtSecret);
+    const user = await db.User.findOne({ where: { id: checkJwt.data.id } });
+    if (user.type == "Employee") {
+      req.userData = checkJwt;
+      next();
+    } else {
+      res.send("you are not authorized");
+    }
+  } catch (error) {
+    return res.status(401).json({
+      message: "Auth token invalid",
+    });
+  }
+};
 exports.AuthForHr = async (req, res, next) => {
   if (!req.headers.authorization) {
     return res.status(401).json({
@@ -57,6 +81,29 @@ exports.AuthForHr = async (req, res, next) => {
     const checkJwt = await jwt.verify(token[1], secret.jwtSecret);
     const user = await db.User.findOne({ where: { id: checkJwt.data.id } });
     if (user.type == "hr") {
+      req.userData = checkJwt;
+      next();
+    } else {
+      res.send("you are not authorized");
+    }
+  } catch (error) {
+    return res.status(401).json({
+      message: "Auth token invalid",
+    });
+  }
+};
+
+exports.AuthForHrEmployee = async (req, res, next) => {
+  if (!req.headers.authorization) {
+    return res.status(401).json({
+      message: "Auth token missing in header",
+    });
+  }
+  let token = req.headers.authorization.split(" ");
+  try {
+    const checkJwt = await jwt.verify(token[1], secret.jwtSecret);
+    const user = await db.User.findOne({ where: { id: checkJwt.data.id } });
+    if (user.type == "hr"||user.type =="Employee") {
       req.userData = checkJwt;
       next();
     } else {

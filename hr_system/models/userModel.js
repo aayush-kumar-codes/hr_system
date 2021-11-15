@@ -1,5 +1,6 @@
 function user(database, type) {
   const {
+    assignUserRole,
     generateUserToken,
     getUserInfoByWorkEmail,
     getUserInfo,
@@ -108,19 +109,6 @@ function user(database, type) {
     }
   };
 
-  // User.getMine = async (reqBody) => {
-  //   try {
-  //     let user = await User.findOne({ where: { username: reqBody.username } });
-  //     if (user) {
-  //       return user.id;
-  //     } else {
-  //       return "login unsuccessful";
-  //     }
-  //   } catch (error) {
-  //     throw new Error("Unable to find your profile");
-  //   }
-  // };
-
   User.getAll = async (limit, offset) => {
     try {
       let users_all = await User.findAll({ limit, offset });
@@ -130,15 +118,85 @@ function user(database, type) {
     }
   };
 
-  User.createUser = async (reqBody) => {
+  User.createUser = async (reqBody, models) => {
     try {
-      let creation = await User.create({
-        status: reqBody.status,
-        type: reqBody.type,
-        password: reqBody.password,
-        username: reqBody.username,
+      let error = 1;
+      let message;
+      let userId;
+      let username = await User.findAll({
+        where: { username: reqBody.username },
       });
-      return creation.id;
+      let workemail = await models.UserProfile.findAll({
+        where: { work_email: reqBody.workemail },
+      });
+      let otheremail = await models.UserProfile.findAll({
+        where: { other_email: reqBody.email },
+      });
+      if (username.length !== 0) {
+        error = 1;
+        message = "username exists";
+      } else if (workemail.length !== 0) {
+        error = 1;
+        message = "workemail exists";
+      } else if (otheremail.length !== 0) {
+        error = 1;
+        message = "personal email exists";
+      } else {
+        let status = "Enabled";
+        let userCreation = await User.create({
+          username: reqBody.username,
+          password: reqBody.password,
+          status: status,
+          type: reqBody.type,
+        });
+        userId = userCreation.id;
+        if (!userId) {
+          error = 1;
+          message = "Error occured while adding user";
+        } else {
+          let userProfileData = await models.UserProfile.create({
+            name: reqBody.name,
+            jobtitle: reqBody.jobtitle,
+            dateofjoining: reqBody.dateofjoining,
+            user_Id: userId,
+            dob: reqBody.dob,
+            gender: reqBody.gender,
+            work_email: reqBody.workemail,
+            training_month: reqBody.training_month,
+            other_email: reqBody.email,
+          });
+          if (userProfileData == null) {
+            let userDelete = await User.destroy({
+              where: { id: userId },
+            });
+            error = 1;
+            message = "Error in registering new.";
+          } else {
+            error = 0;
+            message = "Registration Successfull";
+            let allRoles = await models.Role.findAll({});
+            for (let roles in allRoles) {
+              if (allRoles[roles].name == reqBody.type) {
+                let defaultRoleId = allRoles[roles].id;
+                if (userId && defaultRoleId !== "") {
+                  let roleToAssign = await assignUserRole(
+                    userId,
+                    defaultRoleId,
+                    models
+                  );
+                } else {
+                  error = 1;
+                  message = "role not assigned";
+                }
+              }
+            }
+          }
+        }
+      }
+      let Return = {};
+      Return.error = error;
+      Return.message = message;
+      return Return;
     } catch (error) {
       throw new Error(error);
     }
@@ -181,7 +239,6 @@ function user(database, type) {
         { password: reqBody.password },
         { where: { id: userData.user_id } }
       );
-      //   console.log(passwordToUpdate[0]);
       if (passwordToUpdate[0] !== 0) {
         return "updated password";
       } else {

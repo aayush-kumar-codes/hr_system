@@ -15,7 +15,7 @@ exports.userRegister = async (req, res, next) => {
   try {
     let request_Validate = await reqUser(req);
     let user_details = await providers.validateCreation(req.body);
-    let user_create = await db.User.createUser(req.body);
+    let user_create = await db.User.createUser(req.body, db);
     req.body.user_id = user_create;
     const token = await jwt.sign(
       { user_id: user_create, email: user_create.email },
@@ -39,7 +39,6 @@ exports.userLogin = async (req, res, next) => {
     let username = req.body.username;
     let password = md5(req.body.password);
     let result = await db.User.login(username, password, db);
-    console.log(result);
     res.status_code = 200;
     res.error = result.error;
     res.message = result.message;
