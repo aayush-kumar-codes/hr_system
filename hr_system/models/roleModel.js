@@ -135,6 +135,7 @@ function roles(database, type) {
         error: 0,
         data: result,
       };
+      console.log(Return)
       return Return;
     } catch (error) {
       console.log(error);

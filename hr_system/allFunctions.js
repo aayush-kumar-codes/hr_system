@@ -51,11 +51,11 @@ let getRolePages = async (roleid, models) => {
   return rows;
 };
 let getActionById = async (id) => {
-  let data;
+  let data=false;
   let all = await getAllActions();
-  for (let item in all) {
-    if (all[item].id == id) {
-      data = all[item];
+  for(let[key,elem] of Object.entries(all)){
+    if (elem.id == id) {
+      data = elem;
     }
   }
   return data;
@@ -76,6 +76,12 @@ let getRoleActions = async (roleid, models) => {
   return rows;
 };
 
+// let registerRole=async(user)=>{
+// let allRoles=await db.Role.findOne({where:{name:user.type}});
+// console.log(allRoles.id,user.id)
+// await db.UserRole.create(user.id,allRoles.id);
+// // console.log(allRoles)
+// }
 
 // let getRoleNotifications = async (roleid, models) => {
 //   let query =
@@ -168,9 +174,6 @@ let getGenericPagesForAllRoles = async () => {
 
 let getUserInfo = async (userid, models) => {
   try {
-    console.log("======");
-    console.log(userid);
-    console.log("======");
     let isAdmin;
     let q = await models.sequelize.query(`SELECT users.*, user_profile.*, roles.id as role_id, roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile."user_Id" LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.id = ${userid} `,{type: QueryTypes.SELECT});
     if(isAdmin == null){
@@ -234,7 +237,6 @@ let getRoleCompleteDetails = async (roleId, models) => {
 let getUserRole = async (userId, models) => {
   let data = false;
   let userInfo = await getUserInfo(userId, models);
-  console.log(userId);
   if ((typeof userInfo[0].role_id !== "undefined") && ( userInfo[0].role_id !== null)) {
     let roleCompleteDetails = await getRoleCompleteDetails(
       userInfo[0].role_id,
@@ -321,7 +323,6 @@ let getUserInventories = async (userid, models, userRole = false) => {
     roleName.toLowerCase() == "hr" ||
     roleName.toLowerCase() == "inventory manager"
   ) {
-    // console.log(123213);
     let unassignRequestInventories = await getInventoriesRequestedForUnassign(
       models
     );
@@ -557,7 +558,6 @@ let getUserPolicyDocument = async (userid, models) => {
   let q1 = await models.UserProfile.findOne({ where: { user_Id: userid } });
   let ar0 = JSON.parse(q1.policy_document);
   let q2 = await models.Config.findOne({ where: { type: "policy_document" } });
-  // console.log(q2);
   let ar1 = JSON.parse(q2.value);
   let arr = [];
   if (ar0 == null) {
@@ -625,15 +625,10 @@ let isOwnershipChangeInventoriesRequestPending = async (models) => {
   return false;
 };
 
-let generateUserToken = async (userId, models) => {
-  console.log("||||||||");
-  console.log(userId)
-  console.log("|||||||||");
+let generateUserToken = async (userId, models,addOns = false) => {
   let userInfo = await getUserInfo(userId, models);
-  // console.log(userInfo)
   if (userInfo == null) {
   } else {
-    // let userProfileImage = await _getEmployeeProfilePhoto(userInfo);
     let userRole;
     if (userInfo[0].type.toLowerCase() == "admin") {
       userRole = userInfo[0].type;
@@ -659,32 +654,33 @@ let generateUserToken = async (userId, models) => {
       u.role_pages = await getRolePagesForSuperAdmin();
     } else {
       let roleInfo = await getUserRole(userInfo[0].user_Id, models);
-      if (roleInfo != null) {
+      if (roleInfo != null&&typeof roleInfo.role_pages!="undefined") {
         let role_pages = await getRolePagesForApiToken(
           roleInfo.id,
           models
         );
-        for (let page in role_pages) {
-          if (!checkifPageEnabled(role_pages[page].page_id, models)) {
+ 
+          for (let [key,page] of Object.entries(role_pages)) {
+          if (!checkifPageEnabled(page.page_id, models)) {
             // role_pages.page.pop();
             delete role_pages.page;
           }
         }
         u.role_pages = role_pages;
       }
-      if (roleInfo != null) {
+      if (roleInfo != null &&roleInfo.role_actions!="undefined") {
         let role_actions = roleInfo.role_actions;
-        role_actions.forEach((key) => {
-          roleAction.push(key.action_name);
-        });
+        for(let[key,value] of Object.entries(role_actions)) {
+          roleAction.push(value.action_name);
+        }
       }
     }
-    // console.log(roleAction);
+
     u.role_actions = roleAction;
     u.is_policy_documents_read_by_user = 1;
     u.is_inventory_audit_pending = 0;
     if (userInfo[0].type.toLowerCase() == "admin") {
-      // console.log(2334234);
+      
       if (isInventoryAuditPending(userInfo[0].user_Id, models)) {
         let generic_pages = await getGenericPagesForAllRoles();
         u.right_to_skip_inventory_audit = 1;
@@ -711,12 +707,12 @@ let generateUserToken = async (userId, models) => {
         );
       if (is_policy_document_read_by_user == false) {
         u.is_policy_documents_read_by_user = 0;
-        generic_pages.forEach((ele) => {
-          if (!checkifPageEnabled(ele.page_id, models)) {
+        for(let[key,generic] of Object.entries(generic_pages) ){
+          if (!checkifPageEnabled(generic.page_id, models)) {
             // key.pop();
             delete key;
           }
-        });
+        }
         u.role_pages = generic_pages;
       }
       let hasUnassignRequestInventories = false;
@@ -735,11 +731,11 @@ let generateUserToken = async (userId, models) => {
         hasOwnershipChangeInventoriesRequestPending
       ) {
         u.is_inventory_audit_pending = 1;
-        generic_pages.forEach((ele) => {
-          if (!checkifPageEnabled(ele.page_id, models)) {
+        for(let[key,generic] of Object.entries(generic_pages)) {
+          if (!checkifPageEnabled(generic.page_id, models)) {
             delete key;
           }
-        });
+        }
         // if (
         //   addOns.skip_inventory_audit &&
         //   userInfo[0].type.toLowerCase() ==
@@ -783,7 +779,7 @@ const refreshToken = async (oldToken, models, addOns = false) => {
     const checkJwt = await jwt.verify(oldToken[1], secret.jwtSecret);
     let loggedUserInfo = jwt.decode(oldToken[1]);
     let loggedUserInfo_userid = loggedUserInfo.data.id;
-    Return = await generateUserToken(loggedUserInfo_userid, models, addOns);
+    Return = await generateUserToken(loggedUserInfo_userid,models, addOns);
   }
   return Return;
 };
@@ -806,7 +802,7 @@ const isValidTokenAgainstTime = async (token) => {
   }
 };
 
-let getMachineDetail = async (id, models,) => {
+let getMachineDetail = async (id, models) => {
   try {
     let error = 1;
     let row = {};
@@ -902,6 +898,48 @@ const addInventoryAudit= async(loggedUserInfo,inventory_id,updated_by_user_id,au
   return true;
 }
 
+let assignUserMachine = async (machine_id, userid, loggeduserid,req,models) => {
+  let r_error=1;
+  let r_message;
+  let Return={};
+  if (
+    req.body.userid == "" ||
+    req.body.userid == 0 ||
+    req.body.userid == null
+  ) {
+    Return=await removeMachineAssignToUser(machine_id, req,models,loggeduserid);
+  } else {
+    const machine_info = await getMachineDetails(machine_id,models);
+    let checkpass = true;
+    if (typeof machine_info.status!="undefined" && machine_info.status == "sold") {
+      checkpass = false;
+      r_error=1;
+      r_message = "Sold status inventory cannnot be assign to any employee";
+    }
+    if(checkpass==true){
+      let date=new Date().toISOString().slice(0, 10)
+      let q=await models.sequelize.query(`select * from machines_user where machine_id =${machine_id}`,{type:QueryTypes.SELECT})
+      if(q.length!=0){
+        oldUserId=q[0].user_ID;
+        let comment = "Inventory Removed"
+        await addInventoryComment(machine_id,loggeduserid,models,req,comment,oldUserId)
+        comment="Inventory Assigned",
+        await addInventoryComment(machine_id,loggeduserid,models,req,comment,oldUserId)
+        q=await models.sequelize.query(`UPDATE machines_user SET  "user_Id" = ${userid}, assign_date = ${date} where id =" . ${q[0].id}`,{type:QueryTypes.UPDATE})
+      }else{
+        let q= (`INSERT INTO machines_user ( machine_id, user_Id, assign_date ) VALUES ( machine_id, userid, date)`,{type:QueryTypes.INSERT});
+        let comment="Inventory Assigned"
+        await addInventoryComment(machine_id,loggeduserid,req,models,comment,userid)
+      }
+      r_message="Machine assigned Successfully !!";
+    }
+
+    Return.error=r_error;
+    Return.message=r_message;
+  }
+    return Return;
+};
+
 let getMachineStatusList=async(req,models)=>{
   let r_error=1;
   let r_message="";
@@ -975,15 +1013,25 @@ let getMachineCount=async(req,models)=>{
   return Return;
 }
 
-let addInventoryComment = async (machine_id, loggeduserid,models,req) => {
-  const inventoryComment = await models.InventoryCommentsModel.create({
+let addInventoryComment = async (machine_id, loggeduserid,models,req,comment,oldUserId) => {
+  let inventoryComment;
+  if(comment!="undefined"&&comment!=""){
+      inventoryComment = await models.InventoryCommentsModel.create({
+      inventory_id: machine_id,
+      updated_by_user_id: loggeduserid,
+      comment_type: req.body.comment_type,
+      comment:comment,
+    });
+  }
+  if(comment=="undefined"&&oldUserId=="undefined")
+  inventoryComment = await models.InventoryCommentsModel.create({
     inventory_id: machine_id,
     updated_by_user_id: loggeduserid,
     comment_type: req.body.comment_type,
     comment: req.body.unassign_comment,
   });
-  if (req.body.assign_unassign_user_id != null) {
-    const inventoryComment = await models.InventoryCommentsModel.create({
+  if (oldUserId != null&&assign_unassign_user_id != "undefined") {
+     inventoryComment = await models.InventoryCommentsModel.create({
       inventory_id: machine_id,
       updated_by_user_id: loggeduserid,
       comment_type: req.body.comment_type,
@@ -1058,7 +1106,6 @@ const getAllMachinesDetail =async(req,models,sort=null,status_sort=null)=>{
     }
     ( async(q)=>{
     for(let [key,row]of Object.entries(q)){
-      console.log(12345)
      let inventoryHistory= await getInventoryHistory(row.id,models);
     //  console.log(inventoryHistory)
      q[key]["history"]=inventoryHistory;
@@ -1097,7 +1144,6 @@ r_message = "Status is empty.";
 }
 else{
  let data_status = req.body.status.trim();
- console.log(data_status)
  let q =await models.sequelize.query(`SELECT * FROM machine_status WHERE status = :status`, { replacements: { status: data_status }, type:QueryTypes.SELECT })
 if(q.length>0){
   r_error   = 1;
@@ -1119,10 +1165,8 @@ let Return =[];
 Return['error']   = r_error;
 Return['message'] = r_message;
 Return['data']    = r_data;
-console.log(Return)
 return Return;
 }
-//working on it 
 const UpdateOfficeMachine=async(logged_user_id,req,models)=>{
   try{
 let r_error=1;
@@ -1166,6 +1210,7 @@ if(priorCheckError==false){
       if (data[key]!= machine_detail.data.q[0].key) {
         let arr =[];
         arr[key]=data[key];
+        console.log(whereField,whereFieldVal,arr,key)
         resp = await DBupdateBySingleWhere('MachineList', whereField, whereFieldVal, arr,key,models);
         msg[key]=data[key]
     }
@@ -1174,7 +1219,7 @@ if(priorCheckError==false){
 if(resp==false){
   r_error = 1;
   r_message = "No fields updated into table";
-  r_data['message'] = r_message;
+  r_data.message = r_message;
 }else{
   if (data['send_slack_msg'] == "") {
       if (sizeof(msg > 0)) {
@@ -1205,47 +1250,73 @@ return Return;
   }
 }
 let DBupdateBySingleWhere= async (tableName, whereField, whereFieldVal,updateData,key,models) =>{
+  console.log(key,updateData)
+  console.log(123)
  let Return = false;
-//  console.log(updateData.length) 
-//  console.log(Array.isArray(updateData))
+//  let updateQuery=await models.sequelize.query(`UPDATE ${tableName} SET `,{type:QueryTypes.SELECT})
  if(Array.isArray(updateData)&& updateData!==null&&updateData!="undefined"){
    let updateFieldString='';
+   for(let[key,fieldval] of Object.entries(updateData)){
     if( updateFieldString == '' ){
-      updateFieldString.key= updateData[key];
+      updateFieldString.key= fieldval;
   }else{
-      updateFieldString = updateFieldString[key]=value;
+      updateFieldString = updateFieldString.key=value;
   }
-  // console.log(key)
-  console.log(updateData[key])
-  // console.log(whereField,whereFieldVal)
-  updateQuery=await models.sequelize.query(`Update ${tableName} set ${key}=${updateData[key]} where ${whereField}=${whereFieldVal}`,{type:QueryTypes.UPDATE})
-  console.log(updateQuery)
-  //  updateQuery=await models.MachineList.update({key:updateData[key]},{where:{whereField:whereFieldVal}})
-  //  console.log(updateQuery)
+}
+  updateQuery=await models.sequelize.query(`Update ${tableName} set ${key}='${updateData[key]}' where ${whereField}=${whereFieldVal}`,{type:QueryTypes.UPDATE})
    if(updateQuery.length>0){
      Return=true;
    }
  }
     return Return;
 }
-//function not found in php code
-let get_unapproved_inventories= async(logged_user_id,req,models)=>{
-
+let api_getUnapprovedInventories= async(logged_user_id,req,models)=>{
+  let error=0;
+  let message='';
+  let unapprovedInventories=[];
+  let unapprovedInventoriesList=await getUnapprovedInventories(req,models);
+  if(unapprovedInventoriesList==false){
+    message="No unapproved inventories found!!";
+  }
+  else{
+    for(ui of unapprovedInventoriesList ){
+      i_details=getInventoryFullDetails(ui.id,hide_assigned_user_info,models)
+      unapprovedInventories=i_details;
+    }
+  }
+  Return ={};
+  Return.message=message;
+  Return.data=unapprovedInventories;
+   return Return;
 }
+let getUnapprovedInventories=async(req,models)=>{
+  let Return=false;
+  let query=await models.sequelize.query(`select * from machinelist where approval_status = 0`,{type:QueryTypes.SELECT});
+  if(query.length==0){}
+  else{
+    Return =query;
+  }
+  return Return;
+}
+
 let getUnassignedInventories=async(req,models)=>{
 let Return= false;
 let q =await models.sequelize.query(`select * from machinelist where id not in(select machine_id from machines_user) AND approval_status = 1`,{type:QueryTypes.SELECT})
+console.log(q.length)
 if(q.length==0){
 }else{
   return q;
-}return Return;
 }
+return Return;
+}
+
 let api_getUnassignedInventories=async(userid,req,models)=>{
   let error=0;
   let message='';
   let unassignedInventories =[];
-  let unassignedInventoriesList = await getUnassignedInventories(userid,req,models);
-  if(unassignedInventoriesList.length==0){
+  let unassignedInventoriesList = await getUnassignedInventories(req,models);
+  if(unassignedInventoriesList==false){
+    console.log(1)
    message = "No unassigned inventories found!!";
   }else{
     for(elem of unassignedInventoriesList){
@@ -1428,7 +1499,8 @@ let q=await models.sequelize.query(
 
     if (inventoriesCount == 0) {
       message = "No Records Found.";
-  }else{
+  }
+  else{
     let tempCheckArray = [];
 
     for(row of q){
@@ -1461,8 +1533,8 @@ let q=await models.sequelize.query(
     }
 
     message="Inventory Audit List";
-    data=[];
-    data.stats=[];
+    data={};
+    data.stats={};
     data.stats.total_inventories=inventoriesCount,
     data.stats.audit_done=auditDoneCount,
     data.stats.audit_pending=auditPendingCount,
@@ -1478,7 +1550,6 @@ let q=await models.sequelize.query(
      message: message,
      data:data
   };
-
   return Return;
 }catch(error){
   console.log(error)
@@ -1538,6 +1609,7 @@ if(employeeWiseData!==null){
 }
   return employeeWiseData;
 }
+
 let assignUserRole = async (userid, roleid, models) => {
   let error = 1;
   let message;
@@ -1783,6 +1855,139 @@ const api_getMyInventories = async (user_id, user_role, models) => {
   Return.message = message;
   return Return;
 };
+let API_getTempUploadedInventoryFiles=async(req,models)=>{
+let query1=await models.sequelize.query(`SELECT 
+inventory_temp_files.*,
+files.updated_by_user_id as updated_by_user_id,
+files.file_name as file_name,
+files.google_drive_path as google_drive_path
+FROM inventory_temp_files
+LEFT JOIN files on inventory_temp_files.file_id = files.id`,{type:QueryTypes.SELECT})
+
+if(Array.isArray(query1)&&query1.length!=0){
+  for([key,row] of query1){
+    if(typeof row.file_name!="undefined"&&row.file_name!=null){
+      //working on it
+      query1.key.file_name=`$_ENV['ENV_BASE_URL'].'attendance/uploads/inventories/'.$row['file_name'];` 
+      //will be working on it   
+    }
+  }
+}
+let Return={}
+Return.error=0;
+Return.message="";
+Return.data=query1;
+return Return;
+
+}
+let removeMachineDetails = async(inventory_id,logged_user_id,req,models)=>{
+  let error=0;
+  let r_message;
+  let inventoryDetails=await getMachineDetail(inventory_id,models)
+  if(typeof inventoryDetails.data.q.user_ID !="undefined" && inventoryDetails.data.q.user_ID !=null){
+    error=1;
+    r_message="You need to Unassign this inventory first!!";
+  }else{
+    await removeInventoryAudits(inventory_id,req,models);
+    await removeInventoryComments(inventory_id,req,models);
+    await removeMachineAssignToUser(inventory_id,req,models);
+    inventory_id =1;
+    let query1=await models.sequelize.query(`Delete from machinelist where id=${inventory_id}`,{type:QueryTypes.DELETE});
+    error=0;
+    r_message= "Inventory deleted successfully";
+  }
+  Return = [];
+  Return.error = error;
+  Return.message= r_message;
+  return Return;
+}
+let removeMachineAssignToUser =async(inventory_id,req,models,loggeduserid)=>{
+  const machine_Info = await getMachineDetail(inventory_id,models);
+console.log(1234)
+    if (machine_Info.data.q.user_ID != null) {
+      const message = [];
+      message.inventoryName = machine_Info.machine_name;
+      message.invetoryType = machine_Info.machine_type;
+    let loggeduserid=req.userData.id;
+      addInventoryComment(inventory_id, loggeduserid, req, db);
+    }
+    await models.sequelize.query(`Delete from machines_user where machine_id=${inventory_id}`,{type:QueryTypes.DELETE});
+    let Return ={};
+    Return.error=0;
+    Return.message="User removed successfully";
+    return Return;
+
+}
+let removeInventoryAudits =async(inventory_id,req,models)=>{
+  let query=await models.sequelize.query(`Delete from inventory_audit_month_wise where inventory_id=${inventory_id}`,{type:QueryTypes.DELETE});
+}
+let removeInventoryComments=async(inventory_id,req,models)=>{
+  let query=await models.sequelize.query(`Delete from inventory_comments where inventory_id=${inventory_id}`,{type:QueryTypes.DELETE})
+}
+let inventoryUnassignRequest =async(inventoryId,req,models)=>{
+  let machine_info=await getMachineDetail(inventoryId,models)
+  let query=await models.sequelize.query(`UPDATE machinelist set is_unassign_request=1 WHERE id=${inventoryId}`,{type:QueryTypes.UPDATE})
+  //for slack message
+  // if(machine_info.data.q[0].user_id!=null){
+  // let userid =machine_info.data.q[0].user_Id;
+  // let messageBody={};
+  // messageBody.inventoryName=machine_info.data.q[0].machine_name;
+  // messageBody.inventoryType=machine_info.data.q[0].machine_type;
+  // }
+ Return ={};
+ Return.error=0;
+ Return.message= "Inventory unassign notification has been sent. You will be contacted soon.";
+
+ return Return;
+}
+
+let API_deleteTempUploadedInventoryFile=async(req,models)=>{
+  let r_error   = 1;
+  let r_message = "";
+  if(typeof req.body.temp_id !="undefined" && req.body.temp_id!=null && req.body.temp_id==""){
+    let tempId = req.body.temp_id;
+    let query1= await models.sequelize.query(`DELETE FROM inventory_temp_files WHERE id=${tempId}`,{type:QueryTypes.DELETE});
+    r_error   = 0;
+    r_message = "Uploaded inventory photo deleted successfully!!" ;
+  }else{
+    r_message = "temp_id is empty in request!!";
+  }
+  let Return={};
+  Return.error=r_error;
+  Return.message=r_message;
+  return Return;
+}
+let inventoryOwnershipChangeRequest=async(logged_user_id,req,models)=>{
+  let r_error=1;
+  let r_message = "";
+  if( typeof(req.body.inventory_serial_number)!="undefined" && req.body.inventory_serial_number!=null ){
+    let inventory_serial_number = req.body.inventory_serial_number;
+    let inventory = await getInventoryBySerialNumber(inventory_serial_number,models);
+    if(inventory==false){
+      r_message = "No inventory found with serial number $inventory_serial_number";
+    }else{
+      let inventoryId = inventory.id;
+      let q = await models.sequelize.query(`UPDATE machines_list set ownership_change_req_by_user=${logged_user_id} WHERE id=${inventoryId}`,{type:QueryTypes.UPDATE});
+      r_error = 0;
+      r_message = "Inventory ownership change request submitted successfully!! Please wait for HR to approve your request!!";
+    }
+}else{
+  r_error=0;
+  r_message="Empty Inventory Serial Number";
+}
+let Return={};
+Return.error=r_error;
+Return.message=r_message;
+return Return;
+}
+let getInventoryBySerialNumber=async(serialNumber,models)=>{
+let Return=false;
+let q =await models.sequelize.query(`select * from machinelist where serial_number = ${serialNumber}`,{type:QueryTypes.SELECT});
+if(q.length>0){
+  Return=q;
+}
+return Return
+}
 
 let getSystemDefaultRoles = async() => {
   let array = [
@@ -1798,6 +2003,8 @@ let getSystemDefaultRoles = async() => {
 }
 
 module.exports = {
+  // registerRole,
+  API_getTempUploadedInventoryFiles,
   getEnabledUsersListWithoutPass,
   validateSecretKey,
   assignUserRole,
@@ -1841,8 +2048,12 @@ module.exports = {
   assignAdminRoleToUserTypeAdminIfNoRoleAssigned,
   getSystemDefaultRoles,
   api_getMyInventories,
-  get_unapproved_inventories,
+  api_getUnapprovedInventories,
   api_getUnassignedInventories,
   _getDateTimeData,
-  getInventoriesAuditStatusForYearMonth
+  getInventoriesAuditStatusForYearMonth,
+  API_deleteTempUploadedInventoryFile,
+  removeMachineDetails,inventoryUnassignRequest,
+  inventoryOwnershipChangeRequest,
+  assignUserMachine
 }

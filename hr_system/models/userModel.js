@@ -173,18 +173,19 @@ function user(database, type) {
             message = "Error in registering new.";
           } else {
             error = 0;
-            message = "Registration Successfull";
+            message = "Registration Successfull but roles not assigned";
             let allRoles = await models.Role.findAll({});
             for (let roles in allRoles) {
               if (allRoles[roles].name == reqBody.type) {
                 let defaultRoleId = allRoles[roles].id;
-                console.log(31)
-                if (userId && defaultRoleId !== null) {
+                if (userId && defaultRoleId !== "") {
                   let roleToAssign = await assignUserRole(
                     userId,
                     defaultRoleId,
                     models
                   );
+                  error=0;
+                  message="registeration sucessfull"
                 } else {
                   error = 1;
                   message = "role not assigned";
@@ -198,14 +199,6 @@ function user(database, type) {
       Return.error = error;
       Return.message = message;
       return Return;
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
-  User.getEnabledUsers = async () => {
-    try {
-      let enabledUsers = await User.findAll({ where: { status: "enabled" } });
-      return enabledUsers;
     } catch (error) {
       throw new Error(error);
     }

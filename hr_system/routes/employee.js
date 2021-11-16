@@ -16,11 +16,11 @@ const storage = multer.diskStorage({
   const upload = multer({ storage: storage });
 
 
-router.get('/get_user_profile_detail',middleware.AuthForHr,employeeController.getUserProfileController,handlers.responseForEmployee);
-router.post('/get_user_profile_detail_by_id',middleware.AuthForHrAdmin,employeeController.getUserProfileByIdConttroller,handlers.responseForEmployee);
-router.get('/get_enabled_users_brief_details',middleware.AuthForHrAdmin,employeeController.getEnabledUser,handlers.responseForEmployee);
-router.get('/show_disabled_users',middleware.AuthForHrAdmin,employeeController.getDisabledUser,handlers.responseForEmployee);
-router.post('/get_user_document',middleware.AuthForHrEmployee,employeeController.getUserDocument,handlers.responseForEmployee);
+router.get('/get_user_profile_detail',middleware.AuthForHr,employeeController.getUserProfileController,handlers.responseForEmployee);//done
+router.post('/get_user_profile_detail_by_id',middleware.AuthForHrAdmin,employeeController.getUserProfileDetailByIdConttroller,handlers.responseForEmployee);//done
+router.get('/get_enabled_users_brief_details',middleware.AuthForHrAdmin,employeeController.getEnabledUser,handlers.responseForEmployee);//done
+router.get('/show_disabled_users',middleware.AuthForHrAdmin,employeeController.getDisabledUser,handlers.responseForEmployee);//done
+router.post('/get_user_document',middleware.AuthForHrEmployee,employeeController.getUserDocument,handlers.responseForEmployee);//working
 router.post('/update_user_policy_document',middleware.AuthForHrEmployee,validators.updateUserPolicyDocument,employeeController.updateUserPolicyDocument,handlers.responseForEmployee);
 router.post('/user_document',middleware.AuthForHr,validators.user_document,upload.single("file"),employeeController.uploadUserDocument,handlers.responseForEmployee);
 router.get('/get_user_policy_document',middleware.AuthForHrEmployee,employeeController.getUserPolicyDocument,handlers.responseForEmployee);

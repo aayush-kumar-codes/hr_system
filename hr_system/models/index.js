@@ -17,6 +17,7 @@ const RolesPage = require("./rolesPageModel");
 const LifeCycle = require("./lifeCycleModel");
 const Document =require("./documentModel");
 const BankDetails = require("./bankDetailsModel");
+const UserDocumentDetails=require("./userDocumentDetail")
 
-module.exports = { User, MachineList, MachineUser, InventoryTempFiles,InventoryAuditMonthWise, InventoryCommentsModel, FilesModel, MachineStatus, Role, Config, UserProfile, UserRole,RolesNotification,RolesAction,RolesPage,LifeCycle,BankDetails,Document };
+module.exports = { User, MachineList, MachineUser, InventoryTempFiles,InventoryAuditMonthWise, InventoryCommentsModel, FilesModel, MachineStatus, Role, Config, UserProfile, UserRole,RolesNotification,RolesAction,RolesPage,LifeCycle,BankDetails,Document ,UserDocumentDetails};
 
