@@ -3,11 +3,15 @@ const providers = require("../providers/creation-provider");
 const reqUser = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
+const {getUserDetailInfo,getEnabledEmployeesBriefDetails,getDisabledUser,getUserDocumentDetail}=require("../employeeFunction");
+const{validateSecretKey}=require("../allFunctions")
 
 exports.getUserProfileController = async (req, res, next) => {
   try {
-    let userProfileDetails = await db.UserProfile.getUserProfile();
-    res.data = userProfileDetails;
+    let id=req.userData.data.id
+    let userProfileDetails = await getUserDetailInfo(id,req,db);
+    res.data = userProfileDetails.data;
+    res.error=userProfileDetails.error;
     res.status_code = 200;
     return next();
   } catch (error) {
@@ -30,15 +34,35 @@ exports.getLifeCycleController = async (req, res, next) => {
   }
 };
 
-exports.getUserProfileByIdConttroller = async (req, res, next) => {
+exports.getUserProfileDetailByIdConttroller = async (req, res, next) => {
   try {
-    let userProfileDetailsById = await db.UserProfile.getUserProfileDetailsById(
-      req.body
-    );
-    res.data = userProfileDetailsById;
-    res.status_code = 200;
+    let response;
+    if(typeof req.body.user_id!="undefined"&&req.body.user_id!==""){
+      user_id = req.body.user_id;
+      response= await getUserDetailInfo(user_id,req,db);
+      console.log(response)
+      if(typeof req.body.secret_key !="undefined" && req.body.secret_key !==""){
+        let validate_secret=await validateSecretKey(req.body.secret_key,db);
+        if(validate_secret){
+          secureKeys = [ 'bank_account_num', 'blood_group', 'address1', 'address2', 'emergency_ph1', 'emergency_ph2', 'medical_condition', 'dob', 'marital_status', 'city', 'state', 'zip_postal', 'country', 'home_ph', 'mobile_ph', 'work_email', 'other_email', 'special_instructions', 'pan_card_num', 'permanent_address', 'current_address', 'slack_id', 'policy_document', 'training_completion_date', 'termination_date', 'training_month', 'slack_msg', 'signature', 'role_id', 'role_name', 'eth_token' ];
+          for(let[key,r] of Object.entries(response.data.user_profile_detail)){
+            for(let securekey of securekeys){
+              if(key==securekey){
+                delete response.data.user_profile_detail.key;
+              }
+            }
+          }
+        }
+      }
+      res.error=response.error
+      res.data=response.data;
+    }else{
+      res.message='Please give user_id ';
+    } 
+    res.status_code=200;
     return next();
   } catch (error) {
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();
@@ -47,8 +71,9 @@ exports.getUserProfileByIdConttroller = async (req, res, next) => {
 
 exports.getEnabledUser = async (req, res, next) => {
   try {
-    let enabledUsers = await db.User.getEnabledUsers();
-    res.data = enabledUsers;
+    let enabledUsers = await getEnabledEmployeesBriefDetails(req,db);
+    res.data = enabledUsers.data;
+    res.error=enabledUsers.error;
     res.status_code = 200;
     return next();
   } catch (error) {
@@ -72,10 +97,15 @@ exports.updateLifeCycleController = async (req, res, next) => {
 
 exports.getDisabledUser = async (req, res, next) => {
   try {
-    let disabledUsers = await db.User.getDisabledUsers();
-    res.data = disabledUsers;
+  //  let IS_SECRET_KEY_OPERATION =false;
+  //  if(IS_SECRET_KEY_OPERATION){
+  //    let loggedUserInfo=false;
+  //  }
+    let disabledUsers = await getDisabledUser(req,db)
+    res.data = disabledUsers.data;
+    res.message=disabledUsers.message;
     res.status_code = 200;
-    return next();
+    return next();c
   } catch (error) {
     res.status_code = 500;
     res.message = error.message;
@@ -240,11 +270,13 @@ exports.updateEmployeePassControllers = async (req, res, next) => {
 
 exports.getUserDocument = async (req, res, next) => {
   try {
-    let userDocument = await db.Document.getUserDocument();
+    let user_id=req.userData.data.id
+    let userDocument = await getUserDocumentDetail(user_id,req,db);
      res.data =userDocument;
      res.status_code=200;
      return next();
   } catch(error){
+    console.log(error)
     res.status_code =500;
     res.message =error.message;
     return next();

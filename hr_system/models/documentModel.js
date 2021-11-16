@@ -11,14 +11,6 @@ function Document(database, type) {
       freezeTableName: true,
     }
   );
-  document.getUserDocument = async () => {
-    try {
-      let UserDocument = await document.findAll({});
-      return UserDocument;
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
 
   document.uploadUserDocument = async (req)=>{
     try {

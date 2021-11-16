@@ -3,7 +3,9 @@ const providers = require("../providers/creation-provider");
 const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
-const {getMachineDetail,AddMachineStatus,getMachineStatusList,getMachineCount,addMachineType,getAllMachinesDetail,api_getMyInventories,UpdateOfficeMachine,get_unapproved_inventories,api_getUnassignedInventories,_getDateTimeData, getInventoriesAuditStatusForYearMonth}= require("../allFunctions")
+const {refreshToken,getMachineDetail,AddMachineStatus,getMachineStatusList,getMachineCount,addMachineType,getAllMachinesDetail,api_getMyInventories,UpdateOfficeMachine,api_getUnassignedInventories,isUnassignInventoriesRequestPending
+  ,_getDateTimeData, getInventoriesAuditStatusForYearMonth,API_getTempUploadedInventoryFiles,API_deleteTempUploadedInventoryFile,removeMachineDetails,inventoryUnassignRequest,api_getUnapprovedInventories,inventoryOwnershipChangeRequest,assignUserMachine}= require("../allFunctions");
+const { response } = require("express");
 exports.inventoryController = async (req, res, next) => {
   try {
     let request_Validate = await reqValidate(req);
@@ -44,22 +46,48 @@ exports.inventoryGetController = async (req, res, next) => {
 
 exports.AssignUserMachineController = async (req, res, next) => {
   try {
-    let request_Validate = await reqValidate(req);
-    let machine_create = await db.MachineUser.AssignMachine(req, db);
-    if (machine_create == "Done") {
-      res.status_code = 201;
-      res.error = 0;
-      res.message =
-        "Machine assigned Successfully !!";
-      return next();
-    } else {
-      res.status_code = 500;
-      res.error = 1;
-      res.message = "Sold status inventory cannnot be assign to any employee";
-      return next()
-    }
+     let logged_user_id=req.userData.id;
+     let ownership_change_request = false;
+     let response;
+     if(typeof req.body.ownership_change_request!="undefined"&&req.body.ownership_change_request==1){
+      ownership_change_request = true;
+     }
+     if(ownership_change_request==true){
+       response= await inventoryOwnershipChangeRequest(logged_user_id,req,db)
+     }else{
+      let machine_id = req.body.machine_id;
+      let user_id = req.body.user_id;
+      response=await assignUserMachine(machine_id,user_id,logged_user_id,req,db)
+     }
+    // //  if(typeof req.body.do_refresh_token!="undefinded"&&req.body.do_refresh_token==1){
+    //   //  if(await isUnassignInventoriesRequestPending(db)==false){
+    //    let newToken=await refreshToken(oldtoken,models)
+    //    if(typeof response.data!="undefined"){
+    //      response.data={};
+    //    }
+    //    response.data.new_token=newToken;
+    //   //  }
+
+    // //  }
+     res.status_code=200;
+     res.message=response.message;
+     res.error=response.error;
+     return next();
+    // let machine_create = await db.MachineUser.AssignMachine(req, db);
+    // if (machine_create == "Done") {
+    //   res.status_code = 201;
+    //   res.error = 0;
+    //   res.message =
+    //     "Machine assigned Successfully !!";
+    //   return next();
+    // } else {
+    //   res.status_code = 500;
+    //   res.error = 1;
+    //   res.message = "Sold status inventory cannnot be assign to any employee";
+    //   return next()
+    // }
   } catch (error) {
-    console.log("error in assignUserMachineController")
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();
@@ -282,9 +310,10 @@ exports.getMachinesDetailController = async (req, res, next) => {
     if(typeof req.body.status_sort!="undefined"&&req.body.status_sort!=""){
       let status_sort=(req.body.status_sort).trim();
       machineDetails = await getAllMachinesDetail(req,db,sort=false,status_sort);
-     }else{
+    }else{
     machineDetails = await getAllMachinesDetail(req,db);
   }
+  console.log(machineDetails)
     res.status_code = 200;
     res.data = machineDetails.data;
     res.error=machineDetails.error;
@@ -300,9 +329,10 @@ exports.getUnapprovedInventoryControllers = async (req, res, next) => {
   try {
     let logged_user_id=req.userData.id;
     console.log(logged_user_id)
-    let unapprovedInventory = await get_unapproved_inventories(logged_user_id,req,db);
+    let unapprovedInventory = await api_getUnapprovedInventories(logged_user_id,req,db);
     res.status_code = 200;
-    res.data = unapprovedInventory;
+    res.message = unapprovedInventory.message;
+    res.data=unapprovedInventory.data;
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -330,7 +360,6 @@ exports.monthwiseAuditStatusController = async (req, res, next) => {
     res.error=resp.error;
     res.message=resp.message;
     res.data=resp.data;
-    // console.log(resp.data)
     return next();
   } catch (error) {
     console.log(error)
@@ -342,13 +371,15 @@ exports.monthwiseAuditStatusController = async (req, res, next) => {
 
 exports.inventoryUnassignRequestController = async (req, res, next) => {
   try {
-    let inventoryUnassignRequest =
-      await db.InventoryCommentsModel.unassignRequest(req.body);
+    let inventory_id = req.body.inventory_id;
+    let response= await inventoryUnassignRequest(inventory_id,req,db)
     res.status_code = 200;
-    res.data = inventoryUnassignRequest;
+    res.message = response.message;
+    res.error=response.error;
     // res.message = "request Made";
     return next();
   } catch (error) {
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();
@@ -357,10 +388,11 @@ exports.inventoryUnassignRequestController = async (req, res, next) => {
 
 exports.getTempFilesController = async (req, res, next) => {
   try {
-    let tempFiles = await db.InventoryTempFiles.getTempFiles();
+    let tempFiles = await API_getTempUploadedInventoryFiles(req,db);
     res.status_code = 200;
-    res.data = tempFiles;
-    // res.message = "temp files found";
+    res.message=tempFiles.message;
+    res.error=tempFiles.error;
+    res.data = tempFiles.data;
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -371,10 +403,10 @@ exports.getTempFilesController = async (req, res, next) => {
 
 exports.deleteTempFilesControllers = async (req, res, next) => {
   try {
-    let deletedTempFiles = await db.InventoryTempFiles.deleteTempFiles(
-      req.body
-    );
-    res.status_code = 204;
+    let deletedTempFiles = await API_deleteTempUploadedInventoryFile(req,db);
+    res.status_code = 200;
+    res.message=deletedTempFiles.message;
+    res.error=deletedTempFiles.error;
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -385,9 +417,12 @@ exports.deleteTempFilesControllers = async (req, res, next) => {
 
 exports.removeMachineController = async (req, res, next) => {
   try {
-    let removedMachine = await db.MachineList.removeMachine(req.body);
-    res.status_code = 204;
-    // res.message = "Removed";
+    let id=req.body.id;
+    logged_user_id = req.userData.id;
+    let removedMachine = await removeMachineDetails(id,logged_user_id,req,db);
+    res.status_code = 200;
+    res.error=removedMachine.error;
+    res.message=removedMachine.message;
     return next();
   } catch (error) {
     res.status_code = 500;

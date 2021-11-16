@@ -2,6 +2,7 @@ const md5 = require("md5");
 const { randomString} = require("../allFunctions")
 const { Op, QueryTypes } = require("sequelize");
 const sendEmail = require("../util/sendEmail");
+const{assignUserRole}=require("../allFunctions")
 function user_profile(database, type) {
   const user_profile = database.define("user_profile", {
     name: type.STRING,
@@ -110,13 +111,15 @@ function user_profile(database, type) {
             message = "Employee added Successfully";
             let allRoles = await models.Role.findAll({});
             for (let roles in allRoles) {
-              if (allRoles[roles].name == "Employee") {
+              if (allRoles[roles].name == reqBody.type) {
                 let defaultRoleId = allRoles[roles].id;
                 if (userId && defaultRoleId !== "") {
-                  let roleToAssign = await models.UserRole.assignRole(
+                  let roleToAssign = await assignUserRole(
                     userId,
-                    defaultRoleId
+                    defaultRoleId,models
                   );
+                  error=0;
+                  message="registeration sucessfull"
                 } else {
                   error = 1;
                   message = "role not assigned";
@@ -139,14 +142,7 @@ function user_profile(database, type) {
     }
   };
 
-  user_profile.getUserProfile = async () => {
-    try {
-      let UserProfile = await user_profile.findAll({});
-      return UserProfile;
-    } catch (error) {
-      throw new Error("Unable to find User profile");
-    }
-  };
+
 
   user_profile.getUserProfileDetailsById = async (reqBody) => {
     try {

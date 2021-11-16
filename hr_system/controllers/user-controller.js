@@ -24,7 +24,8 @@ exports.userRegister = async (req, res, next) => {
     );
     res.token = token;
     res.status_code = 201;
-    res.message = "Created";
+    res.message = user_create.message;
+    res.error=user_create.error;
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -38,6 +39,7 @@ exports.userLogin = async (req, res, next) => {
     let request_Validate = await reqUser(req);
     let username = req.body.username;
     let password = md5(req.body.password);
+
     let result = await db.User.login(username, password, db);
     res.status_code = 200;
     res.error = result.error;

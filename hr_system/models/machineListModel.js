@@ -9,6 +9,7 @@ const {
   refreshToken,
   getInventoryHistory,
   addInventoryComment,
+  assignUserMachine
 } = require("../allFunctions");
 
 function machinelist(database, type) {
@@ -327,22 +328,34 @@ function machinelist(database, type) {
   //   }
   //   return inventoryComment.id;
   // };
-  const assignUserMachine = async (machine_id, req, loggeduserid) => {
-    if (
-      req.body.userid == "" ||
-      req.body.userid == 0 ||
-      req.body.userid == null
-    ) {
-      await removeMachineAssignToUser(machine_id, loggeduserid, req);
-    } else {
-      const machine_info = await getMachineDetails(machine_id);
-      let checkpass = true;
-      if (machine_info.status == "sold") {
-        checkpass = false;
-        message = "Sold status inventory cannnot be assign to any employee";
-      }
-    }
-  };
+  // MachineList. assignUserMachine = async (machine_id, req, loggeduserid) => {
+  //   try{
+  //   let r_error=1;
+  //   let r_message="";
+  //   if (
+  //     req.body.userid == "" ||
+  //     req.body.userid == 0 ||
+  //     req.body.userid == null
+  //   ) {
+  //     await removeMachineAssignToUser(machine_id, loggeduserid, req);
+  //   } else {
+  //     const machine_info = await getMachineDetails(machine_id);
+  //     let checkpass = true;
+  //     if (typeof machine_info.status!="undefined" && machine_info.status == "sold") {
+  //       checkpass = false;
+  //       r_error=1;
+  //       message = "Sold status inventory cannnot be assign to any employee";
+  //     }
+  //     if(checkpass==true){
+  //       let date=new Date().toISOString().slice(0, 10)
+
+  //       console.log(today)
+  //     }
+  //   }
+  // }catch(error){
+  //   console.log(error)
+  // }
+  // };
   const updateInventoryWithTempFile = async (
     loggeduserid,
     machine_id,
