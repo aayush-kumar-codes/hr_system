@@ -4,7 +4,7 @@ const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
 const {refreshToken,getMachineDetail,AddMachineStatus,getMachineStatusList,getMachineCount,addMachineType,getAllMachinesDetail,api_getMyInventories,UpdateOfficeMachine,api_getUnassignedInventories,isUnassignInventoriesRequestPending
-  ,_getDateTimeData, getInventoriesAuditStatusForYearMonth,API_getTempUploadedInventoryFiles,API_deleteTempUploadedInventoryFile,removeMachineDetails,inventoryUnassignRequest,api_getUnapprovedInventories,inventoryOwnershipChangeRequest,assignUserMachine}= require("../allFunctions");
+  ,_getDateTimeData, getInventoriesAuditStatusForYearMonth,API_getTempUploadedInventoryFiles,API_deleteTempUploadedInventoryFile,removeMachineDetails,inventoryUnassignRequest,api_getUnapprovedInventories,inventoryOwnershipChangeRequest,assignUserMachine,getMachineTypeList}= require("../allFunctions");
 const { response } = require("express");
 exports.inventoryController = async (req, res, next) => {
   try {
@@ -46,7 +46,7 @@ exports.inventoryGetController = async (req, res, next) => {
 
 exports.AssignUserMachineController = async (req, res, next) => {
   try {
-     let logged_user_id=req.userData.id;
+     let logged_user_id=req.userData.data.id;
      let ownership_change_request = false;
      let response;
      if(typeof req.body.ownership_change_request!="undefined"&&req.body.ownership_change_request==1){
@@ -142,7 +142,9 @@ exports.getMyInventoryController = async (req, res, next) => {
       }
     }
     res.status_code = 200;
-    res.data = result;
+    res.message=result.message;
+    res.error=result.error;
+    res.data = result.data;
     return next();
   } catch (error) {
     console.log(error)
@@ -167,7 +169,7 @@ exports.getMachineController = async (req, res, next) => {
 
 exports.inventoryUpdateMachineController = async (req, res, next) => {
   try {
-    let logged_user_id=req.userData.id;
+    let logged_user_id=req.userData.data.id;
     let updatedMachine = await UpdateOfficeMachine(logged_user_id,req,db);
     res.status_code = 200;
     res.message =updatedMachine.message;
@@ -182,7 +184,7 @@ exports.inventoryUpdateMachineController = async (req, res, next) => {
 
 exports.getUnassignedInventoryController = async (req, res, next) => {
   try {
-    let logged_user_id=req.userData.id
+    let logged_user_id=req.userData.data.id;
     let unassignedInventory = await api_getUnassignedInventories(logged_user_id,req,db);
     res.status_code = 200;
     res.error=unassignedInventory.error;
@@ -280,19 +282,12 @@ exports.addMachineTypeController = async (req, res, next) => {
 
 exports.getMachineTypeController = async (req, res, next) => {
   try {
-    let machine_type_list = await db.Config.getMachineTypeList();
-    if(machine_type_list.message!==1){
+    let machine_type_list = await getMachineTypeList(req,db);
       res.status_code = 200;
       res.error=machine_type_list.error;
-      // console.log(machine_type_list.message)
       res.message=machine_type_list.message;
-    return next();
-    }else{    
-      res.status_code = 200;
-      res.error=machine_type_list.error
       res.data=machine_type_list.data;
      return next();
-    }
   } catch (error) {
     res.status_code = 500;
     res.message = error.message;
@@ -306,6 +301,7 @@ exports.getMachinesDetailController = async (req, res, next) => {
     if(typeof req.body.sort!="undefined"&&req.body.sort!=""){
      let sort=(req.body.sort).trim();
      machineDetails = await getAllMachinesDetail(req,db,sort);
+     console.log(machineDetails)
     }
     if(typeof req.body.status_sort!="undefined"&&req.body.status_sort!=""){
       let status_sort=(req.body.status_sort).trim();
@@ -313,7 +309,6 @@ exports.getMachinesDetailController = async (req, res, next) => {
     }else{
     machineDetails = await getAllMachinesDetail(req,db);
   }
-  console.log(machineDetails)
     res.status_code = 200;
     res.data = machineDetails.data;
     res.error=machineDetails.error;
@@ -327,8 +322,7 @@ exports.getMachinesDetailController = async (req, res, next) => {
 
 exports.getUnapprovedInventoryControllers = async (req, res, next) => {
   try {
-    let logged_user_id=req.userData.id;
-    console.log(logged_user_id)
+    let logged_user_id=req.userData.data.id;
     let unapprovedInventory = await api_getUnapprovedInventories(logged_user_id,req,db);
     res.status_code = 200;
     res.message = unapprovedInventory.message;
@@ -418,7 +412,7 @@ exports.deleteTempFilesControllers = async (req, res, next) => {
 exports.removeMachineController = async (req, res, next) => {
   try {
     let id=req.body.id;
-    logged_user_id = req.userData.id;
+    logged_user_id = req.userData.data.id;
     let removedMachine = await removeMachineDetails(id,logged_user_id,req,db);
     res.status_code = 200;
     res.error=removedMachine.error;

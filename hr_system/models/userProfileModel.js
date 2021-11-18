@@ -168,17 +168,6 @@ function user_profile(database, type) {
   //     throw new Error (error);
   //   }
   // }
-  user_profile.getUserPolicyDocument = async (req) => {
-    try {
-      const user_id = req.userData.user_id;
-      let userPolicyDocument = await user_profile.findAll({
-        where: { user_Id: user_id },
-      });
-      return userPolicyDocument;
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
 
   user_profile.updateUserPolicyDocument = async (req) => {
     try {

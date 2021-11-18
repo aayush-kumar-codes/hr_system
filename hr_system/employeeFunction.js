@@ -227,7 +227,8 @@ let getUserDocumentDetail=async(userid,req,models)=>{
   let r_error=1;
   let r_message="";
   let r_data=[];
-  let q =await models.sequelize.query(`SELECT * FROM user_document_detail where "user_Id" = ${userid} `,{type:QueryTypes.SELECT})
+  console.log(2134)
+  let q =await models.sequelize.query(`SELECT * FROM user_document_detail where "user_id" = ${userid} `,{type:QueryTypes.SELECT})
  for (let [key,row] of Object.entries(q)){
    if(!isNaN(row.updated_by)&& row.updated_by>0){
     let userInfo=await getUserInfo(row.updated_by,models);
@@ -243,7 +244,303 @@ let getUserDocumentDetail=async(userid,req,models)=>{
      link=link.replace("'></iframe>","")
      link=link.trim();
    }
+   q[key]["doc_link"]=link;
  }
+ r_error=0;
+ r_data.user_document_info=q;
+ let Return={};
+ Return.error=r_error;
+ Return.data=r_data;
+ return Return;
+}
+
+let getUserPolicyDocument=async(userid,req,models)=>{
+  try{
+  let r_error=1;
+  let r_message = "";
+  let r_data    = [];
+  let q1=await models.sequelize.query(`SELECT * FROM user_profile where "user_Id" = ${userid}`,{type:QueryTypes.SELECT})
+  let ar0=JSON.parse(q1[0].policy_document)//working 
+  console.log(ar0)
+  let q2=await models.sequelize.query(`SELECT * FROM config where type ='policy_document'`,{type:QueryTypes.SELECT})
+  console.log(q2[0].value)
+  let ar1=JSON.parse(q2[0].value)//working
+  console.log(ar1)
+  let arr=[];
+  if (ar0==null){
+    console.log(213)
+    for(let v2 of Object.entries(ar1)){
+      v2.read=0;
+      let mandatory = 1;
+      if(typeof (v2.mandatory)!=="undefined"){
+        mandatory = v2.mandatory;
+    }
+      v2.mandatory=mandatory;
+      arr.push(v2)
+
+  }
+}  
+ if (ar0!==null){
+  for(let v3 of Object.entries(ar1)){
+    if(ar0.includes(v3.name)){
+       v3.read=1;
+       arr.push(v3);
+    }else{
+       v3.read=0;
+       arr.push(v3)
+    }
+}
+}
+r_error=0;
+r_data=arr;
+let Return={};
+Return.error=r_error;
+Return.data=r_data;
+return Return;
+  }catch(error){
+    console.log(error)
+  }
+
+}
+let getEmployeeLifeCycle=async(userid,models)=>{
+  try{
+  let Return={};
+  let employee_life_cycle=await getELC(userid,models);
+  let employeeLifeCycleStepsDone = await getEmployeeLifeCycleStepsDone( userid,models);
+  if(employeeLifeCycleStepsDone.length>0){
+    let data_employee_life_cycle = employee_life_cycle.employee_life_cycle;
+  }
+  Return.error= 0;
+  Return.message= '';
+  Return.data={
+    employee_life_cycle:employee_life_cycle
+  }
+  return Return;
+}catch(error){
+  console.log(error)
+} 
+
+};
+let getEmployeeLifeCycleStepsDone=async(userid,models)=>{
+let q= await models.sequelize.query(`select * from employee_life_cycle where userid=${userid}`,{type:QueryTypes.SELECT})
+if(q.length>0){
+  return q;
+}
+return [];
+}
+
+let getELC=async(userid=false,models)=>{
+  allList = await getGenericElcList(models);
+  employeeLifeCycleStepsDone = [];
+  if(userid!=false){
+    employeeLifeCycleStepsDone = await getEmployeeLifeCycleStepsDone(userid,models );
+  }
+  for(let[key,g] of Object.entries(allList)){
+   let g_step_id = g.id;
+   let status=0;
+   for(let d of Object.entries(employeeLifeCycleStepsDone)){
+    let d_elc_step_id = d.elc_step_id;
+    if(g_step_id == d_elc_step_id){
+      status=1;
+    }
+   }
+   allList.k.status =status;
+  }
+ let Return=[];
+ for( let elc of Object.entries(allList)){
+  let sort = 0;
+  if( typeof elc.sort!=="undefind"){
+      sort = elc.sort;
+  }
+  if(elc.stage_id in Return ){
+      Return.elc.stage_id.steps[
+        id = elc.id,
+        text =elc.text,
+        status =elc.status,
+        sort = sort
+      ]
+  }else{
+      Return.elc.stage_id =[ 
+          stage_id =elc.stage_id,
+          text =await getElcStageName(elc.stage_id,models),
+      ]
+      Return.elc.stage_id.steps = [];
+      Return.elc.stage_id.steps=[
+        id = elc.id,
+        text= elc.text,
+        status = elc.status,
+        sort = sort
+      ]
+  }
+}
+if(Return.length > 0 ){
+  for( let [key, stage] of Object.entries(Return)){
+      if( typeof stage.steps!="undefined" && stage.steps.length>0 ){
+          let  steps = stage.steps;
+          usort( $steps, array( 'HR', 'sortElcStageSteps' ) );
+          Return.key.steps = steps;
+      }
+  }
+}
+return Return;
+}
+let getElcStageName=async(stageid,models)=>{
+  let allStages=await getElcStages(models);
+  for(let[key,stage] of Object.entries(allStages)){
+    allStages[key].name= stage.text;
+  }
+  let stageName = '';
+  for(let stage of Object.entries(allStages)){
+    if( stage.id == stageid ){
+      stageName = stage.name;
+      break;
+  }
+  }
+ return stageName;
+}
+let getGenericElcList=async(models)=>{
+  let rawElcData = await getRawElcData(models);
+  console.log(rawElcData)
+  let allStages=[];
+  let elc=[];
+     for ([key,row] of Object.entries(rawElcData.steps)) {
+           elc =[
+                stage_id= row.elc_stage_id,
+                id = row.id,
+                text = row.name
+           ]
+            allStages.push(elc);
+        }
+        return allStages;
+}
+let getRawElcData=async(models)=>{
+  let elc_stages=await getElcStages(models);
+  let elc_steps=await models.sequelize.query(`SELECT * FROM elc_stages JOIN elc_stages_steps on elc_stages.id = elc_stages_steps.elc_stage_id`,{type:QueryTypes.SELECT})
+  let ret=[
+    stages=elc_stages,
+    steps=elc_steps
+  ]
+return ret;
+}
+let getElcStages=async(models)=>{
+  let q=await models.sequelize.query(`SELECT * FROM elc_stages`,{type:QueryTypes.SELECT})
+  return q;
+}
+
+let  updateELC=async(elc_stepid,userid,models)=>{
+  let error = 0;
+  let message = "";
+  if(Array.isArray(elc_stepid)){
+    if(elc_stepid.length == 0 ){
+    error = 1;
+    message = "No stepid is passed!";
+    }else{
+      for(let [key,stepid] of Object.entries(elc_stepid)){
+       let q =await models.sequelize.query( `select * from employee_life_cycle where userid=${userid} AND elc_step_id=${stepid}`,{type:QueryTypes.SELECT})
+       if(q.length>0){
+       let  q2 = await models.sequelize.query(`DELETE FROM employee_life_cycle where userid=${userid} AND elc_step_id=${stepid}`,{type:QueryTypes.DELETE}); 
+       }else{
+        let q3 =await models.sequelize.query (`INSERT into employee_life_cycle ( userid, elc_step_id  ) VALUES ( ${userid}, ${stepid} )`,{type:QueryTypes.INSERT});
+       }
+      }
+      error=0;
+      message="Sucessfully Updated!!";
+    }
+}else{
+  error = 1;
+  message = "stepid should be an array!";
+}
+let Return={};
+Return.error = error;
+Return.message = message;
+Return.data = [];
+return Return;
+}
+let getTeamList= async(req,models)=>{
+  let r_error = 1;
+  let r_message = "";
+  let r_data = {};
+  let q1 =await models.sequelize.query (`select * from config where type ='team_list'`,{type:QueryTypes.SELECT})
+  JSON.parse(JSON.stringify(q1))
+  if(q1.length==0){
+    r_error = 1;
+    r_message = "Team list not found";
+    r_data.message= r_message;
+  }else{
+    r_error = 0;
+    r_data = JSON.parse(JSON.stringify(q1.value));
+  }
+  let Return = {};
+  Return.message=r_message
+  Return.error = r_error;
+  Return.data= r_data;
+  return Return;
+
+}
+let saveTeamList=async(req,models)=>{
+  let r_error = 0;
+  let r_message = "";
+  let r_data ={};
+  let newTeamsArray = JSON.parse(data.value);
+  let existingTeamList = await getTeamList(req,models);
+  let teamToDelete = false;
+  let teamToDeleteEmployees ={};
+  if(existingTeams.length > 0 ){
+    for(let [key,value] of Object.entries(existingTeams)) {
+      if( newTeamsArray.includes(value) ){
+          teamToDelete = value;
+          break;
+      }
+  }
+  }
+  if( teamToDelete != false ){
+   teamToDeleteEmployees = await getAllUserDetail(teamToDelete,models)
+}
+if( teamToDelete != false && (teamToDeleteEmployees.length) > 0 ){
+  r_error = 1;
+  r_message = "Team can not be delete as employees are assigned to this team.";
+  r_data.message=r_message;
+}else{
+  let ins={};
+  ins.type=req.body.type;
+  ins.value=req.body.value;
+  let q1=await models.sequelize.query(`select * from config where type =${req.body.type}`,{type:QueryTypes.SELECT})
+if(q1.length==0){
+
+  r_error = 0;
+  r_message = "Successfully Inserted";
+  r_data.message = r_message;
+}else{
+  value =req.body.value;
+    q = await models.sequelize.query(`UPDATE config set value=${value} WHERE type =${req.body.type} `,{type:QueryTypes.SELECT});
+    r_error = 0;
+    r_message = "Updated successfully";
+    r_data.message= r_message;
+}
+}
+let Return ={};
+Return.error = r_error;
+Return.data= r_data;
+return Return;
+}
+
+let getAllUserDetail=async(data=false,req,models)=>{
+//   let q;
+//   if (data === "") {
+//     q = await models.sequelize.query(`SELECT users.*,user_profile.* FROM users LEFT JOIN user_profile ON users.id = user_profile."user_Id" where users.status = 'Enabled'`,{type:QueryTypes.SELECT})
+// }
+// if (data !=="") {
+//     q = await models.sequelize.query(`SELECT users.*,user_profile.* FROM users LEFT JOIN user_profile ON users.id = user_profile."user_Id" where users.status = 'Enabled' AND user_profile.team = ${data}`,{type:QueryTypes.SELECT})
+// }
+// let row2={};
+// for(let val of q){
+//   if(val.username){
+//   let userid = val.user_Id;
+//   val.user_bank_detail=await getUserBankDetail(userid,req,models)
+//   val.user_assign_machine=await getUserAssignMachines(userid,req,models);
+
+//   }
+// }
 }
 
   module.exports={
@@ -255,6 +552,12 @@ let getUserDocumentDetail=async(userid,req,models)=>{
     getEnabledUsersListWithoutPass,
     getEnabledUsersList,
     getDisabledUser,
-    getUserDocumentDetail
+    getUserDocumentDetail,
+    getUserPolicyDocument,
+    getEmployeeLifeCycle,
+    updateELC,
+    getTeamList,
+    saveTeamList,
+    getAllUserDetail
 
   }

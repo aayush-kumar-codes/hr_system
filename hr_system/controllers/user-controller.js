@@ -59,7 +59,6 @@ exports.userLogin = async (req, res, next) => {
 
 exports.addNewEmployeeController = async (req, res, next) => {
   try {
-    // console.log(db);
     let result = await db.UserProfile.addNewEmployee(req.body,db);
     res.status_code = 200;
     res.error = result.error;
