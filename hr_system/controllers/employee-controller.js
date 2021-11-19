@@ -4,7 +4,7 @@ const reqUser = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
 const {getUserDetailInfo,getEnabledEmployeesBriefDetails,getDisabledUser,getUserDocumentDetail,
-  getUserPolicyDocument,getEmployeeLifeCycle, updateELC,getTeamList,saveTeamList}=require("../employeeFunction");
+  getUserPolicyDocument,getEmployeeLifeCycle, updateELC,getTeamList,saveTeamList,UpdateUserBankInfo}=require("../employeeFunction");
 const{validateSecretKey}=require("../allFunctions");
 const { response } = require("express");
 
@@ -17,6 +17,7 @@ exports.getUserProfileController = async (req, res, next) => {
     res.status_code = 200;
     return next();
   } catch (error) {
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();
@@ -121,14 +122,9 @@ exports.addTeamController = async (req, res, next) => {
   try {
     JSON.stringify(req.body.value)
     let response=await saveTeamList(req,db);
-    // let team = await db.Config.addTeam(req.body);
-    // if (team) {
-    //   res.status_code = 200;
-    //   res.message = "created";
-    // } else {
-    //   res.status_code = 401;
-    //   res.message = "not created";
-    // }
+    res.status_code=200;
+    res.data=response.data;
+    res.message=response.message;
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -196,9 +192,11 @@ exports.getTeamListController = async (req, res, next) => {
 
 exports.updateBankDetailsController = async (req, res, next) => {
   try {
-    let updatedDetails = await db.BankDetails.updateBankDetails(req.body);
+    console.log("in controller updateBankDetailsController")
+    let updatedDetails = await UpdateUserBankInfo(req,db);
     res.status_code = 200;
-    res.message = updatedDetails;
+    res.error=updatedDetails.error;
+    res.data = updatedDetails.data;
     return next();
   } catch (error) {
     res.status_code = 500;

@@ -301,7 +301,6 @@ exports.getMachinesDetailController = async (req, res, next) => {
     if(typeof req.body.sort!="undefined"&&req.body.sort!=""){
      let sort=(req.body.sort).trim();
      machineDetails = await getAllMachinesDetail(req,db,sort);
-     console.log(machineDetails)
     }
     if(typeof req.body.status_sort!="undefined"&&req.body.status_sort!=""){
       let status_sort=(req.body.status_sort).trim();

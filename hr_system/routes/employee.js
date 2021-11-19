@@ -28,7 +28,7 @@ router.post('/user_document',middleware.AuthForHr,validators.user_document,uploa
 
 router.post("/get_employee_life_cycle", middleware.AuthForHrAdmin, employeeController.getLifeCycleController, handlers.responseForEmployee);
 router.post("/update_employee_life_cycle", middleware.AuthForHrAdmin, validators.updateEmployeeVAlidator, employeeController.updateLifeCycleController, handlers.responseForEmployee);
-// router.post("/add_team_list", middleware.AuthForHrAdmin, validators.addTeamValidator, employeeController.addTeamController, handlers.responseForEmployee);
+router.post("/add_team_list", middleware.AuthForHrAdmin, validators.addTeamValidator, employeeController.addTeamController, handlers.responseForEmployee);
 router.get("/get_team_list",middleware.AuthForHrAdmin, employeeController.getTeamListController, handlers.responseForEmployee);//done
 router.post("/update_user_bank_detail", middleware.AuthForHrEmployee,validators.updateBankDetailsValidator, employeeController.updateBankDetailsController, handlers.responseForEmployee);
 router.post("/delete_role", middleware.AuthForHrAdmin, validators.deleteRoleValidator, employeeController.deleteRoleController, handlers.responseForEmployee);

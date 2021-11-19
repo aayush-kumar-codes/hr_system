@@ -37,16 +37,6 @@ let getRolePages = async (roleid, models) => {
       row.page_name = page.name;
       rows[key] = row;
     }
-  //   let data = await Promise.all(
-  //     query.map(async (doc) => {
-  //       doc = JSON.parse(JSON.stringify(doc));
-  //       let obj = { ...doc };
-  //       let page = await getPageById(doc.page_id);
-  //       obj.page_name = page.name;
-  //       return obj;
-  //     })
-  //   );
-  //   rows = data;
   }
   return rows;
 };
@@ -181,6 +171,7 @@ let getUserInfo = async (userid, models) => {
     // q.slack_profile = userSlackInfo;
     return q;
   } catch (error) {
+    console.log(error)
     throw new Error(error);
   }
 };
@@ -466,11 +457,9 @@ let getInventoryFullDetails = async (id,hide_assigned_user_info = false,models) 
   where 
   machinelist.id = ${id}`,
   {type:QueryTypes.SELECT})
-  // console.log(row.length,"+++++++++++++")
   let r_error = 0;
   let inventoryHistory = await getInventoryHistory(id, models);
       row=JSON.parse(JSON.stringify(row));
-      console.log(row,"123245678908765432")
   row[0].history = inventoryHistory;
   let assignedUserInfo = [];
   if (hide_assigned_user_info == false) {
@@ -522,7 +511,6 @@ let getInventoryFullDetails = async (id,hide_assigned_user_info = false,models) 
   ) {
     row.file_inventory_photo = `${process.env.ENV_BASE_URL}.'attendance/uploads/inventories/'.${row.file_inventory_photo}`;
   }
-  console.log(row.data,"+++------")
   return row;
 };
 
@@ -538,7 +526,7 @@ let isInventoryAuditPending = async (userid, models) => {
         hide_assigned_user_info,
         models
       );
-      if (i_details.audit_current_month_status.status == null) {
+      if (i_details[0].audit_current_month_status.status == null) {
         isAuditPending = true;
       }
     }
@@ -910,7 +898,6 @@ let assignUserMachine = async (machine_id, userid, loggeduserid,req,models) => {
     }
     if(checkpass==true){
       let date=new Date().toISOString().slice(0, 10)
-      console.log(new Date())
       let q=await models.sequelize.query(`select * from machines_user where machine_id =${machine_id}`,{type:QueryTypes.SELECT})
       if(q.length!=0){
         oldUserId=q[0].user_ID;
@@ -1772,7 +1759,6 @@ const api_getMyInventories = async (user_id, user_role, models) => {
   let data = {};
   let Return = {};
   let userInventories = await getUserInventories(user_id,models,user_role = false);
-  console.log(userInventories,"user invento")
   if (!userInventories) {
     message = "no inventories assigned to user";
   } else {
@@ -1788,18 +1774,6 @@ const api_getMyInventories = async (user_id, user_role, models) => {
     roleName = roleName.toLowerCase();
     let user_assign_machine = [];
     let hide_assigned_user_info = true;
-  //  let i_details;
-   console.log(userInventories.length )
- //   let data = await Promise.all(
-  //     query.map(async (doc) => {
-  //       doc = JSON.parse(JSON.stringify(doc));
-  //       let obj = { ...doc };
-  //       let page = await getPageById(doc.page_id);
-  //       obj.page_name = page.name;
-  //       return obj;
-  //     })
-  //   );
-  //   rows = data;
     let inventoryData = await Promise.all(
     userInventories.map(async(userInventories)=>
      {
@@ -1824,8 +1798,6 @@ const api_getMyInventories = async (user_id, user_role, models) => {
       user_assign_machine.push(i_details);
       return i_details
     }))
-    console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    console.log(inventoryData,"+++++")
     data.user_assign_machine = inventoryData;
  
     let user_profile_detail = await getUserInfo(user_id, models);

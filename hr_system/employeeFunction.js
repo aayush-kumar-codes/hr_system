@@ -13,7 +13,7 @@ const {
   const db = require("./db");
   const { sequelize } = require("./db");
   const { MachineStatusDeleteValidator } = require("./validators/req-validators");
-const { getUserInfo } = require("./allFunctions");
+const { getUserInfo, copyExistingRoleRightsToNewRole } = require("./allFunctions");
 
   
   let getUserDetailInfo = async (userid,req,models) => {
@@ -227,7 +227,6 @@ let getUserDocumentDetail=async(userid,req,models)=>{
   let r_error=1;
   let r_message="";
   let r_data=[];
-  console.log(2134)
   let q =await models.sequelize.query(`SELECT * FROM user_document_detail where "user_id" = ${userid} `,{type:QueryTypes.SELECT})
  for (let [key,row] of Object.entries(q)){
    if(!isNaN(row.updated_by)&& row.updated_by>0){
@@ -261,14 +260,10 @@ let getUserPolicyDocument=async(userid,req,models)=>{
   let r_data    = [];
   let q1=await models.sequelize.query(`SELECT * FROM user_profile where "user_Id" = ${userid}`,{type:QueryTypes.SELECT})
   let ar0=JSON.parse(q1[0].policy_document)//working 
-  console.log(ar0)
   let q2=await models.sequelize.query(`SELECT * FROM config where type ='policy_document'`,{type:QueryTypes.SELECT})
-  console.log(q2[0].value)
   let ar1=JSON.parse(q2[0].value)//working
-  console.log(ar1)
   let arr=[];
   if (ar0==null){
-    console.log(213)
     for(let v2 of Object.entries(ar1)){
       v2.read=0;
       let mandatory = 1;
@@ -400,7 +395,6 @@ let getElcStageName=async(stageid,models)=>{
 }
 let getGenericElcList=async(models)=>{
   let rawElcData = await getRawElcData(models);
-  console.log(rawElcData)
   let allStages=[];
   let elc=[];
      for ([key,row] of Object.entries(rawElcData.steps)) {
@@ -465,10 +459,10 @@ let getTeamList= async(req,models)=>{
   if(q1.length==0){
     r_error = 1;
     r_message = "Team list not found";
-    r_data.message= r_message;
   }else{
     r_error = 0;
-    r_data = JSON.parse(JSON.stringify(q1.value));
+    r_message = "Team list are";
+    r_data = q1;
   }
   let Return = {};
   Return.message=r_message
@@ -478,11 +472,13 @@ let getTeamList= async(req,models)=>{
 
 }
 let saveTeamList=async(req,models)=>{
+  try{
   let r_error = 0;
   let r_message = "";
   let r_data ={};
-  let newTeamsArray = JSON.parse(data.value);
+  let newTeamsArray = req.body.value;
   let existingTeamList = await getTeamList(req,models);
+  let existingTeams=existingTeamList.data;
   let teamToDelete = false;
   let teamToDeleteEmployees ={};
   if(existingTeams.length > 0 ){
@@ -504,15 +500,14 @@ if( teamToDelete != false && (teamToDeleteEmployees.length) > 0 ){
   let ins={};
   ins.type=req.body.type;
   ins.value=req.body.value;
-  let q1=await models.sequelize.query(`select * from config where type =${req.body.type}`,{type:QueryTypes.SELECT})
+  let q1=await models.sequelize.query(`select * from config where type ='${req.body.type}'`,{type:QueryTypes.SELECT})
 if(q1.length==0){
-
   r_error = 0;
   r_message = "Successfully Inserted";
   r_data.message = r_message;
 }else{
-  value =req.body.value;
-    q = await models.sequelize.query(`UPDATE config set value=${value} WHERE type =${req.body.type} `,{type:QueryTypes.SELECT});
+  let value =req.body.value;
+  let q = await models.sequelize.query(`UPDATE config set value='${value}' WHERE type ='${req.body.type}' `,{type:QueryTypes.SELECT});
     r_error = 0;
     r_message = "Updated successfully";
     r_data.message= r_message;
@@ -522,8 +517,10 @@ let Return ={};
 Return.error = r_error;
 Return.data= r_data;
 return Return;
+}catch(error){
+  console.log(error)
 }
-
+}
 let getAllUserDetail=async(data=false,req,models)=>{
 //   let q;
 //   if (data === "") {
@@ -542,7 +539,42 @@ let getAllUserDetail=async(data=false,req,models)=>{
 //   }
 // }
 }
+let UpdateUserBankInfo=async(req,models)=>{
+  try{
+  let r_error = 1;
+  let r_message = "";
+  let r_data = {};
+  let userid = req.body.user_id;
+  let userInfo = await getUserInfo(userid,models);
+  let userInfo_name = userInfo[0].name;
+  let f_bank_name = req.body.bank_name;
+  let f_bank_address = req.body.bank_address;
+  let f_bank_account_no = req.body.bank_account_no;
+  let f_ifsc =req.body.ifsc;
+  let q =await models.sequelize.query(`SELECT * from user_bank_details WHERE "user_Id"=${userid}`,{type:QueryTypes.SELECT})     
+   if(q.length==0){
+     await models.sequelize.query(`INSERT INTO user_bank_details ( "user_Id", bank_name, bank_address, bank_account_no, ifsc ) VALUES ( ${userid}, '${f_bank_name}', '${f_bank_address}', '${f_bank_account_no}', '${f_ifsc}' )`,{type:QueryTypes.INSERT})
+   }
+   else{
+     q=await models.sequelize.query(`UPDATE user_bank_details set bank_name='${f_bank_name}', bank_address='${f_bank_address}', bank_account_no='${f_bank_account_no}', ifsc='${f_ifsc}' WHERE "user_Id"=${userid}`,{type:QueryTypes.UPDATE})
+   }
+   r_error=0;
+   r_message="Data Successfully Updated";
+   r_data['message'] = r_message;
+   let detailsUpdated ={};
+  detailsUpdated["Bankname"] =f_bank_name;
+  detailsUpdated["Bank address"] =f_bank_address;
+  detailsUpdated["Bank Account No"] =f_bank_account_no;
+  detailsUpdated["Bank IFSC Code"] = f_ifsc ;
+  Return = {};
+  Return['error'] = r_error;
+  Return['data'] = r_data;
+  return Return;
 
+  }catch(error){
+    console.log(error)
+  }
+}
   module.exports={
     getUserDetailInfo,
     getUserBankDetail,
@@ -558,6 +590,7 @@ let getAllUserDetail=async(data=false,req,models)=>{
     updateELC,
     getTeamList,
     saveTeamList,
-    getAllUserDetail
+    getAllUserDetail,
+    UpdateUserBankInfo
 
   }
