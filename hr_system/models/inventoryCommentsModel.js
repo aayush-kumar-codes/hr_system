@@ -15,7 +15,7 @@ function inventorycomments(database, type) {
       comment_type: type.STRING,
     },
     {
-      timestamps: true,
+      timestamps: false,
       freezeTableName: true,
     }
   );

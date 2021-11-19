@@ -207,7 +207,11 @@ let getRoleCompleteDetails = async (roleId, models) => {
   query = JSON.parse(JSON.stringify(query));
   if (query.length > 0) {
     let role = query[0];
-    let pages = await getRolePages(roleId, models);
+    // let data = await Promise.all(await getRolePages(roleId, models))
+    // console.log(9999999);
+    // console.log(data)
+    let pages = await getRolePages(roleId, models)
+
     let actions = await getRoleActions(roleId, models);
     // let notification = await getRoleNotifications(
     //   roleId, models
@@ -231,6 +235,8 @@ let getUserRole = async (userId, models) => {
     );
     data = roleCompleteDetails;
   }
+  console.log("+++++");
+  console.log(data);
   return data;
 };
 
@@ -347,7 +353,7 @@ let getUserInventories = async (userid, models, userRole = false) => {
 
 let getRolesForPage = async (page_id, models) => {
   let roles = [];
-  let query = await models.RolesPage.findAll({ where: { page_id: page_id } });
+  let query = await models.sequelize.query(`SELECT * FROM roles_pages WHERE page_id = ${page_id}`,{type:QueryTypes.SELECT});
   for (let ele in query) {
     let role = await getRoleCompleteDetails(query[ele].role_id, models);
     roles.push(role.name.toLowerCase());
@@ -639,22 +645,27 @@ let generateUserToken = async (userId, models,addOns = false) => {
       u.role_pages = await getRolePagesForSuperAdmin();
     } else {
       let roleInfo = await getUserRole(userInfo[0].user_Id, models);
+      console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+      console.log(roleInfo);
       if (roleInfo != null&&typeof roleInfo.role_pages!="undefined") {
         let role_pages = await getRolePagesForApiToken(
           roleInfo.id,
           models
         );
- 
           for (let [key,page] of Object.entries(role_pages)) {
-          if (!checkifPageEnabled(page.page_id, models)) {
+          if (!await checkifPageEnabled(page.page_id, models)) {
             // role_pages.page.pop();
             delete role_pages.page;
           }
         }
+        console.log("+++++++++++++++++");
+        console.log(role_pages);
         u.role_pages = role_pages;
       }
-      if (roleInfo != null &&roleInfo.role_actions!="undefined") {
+      if (roleInfo !== null &&roleInfo.role_actions!="undefined") {
+        console.log(99999999999);
         let role_actions = roleInfo.role_actions;
+        console.log(role_actions);
         for(let[key,value] of Object.entries(role_actions)) {
           roleAction.push(value.action_name);
         }
@@ -662,16 +673,18 @@ let generateUserToken = async (userId, models,addOns = false) => {
     }
 
     u.role_actions = roleAction;
+    console.log(99999999);
+    console.log(u.role_actions);
     u.is_policy_documents_read_by_user = 1;
     u.is_inventory_audit_pending = 0;
     if (userInfo[0].type.toLowerCase() == "admin") {
-      
-      if (isInventoryAuditPending(userInfo[0].user_Id, models)) {
+      if (await isInventoryAuditPending(userInfo[0].user_Id, models)) {
         let generic_pages = await getGenericPagesForAllRoles();
+        console.log(generic_pages)
         u.right_to_skip_inventory_audit = 1;
         u.is_inventory_audit_pending = 1;
-        generic_pages.forEach((ele) => {
-          if (!checkifPageEnabled(ele.page_id, models)) {
+        generic_pages.forEach(async(ele) => {
+          if (!await checkifPageEnabled(ele.page_id, models)) {
             // key.pop();
             delete key;
           }
@@ -690,7 +703,7 @@ let generateUserToken = async (userId, models,addOns = false) => {
       if (is_policy_document_read_by_user == false) {
         u.is_policy_documents_read_by_user = 0;
         for(let[key,generic] of Object.entries(generic_pages) ){
-          if (!checkifPageEnabled(generic.page_id, models)) {
+          if (!await checkifPageEnabled(generic.page_id, models)) {
             // key.pop();
             delete key;
           }
@@ -699,7 +712,7 @@ let generateUserToken = async (userId, models,addOns = false) => {
       }
       let hasUnassignRequestInventories = false;
       let hasOwnershipChangeInventoriesRequestPending = false;
-      if (userInfo[0].type.toLowerCase() == ("hr" || "inventory manager")) {
+      if (userInfo[0].type.toLowerCase() == ("HR" || "inventory manager")) {
         hasUnassignRequestInventories =
           await isUnassignInventoriesRequestPending(models);
         hasOwnershipChangeInventoriesRequestPending =
@@ -712,7 +725,7 @@ let generateUserToken = async (userId, models,addOns = false) => {
       ) {
         u.is_inventory_audit_pending = 1;
         for(let[key,generic] of Object.entries(generic_pages)) {
-          if (!checkifPageEnabled(generic.page_id, models)) {
+          if (!await checkifPageEnabled(generic.page_id, models)) {
             delete key;
           }
         }
@@ -728,7 +741,7 @@ let generateUserToken = async (userId, models,addOns = false) => {
       }
       if (
         userInfo[0].type.toLowerCase() ==
-        ("hr" || "inventory manager" || "hr payroll manager")
+        ("HR" || "inventory manager" || "hr payroll manager")
       ) {
         if (u.is_inventory_audit_pending == 1) {
           // if (addOns.skip_inventory_audit) {
@@ -740,11 +753,13 @@ let generateUserToken = async (userId, models,addOns = false) => {
         }
       }
     }
-    for (let ele in u.role_pages) {
-      let roles = await getRolesForPage(u.role_pages[ele].page_id, models);
-      u.role_pages[ele].roles = roles;
+
+    for (let [key,page] of Object.entries(u.role_pages)) {
+      let roles = await getRolesForPage(page.page_id, models);
+      u.role_pages[key].roles = roles;
     }
   }
+
   let token = jwt.sign({ data: u }, secret.jwtSecret, {
     expiresIn: "2hr",
   });

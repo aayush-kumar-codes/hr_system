@@ -575,6 +575,30 @@ let UpdateUserBankInfo=async(req,models)=>{
     console.log(error)
   }
 }
+let getSalaryInfo= async(userid,db,sort=false,date=false)=>{
+ let q=await models.sequelize.query(`select * from salary where "user_Id" = ${userid}`,{type:QueryTypes.SELECT})
+  if (sort == 'first_to_last') {
+    q = (`select * from salary where "user_Id" = ${userid} ORDER by id ASC`,{type:QueryTypes.SELECT});
+}
+  let applicable_month = 0;
+  for(let[key,r] of q){
+    if(typeof r.applicable_from !==undefinded && r.applicable_from !=="" && r.applicable_from !=="0000-00-00"){
+      applicable_from = r['applicable_from'];
+    }
+    if(typeof r.applicable_from !==undefinded && r.applicable_till != "" && r.applicable_till!=="0000-00-00"){
+    applicable_till = r.applicable_till;
+    }
+   if( typeof applicable_from !==undefined && typeof applicable_till){  
+     console.log(12345)              
+    begin = new DateTime( applicable_from );
+    end = new DateTime( applicable_till );
+    interval =createFromDateString('1 month');
+    period = new DatePeriod($begin, $interval, $end);                                
+    applicable_month = iterator_count($period);
+} 
+  }
+
+}
   module.exports={
     getUserDetailInfo,
     getUserBankDetail,
@@ -591,6 +615,7 @@ let UpdateUserBankInfo=async(req,models)=>{
     getTeamList,
     saveTeamList,
     getAllUserDetail,
-    UpdateUserBankInfo
+    UpdateUserBankInfo,
+    getSalaryInfo
 
   }

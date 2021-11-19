@@ -12,7 +12,7 @@ function config(database, type) {
       },
     },
     {
-      timestamps: true,
+      timestamps: false,
       freezeTableName: true,
     }
   );

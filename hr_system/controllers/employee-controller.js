@@ -4,7 +4,7 @@ const reqUser = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
 const {getUserDetailInfo,getEnabledEmployeesBriefDetails,getDisabledUser,getUserDocumentDetail,
-  getUserPolicyDocument,getEmployeeLifeCycle, updateELC,getTeamList,saveTeamList,UpdateUserBankInfo}=require("../employeeFunction");
+  getUserPolicyDocument,getEmployeeLifeCycle, updateELC,getTeamList,saveTeamList,UpdateUserBankInfo,getSalaryInfo}=require("../employeeFunction");
 const{validateSecretKey}=require("../allFunctions");
 const { response } = require("express");
 
@@ -233,11 +233,40 @@ exports.changeStatusController = async (req, res, next) => {
 
 exports.updateUserBYIdController = async (req, res, next) => {
   try {
-    let updatedUser = await db.UserProfile.updateUserById(req.body);
+    if(typeof req.body.user_id !==undefined && req.body.user_id !==""){
+      let user_id = req.body.user_id ;
+      let update = true;
+      let showFirstSalaryTobeAddedWarning = false;
+      let tr_completion_date = req.body.training_completion_date;
+      let check_sendConfirmationEmail = false;
+      if( typeof tr_completion_date !==undefined && tr_completion_date != "" && tr_completion_date !=='0000-00-00' ) {
+        let check_sendConfirmationEmail = true;
+      }
+      // if(check_sendConfirmationEmail ){
+        let sal_details = await getSalaryInfo(user_id,db);
+        let sendConfirmationEmail = true;
+        if(sal_details.length>1){
+        }else{
+         showFirstSalaryTobeAddedWarning = true;
+        }
+        if(sendConfirmationEmail){
+          req.body.sendConfirmationEmail=true;
+        }
+      // }
+      if(update){
+        let response=await UpdateUserInfo(req,db);
+        if(showFirstSalaryTobeAddedWarning){
+          response['message_warning'] = "Salary is not added for this employee!!";
+      }
+    } 
+    }else{
+      response.data.message='Please give user_id ';
+    }
     res.status_code = 200;
-    res.message = updatedUser;
+    res.message = response;
     return next();
   } catch (error) {
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();

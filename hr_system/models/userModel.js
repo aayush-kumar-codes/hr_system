@@ -17,23 +17,23 @@ function user(database, type) {
       password: type.STRING,
       status: type.STRING,
     },
-    {
-      hooks: {
-        beforeCreate: (user, options) => {
-          return new Promise((resolve, reject) => {
-            User.findOne({ where: { username: user.username } }).then(
-              (found) => {
-                if (found) {
-                  reject(new Error("username already exist"));
-                } else {
-                  resolve();
-                }
-              }
-            );
-          });
-        },
-      },
-    },
+    // {
+    //   hooks: {
+    //     beforeCreate: (user, options) => {
+    //       return new ((resolve, reject) => {
+    //         User.findOne({ where: { username: user.username } }).then(
+    //           (found) => {
+    //             if (found) {
+    //               reject(new Error("username already exist"));
+    //             } else {
+    //               resolve();
+    //             }
+    //           }
+    //         );
+    //       });
+    //     },
+    //   },
+    // },
     { timestamps: false }
   );
 
@@ -80,7 +80,7 @@ function user(database, type) {
           message = "Invalid Login";
         } else {
           is_super_admin = false;
-          if (userInfo[0].type.toLowerCase() == "admin") {
+          if (userInfo[0].type.toLowerCase() == "Admin") {
             is_super_admin = true;
           }
           if (is_super_admin == false && userInfo[0].role_id == null) {
@@ -165,6 +165,7 @@ function user(database, type) {
             training_month: reqBody.training_month,
             other_email: reqBody.email,
           });
+          // console.log(userProfileData)
           if (userProfileData == null) {
             let userDelete = await User.destroy({
               where: { id: userId },
@@ -177,8 +178,10 @@ function user(database, type) {
             let allRoles = await models.Role.findAll({});
             for (let roles in allRoles) {
               if (allRoles[roles].name == reqBody.type) {
+                console.log(1234)
                 let defaultRoleId = allRoles[roles].id;
-                if (userId && defaultRoleId !== "") {
+                console.log(defaultRoleId)
+                if (userId && defaultRoleId !== null) {
                   let roleToAssign = await assignUserRole(
                     userId,
                     defaultRoleId,
