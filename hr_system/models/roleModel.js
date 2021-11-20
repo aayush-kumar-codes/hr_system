@@ -16,6 +16,8 @@ function roles(database, type) {
     name: type.STRING,
     description: type.STRING,
     last_update: type.DATE,
+  },{
+    timestamps:false
   });
 
   roles.AddNewRole = async (name, description, base_role_id = false, res) => {
@@ -77,6 +79,7 @@ function roles(database, type) {
         for (let val of array) {
           let role_page = await getRolePages(val.dataValues.id, models);
           let role_action = await getRoleActions(val.dataValues.id, models);
+          console.log(role_action)
           // let role_notify = await getRoleNotifications(array[key].id);
           for (let v1 of allpages) {
             let p = 0;
@@ -113,20 +116,6 @@ function roles(database, type) {
             }
             v2.is_assigned = p;
           }
-          // for(let v3 of allnotifications){
-          //   let p = 0;
-          //   for(let u2 of role_notify){
-          //     if(u2.notification_id == v3.id){
-          //       p=1
-          //     }
-          //   }
-          //   v3.is_assigned = p;
-          //   val.push(v3) = v3;
-          // }
-          // result.roles.push(key);
-          // --------start from here
-          // }
-          // }
           result.users_list = await getEnabledUsersListWithoutPass(models);
           if (typeof result[roles] != "undefined" && result[roles] > 0) {
             let systemDefaultRolesList = await getSystemDefaultRoles();
@@ -149,7 +138,7 @@ function roles(database, type) {
         error: 0,
         data: result,
       };
-      // console.log(Return);
+      console.log(Return)
       return Return;
     } catch (error) {
       console.log(error);

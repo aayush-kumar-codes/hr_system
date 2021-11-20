@@ -1,3 +1,5 @@
+const { responseForData } = require("../util/responseHandlers");
+
 function config(database, type) {
   const config = database.define(
     "config",
@@ -10,54 +12,35 @@ function config(database, type) {
       },
     },
     {
-      timestamps: true,
+      timestamps: false,
       freezeTableName: true,
     }
   );
-  config.addMachineType = async (reqBody) => {
-    try {
-      let addMachine = await config.create({
-        type: reqBody.type,
-        value: reqBody.value,
-      });
-      return addMachine;
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
-  config.getMachineTypeList = async () => {
-    try {
-      let machineTypeList = await config.findAll({});
-      return machineTypeList;
-    } catch (error) {
-      throw new Error("Unable to locate all machine types");
-    }
-  };
 
-  config.addTeam = async (reqBody) => {
-    try {
-      let teamToAdd = await config.create({
-        type: reqBody.type,
-        value: reqBody.value,
-      });
-      return teamToAdd;
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
+  // config.addTeam = async (reqBody) => {
+  //   try {
+  //     let teamToAdd = await config.create({
+  //       type: reqBody.type,
+  //       value: reqBody.value,
+  //     });
+  //     return teamToAdd;
+  //   } catch (error) {
+  //     throw new Error(error);
+  //   }
+  // };
 
-  config.findTeam = async () => {
-    try {
-      let foundTeam = await config.findAll({where: {type: "team_list"}});
-      if (foundTeam) {
-        return foundTeam;
-      } else {
-        return "team not found";
-      }
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
+  // config.findTeam = async () => {
+  //   try {
+  //     let foundTeam = await config.findAll({where: {type: "team_list"}});
+  //     if (foundTeam) {
+  //       return foundTeam;
+  //     } else {
+  //       return "team not found";
+  //     }
+  //   } catch (error) {
+  //     throw new Error(error);
+  //   }
+  // };
   return config;
 }
 

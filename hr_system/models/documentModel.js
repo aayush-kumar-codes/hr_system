@@ -7,18 +7,10 @@ function Document(database, type) {
       uploaded_on: type.DATE,
     },
     {
-      timestamps: true,
+      timestamps: false,
       freezeTableName: true,
     }
   );
-  document.getUserDocument = async () => {
-    try {
-      let UserDocument = await document.findAll({});
-      return UserDocument;
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
 
   document.uploadUserDocument = async (req)=>{
     try {

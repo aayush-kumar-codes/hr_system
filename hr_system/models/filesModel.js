@@ -8,7 +8,7 @@ function files(database, type) {
             updated_at:type.DATE,
 		},
 		{
-			timestamps: true,
+			timestamps: false,
 			freezeTableName: true
 		}
 	);

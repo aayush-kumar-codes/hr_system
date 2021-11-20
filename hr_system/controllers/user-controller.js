@@ -15,7 +15,7 @@ exports.userRegister = async (req, res, next) => {
   try {
     let request_Validate = await reqUser(req);
     let user_details = await providers.validateCreation(req.body);
-    let user_create = await db.User.createUser(req.body);
+    let user_create = await db.User.createUser(req.body, db);
     req.body.user_id = user_create;
     const token = await jwt.sign(
       { user_id: user_create, email: user_create.email },
@@ -24,7 +24,8 @@ exports.userRegister = async (req, res, next) => {
     );
     res.token = token;
     res.status_code = 201;
-    res.message = "Created";
+    res.message = user_create.message;
+    res.error=user_create.error;
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -59,7 +60,6 @@ exports.addNewEmployeeController = async (req, res, next) => {
   try {
     let result = await db.UserProfile.addNewEmployee(req.body,db);
     res.status_code = 200;
-    console.log(result);
     res.error = result.error;
     res.message = result.message;
     if(result.data.userID){
@@ -88,9 +88,7 @@ exports.addUserRole = async (req, res, next) => {
     let role_create = await db.Role.AddNewRole(name, description, base_role_id);
     res.status_code = 201;
     res.error = role_create.error;
-    // console.log(role_create.message);
     res.message = role_create.message;
-    // res.message = 'Created';
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -131,8 +129,6 @@ exports.assignUserRoleController = async (req, res, next) => {
 
 exports.getEnableUser = async (req, res, next) => {
   try {
-    // const users = await db.sequelize.query("SELECT * FROM details",{ type: QueryTypes.SELECT });
-    // console.log(users);
     let role;
     if (
       typeof req.body.secret_key != "undefined" &&
@@ -149,10 +145,8 @@ exports.getEnableUser = async (req, res, next) => {
     }
     let sorted_by =
       typeof req.body.sorted_by != "undefined" ? req.body.sorted_by : false;
-    let result = await getEnabledUsersListWithoutPass(role, sorted_by, db,res);
-	// console.log(result.data);
+    let result = await getEnabledUsersListWithoutPass(db,role, sorted_by, res);
     res.status_code = 200;
-    // res.send = result
     res.error = 0;
     res.data = result;
 	return next();
