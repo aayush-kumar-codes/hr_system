@@ -7,7 +7,7 @@ function Document(database, type) {
       uploaded_on: type.DATE,
     },
     {
-      timestamps: true,
+      timestamps: false,
       freezeTableName: true,
     }
   );

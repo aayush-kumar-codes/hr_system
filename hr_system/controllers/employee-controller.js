@@ -3,8 +3,10 @@ const providers = require("../providers/creation-provider");
 const reqUser = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
-const {getUserDetailInfo,getEnabledEmployeesBriefDetails,getDisabledUser,getUserDocumentDetail}=require("../employeeFunction");
-const{validateSecretKey}=require("../allFunctions")
+const {getUserDetailInfo,getEnabledEmployeesBriefDetails,getDisabledUser,getUserDocumentDetail,
+  getUserPolicyDocument,getEmployeeLifeCycle, updateELC,getTeamList,saveTeamList,UpdateUserBankInfo,getSalaryInfo}=require("../employeeFunction");
+const{validateSecretKey}=require("../allFunctions");
+const { response } = require("express");
 
 exports.getUserProfileController = async (req, res, next) => {
   try {
@@ -15,6 +17,7 @@ exports.getUserProfileController = async (req, res, next) => {
     res.status_code = 200;
     return next();
   } catch (error) {
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();
@@ -23,7 +26,7 @@ exports.getUserProfileController = async (req, res, next) => {
 
 exports.getLifeCycleController = async (req, res, next) => {
   try {
-    let employeeLifeCycle = await db.LifeCycle.getLifeCycle(req.body);
+    let employeeLifeCycle = await getEmployeeLifeCycle(req.body.userid,db);
     res.status_code = 200;
     res.data = employeeLifeCycle;
     return next();
@@ -40,7 +43,6 @@ exports.getUserProfileDetailByIdConttroller = async (req, res, next) => {
     if(typeof req.body.user_id!="undefined"&&req.body.user_id!==""){
       user_id = req.body.user_id;
       response= await getUserDetailInfo(user_id,req,db);
-      console.log(response)
       if(typeof req.body.secret_key !="undefined" && req.body.secret_key !==""){
         let validate_secret=await validateSecretKey(req.body.secret_key,db);
         if(validate_secret){
@@ -85,9 +87,12 @@ exports.getEnabledUser = async (req, res, next) => {
 
 exports.updateLifeCycleController = async (req, res, next) => {
   try {
-    let lifeCycleData = await db.LifeCycle.updateLife(req.body, db);
+    let lifeCycleData = await updateELC(req.body.stepid,req.body.userid, db);
     res.status_code = 200;
-    res.message = lifeCycleData;
+    res.message = lifeCycleData.message;
+    res.error=lifeCycleData.error;
+    res.data=lifeCycleData.data
+    return next();
   } catch (error) {
     res.status_code = 500;
     res.message = error.message;
@@ -115,14 +120,11 @@ exports.getDisabledUser = async (req, res, next) => {
 
 exports.addTeamController = async (req, res, next) => {
   try {
-    let team = await db.Config.addTeam(req.body);
-    if (team) {
-      res.status_code = 200;
-      res.message = "created";
-    } else {
-      res.status_code = 401;
-      res.message = "not created";
-    }
+    JSON.stringify(req.body.value)
+    let response=await saveTeamList(req,db);
+    res.status_code=200;
+    res.data=response.data;
+    res.message=response.message;
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -133,8 +135,10 @@ exports.addTeamController = async (req, res, next) => {
 
 exports.getUserPolicyDocument = async (req, res, next) => {
   try {
-    let userPolicyDocument = await db.UserProfile.getUserPolicyDocument(req);
-    res.data = userPolicyDocument.policy_document;
+  let userid =(req.userData.data.id);
+    let userPolicyDocument = await getUserPolicyDocument(userid,req,db);
+    res.error = userPolicyDocument.error;
+    res.data= userPolicyDocument.data;
     res.status_code = 200;
     return next();
   } catch (error) {
@@ -173,14 +177,11 @@ exports.uploadUserDocument=async(req,res,next)=>{
 
 exports.getTeamListController = async (req, res, next) => {
   try {
-    let foundTeamList = await db.Config.findTeam();
-    if (foundTeamList) {
+    let response=await getTeamList(req,db);
       res.status_code = 200;
-      res.data = foundTeamList;
-    } else {
-      res.status_code = 401;
-      res.message = "not found";
-    }
+      res.data = response.data;
+      res.error = response.error;
+      res.message = response.message ;
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -191,9 +192,11 @@ exports.getTeamListController = async (req, res, next) => {
 
 exports.updateBankDetailsController = async (req, res, next) => {
   try {
-    let updatedDetails = await db.BankDetails.updateBankDetails(req.body);
+    console.log("in controller updateBankDetailsController")
+    let updatedDetails = await UpdateUserBankInfo(req,db);
     res.status_code = 200;
-    res.message = updatedDetails;
+    res.error=updatedDetails.error;
+    res.data = updatedDetails.data;
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -230,11 +233,40 @@ exports.changeStatusController = async (req, res, next) => {
 
 exports.updateUserBYIdController = async (req, res, next) => {
   try {
-    let updatedUser = await db.UserProfile.updateUserById(req.body);
+    if(typeof req.body.user_id !==undefined && req.body.user_id !==""){
+      let user_id = req.body.user_id ;
+      let update = true;
+      let showFirstSalaryTobeAddedWarning = false;
+      let tr_completion_date = req.body.training_completion_date;
+      let check_sendConfirmationEmail = false;
+      if( typeof tr_completion_date !==undefined && tr_completion_date != "" && tr_completion_date !=='0000-00-00' ) {
+        let check_sendConfirmationEmail = true;
+      }
+      // if(check_sendConfirmationEmail ){
+        let sal_details = await getSalaryInfo(user_id,db);
+        let sendConfirmationEmail = true;
+        if(sal_details.length>1){
+        }else{
+         showFirstSalaryTobeAddedWarning = true;
+        }
+        if(sendConfirmationEmail){
+          req.body.sendConfirmationEmail=true;
+        }
+      // }
+      if(update){
+        let response=await UpdateUserInfo(req,db);
+        if(showFirstSalaryTobeAddedWarning){
+          response['message_warning'] = "Salary is not added for this employee!!";
+      }
+    } 
+    }else{
+      response.data.message='Please give user_id ';
+    }
     res.status_code = 200;
-    res.message = updatedUser;
+    res.message = response;
     return next();
   } catch (error) {
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();
@@ -272,7 +304,8 @@ exports.getUserDocument = async (req, res, next) => {
   try {
     let user_id=req.userData.data.id
     let userDocument = await getUserDocumentDetail(user_id,req,db);
-     res.data =userDocument;
+     res.data =userDocument.data.user_document_info;
+     res.error=userDocument.error;
      res.status_code=200;
      return next();
   } catch(error){
@@ -282,4 +315,25 @@ exports.getUserDocument = async (req, res, next) => {
     return next();
   }
 };
+exports.getUserDocumentById=async(req,res,next)=>{
+  try{
+    if(typeof req.body.user_id!="undefined" && req.body.user_id!==""){
+      let user_id=req.body.user_id;
+      let response=await getUserDocumentDetail(user_id,req,db);
+      res.data =response.data.user_document_info;
+     res.error=response.error;
+     res.status_code=200;
+     return next();
+    }else{
+      res.status_code=200;
+      res.message='Please give user_id ';
+    }
+    res.message=response.data.message;
+    res.data=response;
+
+  }catch(error){
+    console.log(error)
+    return next();
+  }
+}
 

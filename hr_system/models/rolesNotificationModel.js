@@ -2,6 +2,8 @@ function RolesNotificaion(database, type) {
   const rolesNotification = database.define("roles_notifications", {
     role_id: type.INTEGER,
     notification_id: type.INTEGER,
+  },{
+    timestamps:false
   });
   rolesNotification.associate = (models) => {
     rolesNotification.hasOne(models.Role, {

@@ -16,6 +16,8 @@ function roles(database, type) {
     name: type.STRING,
     description: type.STRING,
     last_update: type.DATE,
+  },{
+    timestamps:false
   });
 
   roles.AddNewRole = async (name, description, base_role_id = false, res) => {
@@ -56,6 +58,7 @@ function roles(database, type) {
       arr.message = message;
       return arr;
     } catch (error) {
+      console.log(error);
       throw new Error(error);
     }
   };

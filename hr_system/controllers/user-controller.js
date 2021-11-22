@@ -39,7 +39,6 @@ exports.userLogin = async (req, res, next) => {
     let request_Validate = await reqUser(req);
     let username = req.body.username;
     let password = md5(req.body.password);
-
     let result = await db.User.login(username, password, db);
     res.status_code = 200;
     res.error = result.error;
@@ -59,7 +58,6 @@ exports.userLogin = async (req, res, next) => {
 
 exports.addNewEmployeeController = async (req, res, next) => {
   try {
-    // console.log(db);
     let result = await db.UserProfile.addNewEmployee(req.body,db);
     res.status_code = 200;
     res.error = result.error;

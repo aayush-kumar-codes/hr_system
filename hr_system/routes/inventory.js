@@ -4,38 +4,40 @@ const validators = require("../validators/req-validators");
 const inventoryControllers = require("../controllers/inventory-controller");
 const handlers = require("../util/responseHandlers");
 const middleware = require("../middleware/Auth");
+const cors = require('cors')
 
-router.post('/add_office_machine', middleware.AuthForHrAdmin, validators.machineCreationValidator, inventoryControllers.inventoryController, handlers.responseForData); //done
-router.post('/assign_user_machine', middleware.AuthForHrAdmin, validators.AssignUserMachineValidator,inventoryControllers.AssignUserMachineController, handlers.responseForInventory); //done
-router.post("/add_inventory_audit",middleware.AuthForHrEmployee,validators.inventoryAuditValidator,inventoryControllers.inventoryAuditController,handlers.responseForInventory); //done
+router.post('/add_office_machine', middleware.AuthForHrAdmin, validators.machineCreationValidator, inventoryControllers.inventoryController, handlers.responseForData); 
+router.post('/assign_user_machine', middleware.AuthForHrAdmin, validators.AssignUserMachineValidator,inventoryControllers.AssignUserMachineController, handlers.responseForInventory); 
+router.post("/add_inventory_audit",middleware.AuthForHrEmployee,validators.inventoryAuditValidator,inventoryControllers.inventoryAuditController,handlers.responseForInventory); 
 
-router.get('/get_my_inventories', middleware.AuthForHrEmployee,inventoryControllers.getMyInventoryController, handlers.responseForInventory);//done
+router.get('/get_my_inventories', middleware.AuthForHrEmployee,inventoryControllers.getMyInventoryController,handlers.responseForInventory)//done
 
-router.post('/get_machine', middleware.AuthForHrEmployee,inventoryControllers.getMachineController,handlers.responseForInventory); //done
+router.post('/get_machine', middleware.AuthForHrEmployee,inventoryControllers.getMachineController,handlers.responseForInventory); 
 
-router.get('/get_office_machine', middleware.AuthForAdmin,inventoryControllers.inventoryGetController, handlers.responseForInventory);    //done
+router.get('/get_office_machine', middleware.AuthForAdmin,inventoryControllers.inventoryGetController, handlers.responseForInventory); 
 router.get("/get_machine_status_list",middleware.AuthForHrAdmin,inventoryControllers.getMachineStatusController,handlers.responseForInventory); //done
 
-router.post("/add_machine_status",middleware.AuthForHrAdmin,validators.MachineStatusValidator,inventoryControllers.addMachineStatusController,handlers.responseForInventory);//done
-router.post("/delete_machine_status",middleware.AuthForHrAdmin,validators.MachineStatusDeleteValidator,inventoryControllers.deleteMachineStatusController,handlers.responseForInventory);  //done
+router.post("/add_machine_status",middleware.AuthForHrAdmin,validators.MachineStatusValidator,inventoryControllers.addMachineStatusController,handlers.responseForInventory);
+router.post("/delete_machine_status",middleware.AuthForHrAdmin,validators.MachineStatusDeleteValidator,inventoryControllers.deleteMachineStatusController,handlers.responseForInventory);  
 
-router.get("/get_machine_count",middleware.AuthForHrAdmin,inventoryControllers.getMachineCountController,handlers.responseForInventory); // done
-router.get("/get_machine_type_list", middleware.AuthForHrAdmin,inventoryControllers.getMachineTypeController, handlers.responseForInventory);   //done
+router.get("/get_machine_count",middleware.AuthForHrAdmin,inventoryControllers.getMachineCountController,handlers.responseForInventory); 
+router.get("/get_machine_type_list", middleware.AuthForHrAdmin,inventoryControllers.getMachineTypeController, handlers.responseForInventory);  
 
-router.post("/add_machine_type",middleware.AuthForHrAdmin, validators.addMachineTypeValidator,inventoryControllers.addMachineTypeController, handlers.responseForAddMachine)//done
+router.post("/add_machine_type",middleware.AuthForHrAdmin, validators.addMachineTypeValidator,inventoryControllers.addMachineTypeController, handlers.responseForAddMachine)
 
-router.get("/get_machines_detail", middleware.AuthForHrAdmin, inventoryControllers.getMachinesDetailController, handlers.responseForInventory);// done
-router.get("/get_unapproved_inventories", middleware.AuthForHrAdmin, inventoryControllers.getUnapprovedInventoryControllers, handlers.responseForInventory);//working
+router.get("/get_machines_detail", middleware.AuthForHrAdmin, inventoryControllers.getMachinesDetailController, handlers.responseForInventory);
+router.get("/get_unapproved_inventories", middleware.AuthForHrAdmin, inventoryControllers.getUnapprovedInventoryControllers, handlers.responseForInventory);
 
-router.post("/update_office_machine",middleware.AuthForHrAdmin,validators.UpdateMachineValidator,inventoryControllers.inventoryUpdateMachineController,handlers.responseForInventory);//done
+router.post("/update_office_machine",middleware.AuthForHrAdmin,validators.UpdateMachineValidator,inventoryControllers.inventoryUpdateMachineController,handlers.responseForInventory);
 
-router.get("/get_unassigned_inventories",middleware.AuthForAdmin,inventoryControllers.getUnassignedInventoryController,handlers.responseForInventory);//done
-router.get("/get_inventory_audit_status_month_wise", middleware.AuthForAdmin , inventoryControllers.monthwiseAuditStatusController, handlers.responseForInventory); //done
-router.get("/get_temp_uploaded_inventory_files", middleware.AuthForAdmin , inventoryControllers.getTempFilesController, handlers.responseForInventory);//done
+router.get("/get_unassigned_inventories",middleware.AuthForAdmin,inventoryControllers.getUnassignedInventoryController,handlers.responseForInventory);
+router.get("/get_inventory_audit_status_month_wise", middleware.AuthForAdmin , inventoryControllers.monthwiseAuditStatusController, handlers.responseForInventory); 
+router.get("/get_temp_uploaded_inventory_files", middleware.AuthForAdmin , inventoryControllers.getTempFilesController, handlers.responseForInventory);
 
-router.post("/delete_temp_uploaded_inventory_file", middleware.AuthForAdmin , inventoryControllers.deleteTempFilesControllers, handlers.responseForInventory);//done
-router.post("/inventory_unassign_request", middleware.AuthForAdmin , validators.unassignRequestValidator, inventoryControllers.inventoryUnassignRequestController, handlers.responseForInventory);//done
-router.post("/remove_machine_detail", middleware.AuthForAdmin , inventoryControllers.removeMachineController, handlers.responseForInventory);//done
+router.post("/delete_temp_uploaded_inventory_file", middleware.AuthForAdmin , inventoryControllers.deleteTempFilesControllers, handlers.responseForInventory);
+router.post("/inventory_unassign_request", middleware.AuthForAdmin , validators.unassignRequestValidator, inventoryControllers.inventoryUnassignRequestController, handlers.responseForInventory);
+router.post("/remove_machine_detail", middleware.AuthForAdmin , inventoryControllers.removeMachineController, handlers.responseForInventory);
+
 
 
 

@@ -3,6 +3,8 @@ function RolesPage(database, type) {
     role_id: type.INTEGER,
     page_id: type.INTEGER,
     is_enabled: type.BOOLEAN,
+  },{
+    timestamps:false,
   });
   rolesPage.associate = (models) => {
     rolesPage.hasOne(models.Role, {
@@ -12,5 +14,9 @@ function RolesPage(database, type) {
   };
   return rolesPage;
 }
+
+
+
+
 
 module.exports = RolesPage;

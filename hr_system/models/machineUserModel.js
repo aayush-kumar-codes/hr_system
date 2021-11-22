@@ -9,7 +9,7 @@ function machineuser(database, type) {
       updated_by_userid: type.INTEGER,
     },
     {
-      timestamps: true,
+      timestamps: false,
       freezeTableName: true,
     }
   );

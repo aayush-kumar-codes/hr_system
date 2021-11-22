@@ -59,7 +59,7 @@ function machinelist(database, type) {
 
   MachineList.addOfficeMachine = async (req, db) => {
     try {
-      const loggeduserid = req.userData.user_id;
+      const loggeduserid = req.userData.data.id;
       // console.log(req.mac_address)
       // if (req.mac_address != null || req.body.serial_number != null) {
       //   var Data = await MachineList.findAll({
@@ -97,7 +97,7 @@ function machinelist(database, type) {
       });
       if (creation.id != null) {
         const machine_id = creation.id;
-        if (req.body.user_id == "" || req.body.user_id == null) {
+        if (req.body.user_id === "" || req.body.user_id == null) {
           if (req.body.unassign_comments != null) {
             const addInventoryComment1 = await addInventoryComment(
               creation.id,
@@ -109,9 +109,10 @@ function machinelist(database, type) {
             console.log("unassign comment is empty");
           }
         } else {
-          const assign = await assignUserMachine(machine_id, req, loggeduserid);
+          const assign = await assignUserMachine(machine_id,req.body.user_id, loggeduserid,req,db);
         }
-        await updateInventoryWithTempFile(loggeduserid, machine_id, db, req);
+        console.log("---------------------------")
+        await updateInventoryWithTempFile(loggeduserid, machine_id, db, req,req.body.user_id);
       } else {
         console.log("Error in adding new inventory");
       }

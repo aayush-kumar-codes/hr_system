@@ -6,12 +6,13 @@ function user_document_detail(database, type) {
       document_type: type.STRING,
       link_1:type.STRING,
       read_status:type.INTEGER,
+
       last_modified:{
         type: 'TIMESTAMP',
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
         allowNull: false
         },
-    },{
+    },{ 
         freezeTableName:true,
         timestamps:false
       });
