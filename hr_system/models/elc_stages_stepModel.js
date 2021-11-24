@@ -1,24 +1,21 @@
 const { Op, QueryTypes } = require("sequelize");
 const Sequelize = require("sequelize");
-function LifeCycle(database, type) {
-  const lifeCycle = database.define(
-    "employee_life_cycle",
+function elc_stages_step(database, type) {
+  const elc_stages_step = database.define(
+    "elc_stages_step",
     {
-      userid: type.INTEGER,
-      elc_step_id: type.INTEGER,
-      last_update: {
+      elc_stage_id: type.INTEGER,
+      name: type.STRING,
+      updated_at: {
         type: "TIMESTAMP",
         defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
         allowNull: false,
       },
     },
     {
-      freezeTableName: true,
       timestamps: false,
     }
   );
-
-  return lifeCycle;
+  return elc_stages_step;
 }
-
-module.exports = LifeCycle;
+module.exports = elc_stages_step;

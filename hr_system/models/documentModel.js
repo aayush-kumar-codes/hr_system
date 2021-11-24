@@ -7,35 +7,26 @@ function Document(database, type) {
       uploaded_on: type.DATE,
     },
     {
-      timestamps: true,
+      timestamps: false,
       freezeTableName: true,
     }
   );
-  document.getUserDocument = async () => {
+
+  document.uploadUserDocument = async (req) => {
     try {
-      let UserDocument = await document.findAll({});
-      return UserDocument;
+      console.log(req);
+      const data = {
+        filepath: req.file.path,
+        title: req.file.name,
+        uploaded_on: Date.now(),
+      };
+      console.log(data);
+      // await document.create(data);
+      // return "uploaded"
     } catch (error) {
       throw new Error(error);
     }
   };
-
-  document.uploadUserDocument = async (req)=>{
-    try {
-      console.log(req)
-      const data = {
-        filepath: req.file.path,
-        title: req.file.name,
-        uploaded_on:Date.now()
-      };
-      console.log(data)
-      // await document.create(data);
-      // return "uploaded"
-    } catch (error) {
-        throw new Error (error)
-    }
-  };
-
 
   return document;
 }

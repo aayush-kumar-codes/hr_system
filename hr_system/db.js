@@ -4,7 +4,12 @@ const Models = require("./models/index");
 const Op = Sequelize.Op;
 const db = {};
 
-const sequelize = new Sequelize(databaseUri.psql_url,{logging: false});
+// const sequelize = new Sequelize(databaseUri.psql_url,{logging: false});
+
+const sequelize = new Sequelize('excellen_hr_test', 'sammy', 'password', {
+  host: 'localhost',
+  dialect: 'mysql',
+},{logging: false});
 
 Object.keys(Models).forEach((modelName) => {
   const model = Models[modelName](sequelize, Sequelize.DataTypes);
@@ -25,12 +30,12 @@ Object.keys(db).forEach((modelName) => {
 
 sequelize.authenticate();
 
-try {
-  sequelize.sync({ alter: true });
-  console.log("created");
-} catch (error) {
-  console.log(error);
-}
+// try {
+//   sequelize.sync({ alter: true });
+//   console.log("created");
+// } catch (error) {
+//   console.log(error);
+// }
 
 module.exports = Object.assign({}, db, {
   sequelize,

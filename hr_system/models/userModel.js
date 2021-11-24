@@ -17,23 +17,6 @@ function user(database, type) {
       password: type.STRING,
       status: type.STRING,
     },
-    {
-      hooks: {
-        beforeCreate: (user, options) => {
-          return new Promise((resolve, reject) => {
-            User.findOne({ where: { username: user.username } }).then(
-              (found) => {
-                if (found) {
-                  reject(new Error("username already exist"));
-                } else {
-                  resolve();
-                }
-              }
-            );
-          });
-        },
-      },
-    },
     { timestamps: false }
   );
 
@@ -71,18 +54,18 @@ function user(database, type) {
             login_by_email = true;
           }
         }
-      }
-      else if (query.length == 0 && !login_by_email) {
+      } else if (query.length == 0 && !login_by_email) {
         error = 1;
         message = "invalid login";
       } else {
-        let userId = (query[0].id != null) ? query[0].id : userData.userProfile.user_Id;
+        let userId =
+          query[0].id != null ? query[0].id : userData.userProfile.user_Id;
         let userInfo = await getUserInfo(userId, models);
         if (userInfo == null) {
           message = "Invalid Login";
         } else {
           is_super_admin = false;
-          if (userInfo[0].type.toLowerCase() == "admin") {
+          if (userInfo[0].type.toLowerCase() == "Admin") {
             is_super_admin = true;
           }
           if (is_super_admin == false && userInfo[0].role_id == null) {
@@ -91,10 +74,7 @@ function user(database, type) {
           } else {
             error = 0;
             message = "Success login";
-            let jwtToken = await generateUserToken(
-              userInfo[0].user_Id,
-              models
-            );
+            let jwtToken = await generateUserToken(userInfo[0].user_Id, models);
             data.token = jwtToken;
             data.userId = userInfo[0].user_Id;
           }
@@ -175,17 +155,19 @@ function user(database, type) {
             message = "Error in registering new.";
           } else {
             error = 0;
-            message = "Registration Successfull";
+            message = "Registration Successfull but roles not assigned";
             let allRoles = await models.Role.findAll({});
             for (let roles in allRoles) {
               if (allRoles[roles].name == reqBody.type) {
                 let defaultRoleId = allRoles[roles].id;
-                if (userId && defaultRoleId !== "") {
+                if (userId && defaultRoleId !== null) {
                   let roleToAssign = await assignUserRole(
                     userId,
                     defaultRoleId,
                     models
                   );
+                  error = 0;
+                  message = "registeration sucessfull";
                 } else {
                   error = 1;
                   message = "role not assigned";
@@ -201,14 +183,6 @@ function user(database, type) {
       return Return;
     } catch (error) {
       console.log(error);
-      throw new Error(error);
-    }
-  };
-  User.getEnabledUsers = async () => {
-    try {
-      let enabledUsers = await User.findAll({ where: { status: "enabled" } });
-      return enabledUsers;
-    } catch (error) {
       throw new Error(error);
     }
   };
