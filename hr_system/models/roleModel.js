@@ -12,13 +12,17 @@ const {
   assignAdminRoleToUserTypeAdminIfNoRoleAssigned,
 } = require("../allFunctions");
 function roles(database, type) {
-  const roles = database.define("roles", {
-    name: type.STRING,
-    description: type.STRING,
-    last_update: type.DATE,
-  },{
-    timestamps:false
-  });
+  const roles = database.define(
+    "roles",
+    {
+      name: type.STRING,
+      description: type.STRING,
+      last_update: type.DATE,
+    },
+    {
+      timestamps: false,
+    }
+  );
 
   roles.AddNewRole = async (name, description, base_role_id = false, res) => {
     try {
@@ -33,7 +37,6 @@ function roles(database, type) {
         error = 0;
         message = "New role added";
         if (base_role_id != null) {
-          // q = await roles.findAll({where:{name: name}});
           for (let key in q) {
             if (q.length != null && typeof q[key].id != "undefined") {
               let qId = q[key].id;
@@ -51,7 +54,6 @@ function roles(database, type) {
       } else {
         error = 1;
         message = "Role name already exist";
-        // return "not updated";
       }
       let arr = {};
       arr.error = error;
@@ -79,7 +81,6 @@ function roles(database, type) {
         for (let val of array) {
           let role_page = await getRolePages(val.dataValues.id, models);
           let role_action = await getRoleActions(val.dataValues.id, models);
-          console.log(role_action)
           // let role_notify = await getRoleNotifications(array[key].id);
           for (let v1 of allpages) {
             let p = 0;
@@ -138,10 +139,8 @@ function roles(database, type) {
         error: 0,
         data: result,
       };
-      console.log(Return)
       return Return;
     } catch (error) {
-      console.log(error);
       throw new Error(error);
     }
   };
@@ -169,7 +168,6 @@ function roles(database, type) {
         return "not updated";
       }
     } catch (error) {
-      console.log(error);
       throw new Error(error);
     }
   };
@@ -187,7 +185,6 @@ function roles(database, type) {
       let roletoDelete = await roles.destroy({
         where: { id: reqBody.role_id },
       });
-      console.log(roletoDelete);
       if (roletoDelete == 1) {
         return "deleted";
       } else {

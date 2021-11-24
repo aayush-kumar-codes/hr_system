@@ -1,13 +1,15 @@
 const { responseForInventory } = require("../util/responseHandlers");
 const { Op } = require("sequelize");
 function machine_status(database, type) {
-  const MachineStatus = database.define("machine_status", {
-    status: type.STRING,
-    color: type.STRING,
-    is_default: type.INTEGER,
-  },{ freezeTableName: true,
-    timestamps: false
-  });
+  const MachineStatus = database.define(
+    "machine_status",
+    {
+      status: type.STRING,
+      color: type.STRING,
+      is_default: type.INTEGER,
+    },
+    { freezeTableName: true, timestamps: false }
+  );
 
   // MachineStatus.AddMachineStatus = async (reqBody) => {
   //   try {

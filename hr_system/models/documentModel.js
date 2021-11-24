@@ -12,22 +12,21 @@ function Document(database, type) {
     }
   );
 
-  document.uploadUserDocument = async (req)=>{
+  document.uploadUserDocument = async (req) => {
     try {
-      console.log(req)
+      console.log(req);
       const data = {
         filepath: req.file.path,
         title: req.file.name,
-        uploaded_on:Date.now()
+        uploaded_on: Date.now(),
       };
-      console.log(data)
+      console.log(data);
       // await document.create(data);
       // return "uploaded"
     } catch (error) {
-        throw new Error (error)
+      throw new Error(error);
     }
   };
-
 
   return document;
 }

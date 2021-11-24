@@ -15,8 +15,6 @@ function inventoryauditmonthwise(database, type) {
     }
   );
 
-  
-  
   inventoryauditmonthwise.associate = (models) => {
     models.inventoryauditmonthwise.hasOne(models.MachineList, {
       foreignKey: "inventory_id",
@@ -36,7 +34,7 @@ function inventoryauditmonthwise(database, type) {
   //     let auditMonthwiseStatus = await inventory_audit_month_wise.findAll({
   //       where: { month: reqBody.month, year: reqBody.year },
   //     });
-	//   return auditMonthwiseStatus;
+  //   return auditMonthwiseStatus;
   //   } catch (error) {
   //     throw new Error(error);
   //   }

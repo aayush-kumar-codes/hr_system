@@ -25,7 +25,7 @@ exports.userRegister = async (req, res, next) => {
     res.token = token;
     res.status_code = 201;
     res.message = user_create.message;
-    res.error=user_create.error;
+    res.error = user_create.error;
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -44,7 +44,7 @@ exports.userLogin = async (req, res, next) => {
     res.error = result.error;
     res.message = result.message;
     res.token = result.data.token;
-    if(result.data.userId){
+    if (result.data.userId) {
       res.userId = result.data.userId.toString();
     }
     return next();
@@ -58,12 +58,12 @@ exports.userLogin = async (req, res, next) => {
 
 exports.addNewEmployeeController = async (req, res, next) => {
   try {
-    let result = await db.UserProfile.addNewEmployee(req.body,db);
+    let result = await db.UserProfile.addNewEmployee(req.body, db);
     res.status_code = 200;
     res.error = result.error;
     res.message = result.message;
-    if(result.data.userID){
-      res.data = result.data
+    if (result.data.userID) {
+      res.data = result.data;
     }
     return next();
   } catch (error) {
@@ -145,11 +145,11 @@ exports.getEnableUser = async (req, res, next) => {
     }
     let sorted_by =
       typeof req.body.sorted_by != "undefined" ? req.body.sorted_by : false;
-    let result = await getEnabledUsersListWithoutPass(db,role, sorted_by, res);
+    let result = await getEnabledUsersListWithoutPass(db, role, sorted_by, res);
     res.status_code = 200;
     res.error = 0;
     res.data = result;
-	return next();
+    return next();
   } catch (error) {
     console.log(error);
     res.status_code = 500;

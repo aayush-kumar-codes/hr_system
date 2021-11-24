@@ -8,11 +8,20 @@ function inventorycomments(database, type) {
     "inventory_comments",
     {
       inventory_id: type.INTEGER,
-      updated_by_user_id: type.INTEGER,
+      updated_by_user_id: {
+        type: type.INTEGER,
+        defaultValue: 0,
+      },
       assign_unassign_user_id: type.INTEGER,
-      comment: type.STRING,
+      comment: {
+        type: type.STRING,
+        defaultValue: 0,
+      },
       updated_at: type.DATE,
-      comment_type: type.STRING,
+      comment_type: {
+        type: type.STRING,
+        defaultValue: 0,
+      },
     },
     {
       timestamps: false,
@@ -57,7 +66,7 @@ function inventorycomments(database, type) {
           audit_message = req.body.audit_message;
         }
       }
-  
+
       let response = await api_addInventoryAudit(
         loggedUserInfo,
         inventory_id,
@@ -67,8 +76,8 @@ function inventorycomments(database, type) {
         models,
         req
       );
-      console.log(123243)
-          if (
+      console.log(123243);
+      if (
         typeof req.body.do_refresh_token != "undefined" &&
         req.body.do_refresh_token == 1
       ) {

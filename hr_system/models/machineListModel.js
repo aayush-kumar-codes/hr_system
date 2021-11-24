@@ -1,4 +1,3 @@
-const { MachineList } = require(".");
 const db = require("../db");
 const {
   getUserInventories,
@@ -9,36 +8,96 @@ const {
   refreshToken,
   getInventoryHistory,
   addInventoryComment,
-  assignUserMachine
+  assignUserMachine,
 } = require("../allFunctions");
-
+const { Op } = require("sequelize");
 function machinelist(database, type) {
-  const { Op } = require("sequelize");
   const MachineList = database.define(
-    "machinelist",
+    "machines_list",
     {
-      machine_type: type.STRING,
-      machine_name: type.STRING,
-      machine_price: type.STRING,
-      serial_number: type.STRING,
-      date_of_purchase: type.DATE,
-      mac_address: type.STRING,
-      operating_system: type.STRING,
-      status: type.STRING,
-      comments: type.STRING,
-      warranty_end_date: type.DATE,
-      bill_number: type.STRING,
-      warranty_comment: type.STRING,
-      repair_comment: type.STRING,
-      file_inventory_invoice: type.INTEGER,
-      file_inventory_warranty: type.INTEGER,
-      file_inventory_photo: type.INTEGER,
-      warranty_years: type.STRING,
-      approval_status: type.INTEGER,
-      is_unassign_request: type.INTEGER,
-      ownership_change_req_by_user: type.INTEGER,
+      machine_type: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      machine_name: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      machine_price: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      serial_number: {
+        type: type.STRING,
+        defaultValue: 0,
+      },
+      date_of_purchase: {
+        type: type.DATE,
+        defaultValue: null,
+      },
+      mac_address: {
+        type: type.STRING,
+        defaultValue: 0,
+      },
+      operating_system: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      status: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      comments: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      warranty_end_date: {
+        type: type.DATE,
+        defaultValue: null,
+      },
+      bill_number: {
+        type: type.STRING,
+        defaultValue: 0,
+      },
+      warranty_comment: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      repair_comment: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      file_inventory_invoice: {
+        type: type.INTEGER,
+        defaultValue: null,
+      },
+      file_inventory_warranty: {
+        type: type.INTEGER,
+        defaultValue: null,
+      },
+      file_inventory_photo: {
+        type: type.INTEGER,
+        defaultValue: null,
+      },
+      warranty_years: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      approval_status: {
+        type: type.INTEGER,
+        // defaultValue: null
+      },
+      is_unassign_request: {
+        type: type.INTEGER,
+        defaultValue: null,
+      },
+      ownership_change_req_by_user: {
+        type: type.INTEGER,
+        // defaultValue: null
+      },
     },
     {
+      timestamps: false,
       freezeTableName: true,
     }
   );
@@ -60,19 +119,6 @@ function machinelist(database, type) {
   MachineList.addOfficeMachine = async (req, db) => {
     try {
       const loggeduserid = req.userData.data.id;
-      // console.log(req.mac_address)
-      // if (req.mac_address != null || req.body.serial_number != null) {
-      //   var Data = await MachineList.findAll({
-      //     where: {
-      //       [Op.or]: [
-      //         { mac_address: req.body.mac_address },
-      //         { serial_number: req.body.serial_number },
-      //       ],
-      //     },
-      //   });
-      // }
-      // console.log(Data)
-      // if (Data.length == 0) {
       let creation = await MachineList.create({
         machine_type: req.body.machine_type,
         machine_name: req.body.machine_name,
@@ -95,6 +141,7 @@ function machinelist(database, type) {
         is_unassign_request: req.body.is_unassign_request,
         ownership_change_req_by_user: req.body.ownership_change_req_by_user,
       });
+      console.log(creation.machine_type);
       if (creation.id != null) {
         const machine_id = creation.id;
         if (req.body.user_id === "" || req.body.user_id == null) {
@@ -109,17 +156,25 @@ function machinelist(database, type) {
             console.log("unassign comment is empty");
           }
         } else {
-          const assign = await assignUserMachine(machine_id,req.body.user_id, loggeduserid,req,db);
+          const assign = await assignUserMachine(
+            machine_id,
+            req.body.user_id,
+            loggeduserid,
+            req,
+            db
+          );
         }
-        console.log("---------------------------")
-        await updateInventoryWithTempFile(loggeduserid, machine_id, db, req,req.body.user_id);
+        await updateInventoryWithTempFile(
+          loggeduserid,
+          machine_id,
+          db,
+          req,
+          req.body.user_id
+        );
       } else {
         console.log("Error in adding new inventory");
       }
       return creation.id;
-      // } else {
-      //   console.log("mac_address or serial_no already exists");
-      // }
     } catch (error) {
       console.log(error);
       throw new Error(error);
@@ -229,10 +284,6 @@ function machinelist(database, type) {
   // };
   MachineList.updateMachine = async (reqBody) => {
     try {
-      // let machine_to_update = await MachineList.findAll({
-      //   where: { id: reqBody.id },
-      // });
-      // if (machine_to_update) {
       let update = await MachineList.update(
         {
           machine_type: reqBody.machine_type,
@@ -259,9 +310,6 @@ function machinelist(database, type) {
         { where: { id: reqBody.id } }
       );
       return update;
-      // } else {
-      //   throw new Error("Unable to find machine with the given id");
-      // }
     } catch (error) {
       throw new Error(error);
     }
