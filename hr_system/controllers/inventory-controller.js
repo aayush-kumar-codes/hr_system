@@ -67,7 +67,7 @@ exports.inventoryGetController = async (req, res, next) => {
 
 exports.AssignUserMachineController = async (req, res, next) => {
   try {
-    let logged_user_id = req.userData.data.id;
+    let logged_user_id = req.userData.id;
     //  let logged_user_id=req.userData.id;
     let ownership_change_request = false;
     let response;
@@ -146,8 +146,8 @@ exports.getMyInventoryController = async (req, res, next) => {
     let machine_list = await db.MachineList.GetMachine(req, db);
     // let machine_list = await db.MachineList.GetMachine(req, db);
     // console.log(machine_list)
-    const loggeduserid = req.userData.data.id;
-    const loggeduser_role = req.userData.data.role;
+    const loggeduserid = req.userData.id;
+    const loggeduser_role = req.userData.role;
     let result = await api_getMyInventories(loggeduserid, loggeduser_role, db);
     if (
       typeof req.body.skip_inventory_audit != undefined &&
@@ -198,7 +198,7 @@ exports.getMachineController = async (req, res, next) => {
 
 exports.inventoryUpdateMachineController = async (req, res, next) => {
   try {
-    let logged_user_id = req.userData.data.id;
+    let logged_user_id = req.userData.id;
     // let logged_user_id = req.userData.id;
     let updatedMachine = await UpdateOfficeMachine(logged_user_id, req, db);
     res.status_code = 200;
@@ -362,7 +362,7 @@ exports.getMachinesDetailController = async (req, res, next) => {
 
 exports.getUnapprovedInventoryControllers = async (req, res, next) => {
   try {
-    let logged_user_id = req.userData.data.id;
+    let logged_user_id = req.userData.id;
     // let logged_user_id = req.userData.id;
     let unapprovedInventory = await api_getUnapprovedInventories(
       logged_user_id,

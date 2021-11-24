@@ -129,8 +129,6 @@ let getRoleActions = async (roleid, models) => {
 let getRolePagesForSuperAdmin = async () => {
   let data = await getGenericPagesForAllRoles();
   let allPages = await getAllPages();
-  // console.log("+++++++++++++++++");
-  // console.log(allPages);
   allPages.forEach((page) => {
     newPage = { page_id: page.id, page_name: page.name };
     data.push(newPage);
@@ -770,7 +768,8 @@ let generateUserToken = async (userId, models,addOns = false) => {
     }
   }
 
-  let token = jwt.sign({ data: u }, secret.jwtSecret, {
+  // let token = jwt.sign({ data: u }, secret.jwtSecret, {
+    let token = jwt.sign( u, secret.jwtSecret, {
     expiresIn: "2hr",
   });
   return token;
@@ -1927,7 +1926,8 @@ let removeMachineAssignToUser =async(inventory_id,req,models,loggeduserid)=>{
       const message = [];
       message.inventoryName = machine_Info.machine_name;
       message.invetoryType = machine_Info.machine_type;
-    let loggeduserid=req.userData.data.id;
+    // let loggeduserid=req.userData.data.id;
+    let loggeduserid=req.userData.id;
       addInventoryComment(inventory_id, loggeduserid, req, db);
     }
     await models.sequelize.query(`Delete from machines_user where machine_id=${inventory_id}`,{type:QueryTypes.DELETE});

@@ -45,8 +45,8 @@ function inventorycomments(database, type) {
 
   inventory_comments.createAudit = async (req, models) => {
     try {
-      let loggedUserInfo = req.userData.data;
-      let logged_user_id = req.userData.data.id;
+      let loggedUserInfo = req.userData;
+      let logged_user_id = req.userData.id;
       let inventory_id = req.body.inventory_id;
       let audit_message = req.body.audit_message;
       let audit_comment_type = false;

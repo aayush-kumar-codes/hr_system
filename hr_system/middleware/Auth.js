@@ -13,11 +13,13 @@ exports.AuthForAdmin = async (req, res, next) => {
   try {
     const checkJwt = await jwt.verify(token[1], secret.jwtSecret);
     const user = await db.sequelize.query(
-      `select * from users where users.id = ${checkJwt.data.id}`,
+      // `select * from users where users.id = ${checkJwt.data.id}`,
+      `select * from users where users.id = ${checkJwt.id}`,
       { type: QueryTypes.SELECT }
     );
     if (user[0].type.toLowerCase() == "admin") {
-      req.userData = checkJwt.data;
+      req.userData = checkJwt
+      // .data;
       next();
     } else {
       res.send("you are not authorized");
@@ -38,8 +40,10 @@ exports.AuthForHrAdmin = async (req, res, next) => {
   let token = req.headers.authorization.split(" ");
   try {
     const checkJwt = await jwt.verify(token[1], secret.jwtSecret);
+    console.log(checkJwt);
     const user = await db.sequelize.query(
-      `select * from users where users.id = ${checkJwt.data.id}`,
+      // `select * from users where users.id = ${checkJwt.data.id}`,
+      `select * from users where users.id = ${checkJwt.id}`,
       { type: QueryTypes.SELECT }
     );
     if (
@@ -68,11 +72,13 @@ exports.AuthForEmployee = async (req, res, next) => {
   try {
     const checkJwt = await jwt.verify(token[1], secret.jwtSecret);
     const user = await db.sequelize.query(
-      `select * from users where users.id = ${checkJwt.data.id}`,
+      // `select * from users where users.id = ${checkJwt.data.id}`,
+      `select * from users where users.id = ${checkJwt.id}`,
       { type: QueryTypes.SELECT }
     );
     if (user[0].type == "Employee") {
-      req.userData = checkJwt.data;
+      req.userData = checkJwt
+      // .data;
       next();
     } else {
       res.send("you are not authorized");
@@ -93,11 +99,13 @@ exports.AuthForHr = async (req, res, next) => {
   try {
     const checkJwt = await jwt.verify(token[1], secret.jwtSecret);
     const user = await db.sequelize.query(
-      `select * from users where users.id = ${checkJwt.data.id}`,
+      // `select * from users where users.id = ${checkJwt.data.id}`,
+      `select * from users where users.id = ${checkJwt.id}`,
       { type: QueryTypes.SELECT }
     );
     if (user[0].type.toLowerCase() == "hr") {
-      req.userData = checkJwt.data;
+      req.userData = checkJwt
+      // .data;
       next();
     } else {
       res.send("you are not authorized");
@@ -119,11 +127,13 @@ exports.AuthForHrEmployee = async (req, res, next) => {
   try {
     const checkJwt = await jwt.verify(token[1], secret.jwtSecret);
     const user = await db.sequelize.query(
-      `select * from users where users.id = ${checkJwt.data.id}`,
+      // `select * from users where users.id = ${checkJwt.data.id}`,
+      `select * from users where users.id = ${checkJwt.id}`,
       { type: QueryTypes.SELECT }
     );
     if (user[0].type.toLowerCase() == "hr" || user.type == "Employee") {
-      req.userData = checkJwt.data;
+      req.userData = checkJwt
+      // .data;
       next();
     } else {
       res.send("you are not authorized");

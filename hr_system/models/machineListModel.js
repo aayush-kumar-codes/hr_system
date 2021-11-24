@@ -118,7 +118,8 @@ function machinelist(database, type) {
 
   MachineList.addOfficeMachine = async (req, db) => {
     try {
-      const loggeduserid = req.userData.data.id;
+      // const loggeduserid = req.userData.data.id;
+      const loggeduserid = req.userData.id;
       let creation = await MachineList.create({
         machine_type: req.body.machine_type,
         machine_name: req.body.machine_name,
