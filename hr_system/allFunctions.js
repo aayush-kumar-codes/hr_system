@@ -14,6 +14,7 @@ const db = require("./db");
 const { sequelize } = require("./db");
 const { MachineStatusDeleteValidator } = require("./validators/req-validators");
 const user = require("./models/userModel");
+const { Query } = require("pg");
 
 let getPageById = async (id) => {
   let data;
@@ -860,8 +861,6 @@ let getMachineDetail = async (id, models) => {
       left join files as f3 ON machines_list.file_inventory_photo = f3.id
       where 
       machines_list.id = ${id}`,{ type:QueryTypes.SELECT});
-      console.log("=================================");
-      console.log(q);
       row.q=q;
     const inventoryHistory = await getInventoryHistory(id, models);
     row.history = inventoryHistory;
@@ -1477,7 +1476,7 @@ let assignDefaultValuesToRole = async (new_role_id, roleName = false) => {
 };
 
 let getAllRole = async (models) => {
-  let q = await models.Role.findAll({});
+  let q=await models.sequelize.query(`Select * from roles`,{type:QueryTypes.SELECT})
   return q;
 };
 
@@ -1517,7 +1516,7 @@ let isOnlyOneAdminRoleChanging = async (userid, models) => {
   }
   return false;
 };
-let getInventoriesAuditStatusForYearMonth= async(month, year,req,models)=>{
+let   getInventoriesAuditStatusForYearMonth= async(month, year,req,models)=>{
   try{
     let Return;
     let data;
@@ -1553,7 +1552,7 @@ let getInventoriesAuditStatusForYearMonth= async(month, year,req,models)=>{
     left join machines_user on machines_list.id = machines_user.machine_id
     left join user_profile as up_assign on machines_user.user_Id = up_assign.user_Id
     ORDER BY audit_id DESC`,{type:QueryTypes.SELECT})
-
+    JSON.parse(JSON.stringify(q))
     let inventoriesCount =q.length;
     let auditDoneCount                   = 0;
     let auditPendingCount                = 0;
@@ -1602,6 +1601,7 @@ let getInventoriesAuditStatusForYearMonth= async(month, year,req,models)=>{
     }
     message="Inventory Audit List";
     data={};
+    data.audit_list_employee_wise= await inventoriesAuditEmployeeWise(q)
     data.stats={};
     data.stats.total_inventories=inventoriesCount,
     data.stats.audit_done=auditDoneCount,
@@ -1611,8 +1611,7 @@ let getInventoriesAuditStatusForYearMonth= async(month, year,req,models)=>{
     data.stats.audit_issue=count_issue_inventories,
     data.stats.audit_critical_issue=count_critical_issue_inventories
     data.audit_list=q;
-    data.audit_list_employee_wise=await inventoriesAuditEmployeeWise(q)
-  }
+  } 
   Return={
     error: error,
     message: message,
@@ -1627,12 +1626,13 @@ let getInventoriesAuditStatusForYearMonth= async(month, year,req,models)=>{
 
 
 let inventoriesAuditEmployeeWise=async(data,req,models)=>{
-  let employeeWiseData=[];
+  let employeeWiseData={};
   for([key,inventory] of Object.entries(data)){
-    if(typeof inventory.assigned_user_id!="undefined" && inventory.assigned_user_id!=null ){
+    if(typeof inventory.assigned_user_id!="undefined" && inventory.assigned_user_id!=null )
+    {
      let  assigned_user_id = inventory.assigned_user_id;
      if(typeof employeeWiseData.assigned_user_id=="undefined"){
-      employeeWiseData.assigned_user_id=[];
+      employeeWiseData.assigned_user_id={};
       employeeWiseData.assigned_user_id.audit_good=0;
       employeeWiseData.assigned_user_id.audit_issue=0;
       employeeWiseData.assigned_user_id.audit_critical_issue=0;
@@ -1644,7 +1644,7 @@ let inventoriesAuditEmployeeWise=async(data,req,models)=>{
       employeeWiseData.assigned_user_id.employee.emp_name =inventory.assigned_to;
      }
      let addInventoryToList = true;
-     for([key,inv] of employeeWiseData.assigned_user_id.inventories){
+     for([key,inv] in (employeeWiseData.assigned_user_id.inventories)){
       if(inv.id==inventory.id){
         addInventoryToList = false;
         break;
@@ -1671,12 +1671,15 @@ let inventoriesAuditEmployeeWise=async(data,req,models)=>{
     }
   }
 }
+
 if(employeeWiseData!==null){
  let  sort_audit_critical_issue=employeeWiseData.audit_critical_issue;
  let sort_audit_issue = employeeWiseData.audit_issue;
 }
   return employeeWiseData;
 }
+
+
 
 let assignUserRole = async (userid, roleid, models) => {
   let error = 1;
@@ -1716,9 +1719,7 @@ let assignUserRole = async (userid, roleid, models) => {
 };
 
 let assignAdminRoleToUserTypeAdminIfNoRoleAssigned = async (roles, models) => {
-  let q = await models.User.findAll({
-    where: { [Op.and]: [{ type: "admin" }, { status: "Enabled" }] },
-  });
+    let q = await models.sequelize.query(`Select * from users where users.type='admin' and users.status='Enabled'`,{type:QueryTypes.SELECT})
   if (q.length > 0) {
     let adminRoleDetails = null;
     for (let key in roles) {
@@ -1767,7 +1768,7 @@ let getEnabledUsersList = async (sorted_by=false, models) => {
       );
     } else {
       q = await models.sequelize.query(
-        `SELECT users.*, user_profile.*,roles.id as role_id, roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile."user_Id" LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' `,
+        `SELECT users.*, user_profile.*,roles.id as role_id, roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile.user_Id LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' `,
         { type: QueryTypes.SELECT }
       );
     }
@@ -1788,6 +1789,7 @@ let getEnabledUsersList = async (sorted_by=false, models) => {
     // }
     return newRows;
   } catch (error) {
+    console.log(error)
     throw new Error(error);
   }
 };
@@ -1935,6 +1937,7 @@ return Return;
 
 }
 let removeMachineDetails = async(inventory_id,logged_user_id,req,models)=>{
+  try{
   let error=0;
   let r_message;
   let inventoryDetails=await getMachineDetail(inventory_id,models)
@@ -1945,8 +1948,7 @@ let removeMachineDetails = async(inventory_id,logged_user_id,req,models)=>{
     await removeInventoryAudits(inventory_id,req,models);
     await removeInventoryComments(inventory_id,req,models);
     await removeMachineAssignToUser(inventory_id,req,models);
-    inventory_id =1;
-    let query1=await models.sequelize.query(`Delete from machines_list where id=${inventory_id}`,{type:QueryTypes.DELETE});
+    let query1=await models.sequelize.query(`Delete from machines_list where machines_list.id=${inventory_id}`,{type:QueryTypes.DELETE});
     error=0;
     r_message= "Inventory deleted successfully";
   }
@@ -1954,6 +1956,9 @@ let removeMachineDetails = async(inventory_id,logged_user_id,req,models)=>{
   Return.error = error;
   Return.message= r_message;
   return Return;
+}catch(error){
+  console.log(error)
+}
 }
 let removeMachineAssignToUser =async(inventory_id,req,models,loggeduserid)=>{
   const machine_Info = await getMachineDetail(inventory_id,models);

@@ -244,7 +244,6 @@ exports.getTeamListController = async (req, res, next) => {
 
 exports.updateBankDetailsController = async (req, res, next) => {
   try {
-    console.log("in controller updateBankDetailsController");
     let updatedDetails = await UpdateUserBankInfo(req, db);
     res.status_code = 200;
     res.error = updatedDetails.error;

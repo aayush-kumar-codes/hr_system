@@ -82,7 +82,6 @@ const { getUserInfo, copyExistingRoleRightsToNewRole } = require("./allFunctions
 let getEnabledUsersListWithoutPass=async(req,models,role=false,sorted_by=false)=>{
 let row=await getEnabledUsersList(req,models,sorted_by);
 let secureKeys = [ 'bank_account_num', 'blood_group', 'address1', 'address2', 'emergency_ph1', 'emergency_ph2', 'medical_condition', 'dob', 'marital_status', 'city', 'state', 'zip_postal', 'country', 'home_ph', 'mobile_ph', 'work_email', 'other_email', 'special_instructions', 'pan_card_num', 'permanent_address', 'current_address', 'slack_id', 'policy_document', 'training_completion_date', 'termination_date', 'training_month', 'slack_msg', 'signature', 'role_id', 'role_name', 'eth_token' ]
-console.log(row)
 let rows=[];
 for(let val of row){
   delete val.password;
@@ -588,8 +587,7 @@ let getSalaryInfo= async(userid,db,sort=false,date=false)=>{
     if(typeof r.applicable_from !==undefinded && r.applicable_till != "" && r.applicable_till!=="0000-00-00"){
     applicable_till = r.applicable_till;
     }
-   if( typeof applicable_from !==undefined && typeof applicable_till){  
-     console.log(12345)              
+   if( typeof applicable_from !==undefined && typeof applicable_till){              
     begin = new DateTime( applicable_from );
     end = new DateTime( applicable_till );
     interval =createFromDateString('1 month');

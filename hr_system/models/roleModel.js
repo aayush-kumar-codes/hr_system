@@ -69,7 +69,9 @@ function roles(database, type) {
     try {
       let result = {};
       let allpages = await getAllPages();
+
       let allactions = await getAllActions();
+
       // let allnotifications = await getAllNotifications();
       result.default_pages = allpages;
       result.default_actions = allactions;
@@ -79,8 +81,8 @@ function roles(database, type) {
       if (array.length > 0) {
         await assignAdminRoleToUserTypeAdminIfNoRoleAssigned(array, models);
         for (let val of array) {
-          let role_page = await getRolePages(val.dataValues.id, models);
-          let role_action = await getRoleActions(val.dataValues.id, models);
+          let role_page = await getRolePages(val.id, models);
+          let role_action = await getRoleActions(val.id, models);
           // let role_notify = await getRoleNotifications(array[key].id);
           for (let v1 of allpages) {
             let p = 0;
@@ -139,8 +141,10 @@ function roles(database, type) {
         error: 0,
         data: result,
       };
+
       return Return;
     } catch (error) {
+      console.log(error)
       throw new Error(error);
     }
   };
