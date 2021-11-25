@@ -11,6 +11,7 @@ const {
   getAllRole,
   assignAdminRoleToUserTypeAdminIfNoRoleAssigned,
 } = require("../allFunctions");
+const { QueryTypes } = require("sequelize");
 function roles(database, type) {
   const roles = database.define(
     "roles",
@@ -24,11 +25,19 @@ function roles(database, type) {
     }
   );
 
-  roles.AddNewRole = async (name, description, base_role_id = false, res) => {
+  roles.AddNewRole = async (
+    name,
+    description,
+    base_role_id = false,
+    models
+  ) => {
     try {
       let error = 1;
       let message;
-      let q = await roles.findAll({ where: { name: name } });
+      let q = await models.sequelize.query(
+        `select * from roles where roles.name = '${name}'`,
+        { type: QueryTypes.SELECT }
+      );
       if (q.length == 0) {
         let creation = await roles.create({
           name: name,
@@ -79,17 +88,20 @@ function roles(database, type) {
       if (array.length > 0) {
         await assignAdminRoleToUserTypeAdminIfNoRoleAssigned(array, models);
         for (let val of array) {
-          let role_page = await getRolePages(val.dataValues.id, models);
-          let role_action = await getRoleActions(val.dataValues.id, models);
+          let role_page = await getRolePages(val.id, models);   
+          let role_action = await getRoleActions(val.id, models);
           // let role_notify = await getRoleNotifications(array[key].id);
           for (let v1 of allpages) {
             let p = 0;
+            if(!role_page)
+            {}else{
             for (let u1 of role_page) {
               if (u1.page_id == v1.id) {
                 p = 1;
               }
             }
             v1["is_assigned"] = p;
+          }
             let updatedActionsList = [];
             if (typeof v1.actions_list != "undefined") {
               updatedActionsList = v1.actions_list;

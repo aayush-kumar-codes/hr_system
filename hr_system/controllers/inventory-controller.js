@@ -142,10 +142,6 @@ exports.inventoryAuditController = async (req, res, next) => {
 
 exports.getMyInventoryController = async (req, res, next) => {
   try {
-    console.log("getMyInventoryController");
-    let machine_list = await db.MachineList.GetMachine(req, db);
-    // let machine_list = await db.MachineList.GetMachine(req, db);
-    // console.log(machine_list)
     const loggeduserid = req.userData.id;
     const loggeduser_role = req.userData.role;
     let result = await api_getMyInventories(loggeduserid, loggeduser_role, db);
@@ -433,6 +429,7 @@ exports.inventoryUnassignRequestController = async (req, res, next) => {
 exports.getTempFilesController = async (req, res, next) => {
   try {
     let tempFiles = await API_getTempUploadedInventoryFiles(req, db);
+    console.log(tempFiles,"++++++++++++++++++++++++++++++++++++++++++++++")
     res.status_code = 200;
     res.message = tempFiles.message;
     res.error = tempFiles.error;

@@ -131,8 +131,8 @@ exports.AuthForHrEmployee = async (req, res, next) => {
       `select * from users where users.id = ${checkJwt.id}`,
       { type: QueryTypes.SELECT }
     );
-    if (user[0].type.toLowerCase() == "hr" || user.type == "Employee") {
-      req.userData = checkJwt
+    if (user[0].type.toLowerCase() == "hr" || user[0].type.toLowerCase() == "admin" || user[0].type == "Employee") {
+      req.userData = checkJwt;
       // .data;
       next();
     } else {

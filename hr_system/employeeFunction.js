@@ -588,8 +588,7 @@ let getSalaryInfo= async(userid,db,sort=false,date=false)=>{
     if(typeof r.applicable_from !==undefinded && r.applicable_till != "" && r.applicable_till!=="0000-00-00"){
     applicable_till = r.applicable_till;
     }
-   if( typeof applicable_from !==undefined && typeof applicable_till){  
-     console.log(12345)              
+   if( typeof applicable_from !==undefined && typeof applicable_till){              
     begin = new DateTime( applicable_from );
     end = new DateTime( applicable_till );
     interval =createFromDateString('1 month');

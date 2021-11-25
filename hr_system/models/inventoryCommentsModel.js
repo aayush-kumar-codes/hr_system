@@ -28,16 +28,16 @@ function inventorycomments(database, type) {
       freezeTableName: true,
     }
   );
-  inventorycomments.associate = (models) => {
-    models.inventorycomments.hasOne(models.MachineList, {
+  inventory_comments.associate = (models) => {
+    inventory_comments.hasOne(models.MachineList, {
       foreignKey: "inventory_id",
       as: "inventory",
     });
-    models.inventorycomments.hasOne(models.User, {
+    inventory_comments.hasOne(models.User, {
       foreignKey: "updated_by_user_id",
       as: "updated_by_user",
     });
-    models.inventorycomments.hasOne(models.User, {
+    inventory_comments.hasOne(models.User, {
       foreignKey: "assign_unassign_user_id",
       as: "assign_unassign_user",
     });
@@ -66,7 +66,6 @@ function inventorycomments(database, type) {
           audit_message = req.body.audit_message;
         }
       }
-
       let response = await api_addInventoryAudit(
         loggedUserInfo,
         inventory_id,
@@ -76,7 +75,6 @@ function inventorycomments(database, type) {
         models,
         req
       );
-      console.log(123243);
       if (
         typeof req.body.do_refresh_token != "undefined" &&
         req.body.do_refresh_token == 1
@@ -84,8 +82,8 @@ function inventorycomments(database, type) {
         const data = await isInventoryAuditPending(logged_user_id, models);
         if (data == false) {
           let oldToken = req.headers.authorization;
-          let newToken = await refreshToken(oldToken, models, (addOns = false));
-          response.data.new_token = newToken;
+          // let newToken = await refreshToken(oldToken, models, (addOns = false));
+          // response.data.new_token = newToken;
         }
       }
     } catch (error) {
