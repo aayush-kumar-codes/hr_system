@@ -17,7 +17,7 @@ const upload = multer({ storage: storage });
 
 router.get(
   "/get_user_profile_detail",
-  middleware.AuthForHr,
+  middleware.AuthForHrEmployee,
   employeeController.getUserProfileController,
   handlers.responseForEmployee
 ); //done

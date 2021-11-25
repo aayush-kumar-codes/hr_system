@@ -38,7 +38,6 @@ exports.AuthForHrAdmin = async (req, res, next) => {
   let token = req.headers.authorization.split(" ");
   try {
     const checkJwt = await jwt.verify(token[1], secret.jwtSecret);
-    console.log(checkJwt);
     const user = await db.sequelize.query(
       `select * from users where users.id = ${checkJwt.id}`,
       { type: QueryTypes.SELECT }
@@ -135,6 +134,7 @@ exports.AuthForHrEmployee = async (req, res, next) => {
       res.send("you are not authorized");
     }
   } catch (error) {
+    console.log(error)
     return res.status(401).json({
       message: "Auth token invalid",
     });

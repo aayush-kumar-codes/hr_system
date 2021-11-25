@@ -60,6 +60,7 @@ exports.getUserProfileDetailByIdConttroller = async (req, res, next) => {
     if (typeof req.body.user_id != "undefined" && req.body.user_id !== "") {
       user_id = req.body.user_id;
       response = await getUserDetailInfo(user_id, req, db);
+      console.log(response)
       if (
         typeof req.body.secret_key != "undefined" &&
         req.body.secret_key !== ""
@@ -133,6 +134,7 @@ exports.getEnabledUser = async (req, res, next) => {
     res.status_code = 200;
     return next();
   } catch (error) {
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();
@@ -193,6 +195,7 @@ exports.getUserPolicyDocument = async (req, res, next) => {
     let userid = req.userData.id;
     let userPolicyDocument = await getUserPolicyDocument(userid, req, db);
     res.error = userPolicyDocument.error;
+    res.message=userPolicyDocument.message;
     res.data = userPolicyDocument.data;
     res.status_code = 200;
     return next();
@@ -204,8 +207,8 @@ exports.getUserPolicyDocument = async (req, res, next) => {
 };
 exports.updateUserPolicyDocument = async (req, res, next) => {
   try {
-    let updatedUserPolicyDocument =
-      await db.UserProfile.updateUserPolicyDocument(req);
+    let logged_user_id=req.userData.id;
+    let updatedUserPolicyDocument =await db.UserProfile.updateUserPolicyDocument(req,logged_user_id);
     res.message = "updated";
     res.status_code = 200;
     return next();

@@ -14,6 +14,7 @@ const {
   const { sequelize } = require("./db");
   const { MachineStatusDeleteValidator } = require("./validators/req-validators");
 const { getUserInfo, copyExistingRoleRightsToNewRole } = require("./allFunctions");
+const elc_stages_step = require("./models/elc_stages_stepModel");
 
   
   let getUserDetailInfo = async (userid,req,models) => {
@@ -38,7 +39,7 @@ const { getUserInfo, copyExistingRoleRightsToNewRole } = require("./allFunctions
   };
 
   let getUserBankDetail= async (userid,req,models)=>{
-  let query=await models.sequelize.query(`SELECT * FROM user_bank_details WHERE "user_Id" = ${userid}`,{type:QueryTypes.SELECT});
+  let query=await models.sequelize.query(`SELECT * FROM user_bank_details WHERE user_Id = ${userid}`,{type:QueryTypes.SELECT});
    let arr="";
    arr=query;
    return arr;
@@ -47,7 +48,7 @@ const { getUserInfo, copyExistingRoleRightsToNewRole } = require("./allFunctions
     let isAdmin="";
       let query=await models.sequelize.query(`SELECT users.status, users.username,
        users.type, user_profile.* FROM users 
-      LEFT JOIN user_profile ON users.id = user_profile."user_Id" where users.status = 'Enabled' AND 
+      LEFT JOIN user_profile ON users.id = user_profile.user_Id where users.status = 'Enabled' AND 
       users.id = ${userid}`,{type:QueryTypes.SELECT})
       if(isAdmin===""){
       delete query[0].holding_comments;
@@ -71,8 +72,8 @@ const { getUserInfo, copyExistingRoleRightsToNewRole } = require("./allFunctions
 
   }
   let  getUserAssignMachines=async(userid,req,models)=>{
-    let query=await models.sequelize.query(`select machinelist.id, machinelist.machine_type,machinelist.machine_name,machinelist.mac_address,machinelist.serial_number, machinelist.bill_number, machines_user."user_Id",machines_user.assign_date from machinelist 
-    left join machines_user on machinelist.id = machines_user.machine_id where machines_user."user_Id" = ${userid}`,{type:QueryTypes.SELECT})
+    let query=await models.sequelize.query(`select machines_list.id, machines_list.machine_type,machines_list.machine_name,machines_list.mac_address,machines_list.serial_number, machines_list.bill_number, machines_user.user_Id,machines_user.assign_date from machines_list 
+    left join machines_user on machines_list.id = machines_user.machine_id where machines_user.user_Id = ${userid}`,{type:QueryTypes.SELECT})
     return query;
   }
   let getEnabledEmployeesBriefDetails= async(req,models)=>{
@@ -137,7 +138,7 @@ let query;
     roles.id as role_id,
     roles.name as role_name
     FROM users
-    LEFT JOIN user_profile ON users.id = user_profile."user_Id"
+    LEFT JOIN user_profile ON users.id = user_profile.user_Id
     LEFT JOIN user_roles ON users.id = user_roles.user_id
     LEFT JOIN roles ON user_roles.role_id = roles.id
     where
@@ -212,7 +213,6 @@ let getDisabledUser=async(req,models)=>{
   LEFT JOIN roles ON user_roles.role_id = roles.id
   where
   users.status = 'Disabled'`,{type:QueryTypes.SELECT})
-  console.log(query)
   Return={};
   if(query.length!==0){
     Return.error=0;
@@ -226,11 +226,12 @@ let getUserDocumentDetail=async(userid,req,models)=>{
   let r_error=1;
   let r_message="";
   let r_data=[];
-  let q =await models.sequelize.query(`SELECT * FROM user_document_detail where "user_id" = ${userid} `,{type:QueryTypes.SELECT})
+  let q =await models.sequelize.query(`SELECT * FROM user_document_detail where user_id = ${userid}`,{type:QueryTypes.SELECT})
+  JSON.parse(JSON.stringify(q))
  for (let [key,row] of Object.entries(q)){
    if(!isNaN(row.updated_by)&& row.updated_by>0){
     let userInfo=await getUserInfo(row.updated_by,models);
-    q.key.updated_by={
+    q[key].updated_by={
       user_id:row.updated_by,
       name:userInfo.name,
       role:userInfo.role_name
@@ -257,10 +258,21 @@ let getUserPolicyDocument=async(userid,req,models)=>{
   let r_error=1;
   let r_message = "";
   let r_data    = [];
-  let q1=await models.sequelize.query(`SELECT * FROM user_profile where "user_Id" = ${userid}`,{type:QueryTypes.SELECT})
-  let ar0=JSON.parse(q1[0].policy_document)//working 
+  let Return={};
+  let q1=await models.sequelize.query(`SELECT * FROM user_profile where user_Id = ${userid}`,{type:QueryTypes.SELECT})
+  if(q1.length==0){
+    Return.error=0;
+    Return.message=`there is no user_profile having user_Id =${userid}`;
+    return Return;
+  }
+  let ar0=JSON.parse(q1[0].policy_document)
   let q2=await models.sequelize.query(`SELECT * FROM config where type ='policy_document'`,{type:QueryTypes.SELECT})
-  let ar1=JSON.parse(q2[0].value)//working
+  if(q2.length==0){
+    Return.error=0;
+    Return.message="there is no config file having type:policy Document"
+    return Return;
+  }
+  let ar1=JSON.parse(q2[0].value)
   let arr=[];
   if (ar0==null){
     for(let v2 of Object.entries(ar1)){
@@ -287,12 +299,13 @@ let getUserPolicyDocument=async(userid,req,models)=>{
 }
 r_error=0;
 r_data=arr;
-let Return={};
 Return.error=r_error;
 Return.data=r_data;
+// console.log(Return)
 return Return;
   }catch(error){
     console.log(error)
+    throw new Error(error)
   }
 
 }
@@ -300,6 +313,7 @@ let getEmployeeLifeCycle=async(userid,models)=>{
   try{
   let Return={};
   let employee_life_cycle=await getELC(userid,models);
+  // console.log(employee_life_cycle,"++++++++++++++++++++++++++")
   let employeeLifeCycleStepsDone = await getEmployeeLifeCycleStepsDone( userid,models);
   if(employeeLifeCycleStepsDone.length>0){
     let data_employee_life_cycle = employee_life_cycle.employee_life_cycle;
@@ -324,7 +338,7 @@ return [];
 }
 
 let getELC=async(userid=false,models)=>{
-  allList = await getGenericElcList(models);
+  let allList = await getGenericElcList(models);
   employeeLifeCycleStepsDone = [];
   if(userid!=false){
     employeeLifeCycleStepsDone = await getEmployeeLifeCycleStepsDone(userid,models );
@@ -338,26 +352,29 @@ let getELC=async(userid=false,models)=>{
       status=1;
     }
    }
-   allList.k.status =status;
+   allList[key].status =status;
   }
- let Return=[];
- for( let elc of Object.entries(allList)){
+ let Return={};
+//  console.log(allList)
+ for( let elc of allList){
+  //  console.log(elc,"---===---==---==-")
   let sort = 0;
-  if( typeof elc.sort!=="undefind"){
+  if( typeof elc.sort!==undefined){
       sort = elc.sort;
   }
   if(elc.stage_id in Return ){
-      Return.elc.stage_id.steps[
+      Return[elc].stage_id.steps[
         id = elc.id,
         text =elc.text,
-        status =elc.status,
         sort = sort
       ]
+      Return[elc].stage_id.steps.status=elc.status;
   }else{
-      Return.elc.stage_id =[ 
-          stage_id =elc.stage_id,
-          text =await getElcStageName(elc.stage_id,models),
-      ]
+    Return.elc = elc;
+      Return.elc.stage_id ={
+          stage_id:elc.stage_id,
+          text :await getElcStageName(elc.stage_id,models),
+      }
       Return.elc.stage_id.steps = [];
       Return.elc.stage_id.steps=[
         id = elc.id,
@@ -376,6 +393,7 @@ if(Return.length > 0 ){
       }
   }
 }
+console.log(Return,"----------------------------------")
 return Return;
 }
 let getElcStageName=async(stageid,models)=>{
@@ -393,11 +411,13 @@ let getElcStageName=async(stageid,models)=>{
  return stageName;
 }
 let getGenericElcList=async(models)=>{
+  // console.log(34241341)
   let rawElcData = await getRawElcData(models);
+  // console.log(rawElcData)
   let allStages=[];
   let elc=[];
      for ([key,row] of Object.entries(rawElcData.steps)) {
-           elc =[
+           elc =[ 
                 stage_id= row.elc_stage_id,
                 id = row.id,
                 text = row.name
@@ -408,11 +428,12 @@ let getGenericElcList=async(models)=>{
 }
 let getRawElcData=async(models)=>{
   let elc_stages=await getElcStages(models);
+  // console.log(elc_stages,"++++++++++++++++")
   let elc_steps=await models.sequelize.query(`SELECT * FROM elc_stages JOIN elc_stages_steps on elc_stages.id = elc_stages_steps.elc_stage_id`,{type:QueryTypes.SELECT})
-  let ret=[
-    stages=elc_stages,
-    steps=elc_steps
-  ]
+  let ret={
+    stages:elc_stages,
+    steps:elc_steps
+  }
 return ret;
 }
 let getElcStages=async(models)=>{
@@ -502,11 +523,12 @@ if( teamToDelete != false && (teamToDeleteEmployees.length) > 0 ){
   let q1=await models.sequelize.query(`select * from config where type ='${req.body.type}'`,{type:QueryTypes.SELECT})
 if(q1.length==0){
   r_error = 0;
+  await models.sequelize.query(`Insert into config (type,value)values('${req.body.type}','${req.body.value}')`,{type:QueryTypes.INSERT})
   r_message = "Successfully Inserted";
   r_data.message = r_message;
 }else{
   let value =req.body.value;
-  let q = await models.sequelize.query(`UPDATE config set value='${value}' WHERE type ='${req.body.type}' `,{type:QueryTypes.SELECT});
+  let q = await models.sequelize.query(`UPDATE config set value='${value}' WHERE type ='${req.body.type}' `,{type:QueryTypes.UPDATE});
     r_error = 0;
     r_message = "Updated successfully";
     r_data.message= r_message;
@@ -515,6 +537,7 @@ if(q1.length==0){
 let Return ={};
 Return.error = r_error;
 Return.data= r_data;
+console.log(Return)
 return Return;
 }catch(error){
   console.log(error)
@@ -543,19 +566,25 @@ let UpdateUserBankInfo=async(req,models)=>{
   let r_error = 1;
   let r_message = "";
   let r_data = {};
-  let userid = req.body.user_id;
+  let userid;
+  if(req.body.user_id){
+    userid= req.body.user_id;
+  }else{
+    userid=req.userData.id;
+  }
   let userInfo = await getUserInfo(userid,models);
   let userInfo_name = userInfo[0].name;
   let f_bank_name = req.body.bank_name;
   let f_bank_address = req.body.bank_address;
   let f_bank_account_no = req.body.bank_account_no;
   let f_ifsc =req.body.ifsc;
-  let q =await models.sequelize.query(`SELECT * from user_bank_details WHERE "user_Id"=${userid}`,{type:QueryTypes.SELECT})     
+  let q =await models.sequelize.query(`SELECT * from user_bank_details WHERE user_Id=${userid}`,{type:QueryTypes.SELECT})    
+  console.log(q,"++++++++++++++++++++++++++++++++++++++++++++++++++++") 
    if(q.length==0){
      await models.sequelize.query(`INSERT INTO user_bank_details ( "user_Id", bank_name, bank_address, bank_account_no, ifsc ) VALUES ( ${userid}, '${f_bank_name}', '${f_bank_address}', '${f_bank_account_no}', '${f_ifsc}' )`,{type:QueryTypes.INSERT})
    }
    else{
-     q=await models.sequelize.query(`UPDATE user_bank_details set bank_name='${f_bank_name}', bank_address='${f_bank_address}', bank_account_no='${f_bank_account_no}', ifsc='${f_ifsc}' WHERE "user_Id"=${userid}`,{type:QueryTypes.UPDATE})
+     q=await models.sequelize.query(`UPDATE user_bank_details set bank_name='${f_bank_name}', bank_address='${f_bank_address}', bank_account_no='${f_bank_account_no}', ifsc='${f_ifsc}' WHERE user_Id=${userid}`,{type:QueryTypes.UPDATE})
    }
    r_error=0;
    r_message="Data Successfully Updated";
@@ -574,13 +603,13 @@ let UpdateUserBankInfo=async(req,models)=>{
     console.log(error)
   }
 }
-let getSalaryInfo= async(userid,db,sort=false,date=false)=>{
+let getSalaryInfo= async(userid,models,sort=false,date=false)=>{
  let q=await models.sequelize.query(`select * from salary where "user_Id" = ${userid}`,{type:QueryTypes.SELECT})
   if (sort == 'first_to_last') {
     q = (`select * from salary where "user_Id" = ${userid} ORDER by id ASC`,{type:QueryTypes.SELECT});
 }
   let applicable_month = 0;
-  for(let[key,r] of q){
+  for(let[key,r] of Object.entries(q)){
     if(typeof r.applicable_from !==undefinded && r.applicable_from !=="" && r.applicable_from !=="0000-00-00"){
       applicable_from = r['applicable_from'];
     }
@@ -595,6 +624,7 @@ let getSalaryInfo= async(userid,db,sort=false,date=false)=>{
     applicable_month = iterator_count($period);
 } 
   }
+
 
 }
   module.exports={
