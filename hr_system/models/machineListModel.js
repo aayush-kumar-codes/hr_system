@@ -118,7 +118,8 @@ function machinelist(database, type) {
 
   MachineList.addOfficeMachine = async (req, db) => {
     try {
-      const loggeduserid = req.userData.data.id;
+      // const loggeduserid = req.userData.data.id;
+      const loggeduserid = req.userData.id;
       let creation = await MachineList.create({
         machine_type: req.body.machine_type,
         machine_name: req.body.machine_name,
@@ -188,41 +189,41 @@ function machinelist(database, type) {
       throw new Error("Unable to locate all users");
     }
   };
-  // MachineList.GetMachine = async (reqBody, models) => {
-  //   try {
-  //     const loggeduserid = reqBody.userData.data.id;
-  //     const loggeduser_role = reqBody.userData.data.role;
-  //     let res = await api_getMyInventories(
-  //       loggeduserid,
-  //       loggeduser_role,
-  //       models
-  //     );
-  //     if (
-  //       typeof reqBody.body.skip_inventory_audit != undefined &&
-  //       reqBody.body.skip_inventory_audit == 1
-  //     ) {
-  //       let lowerCaseLoggedUserRole = loggeduser_role.toLowerCase();
-  //       if (
-  //         lowerCaseLoggedUserRole == "hr" ||
-  //         lowerCaseLoggedUserRole == "inventory manager" ||
-  //         lowerCaseLoggedUserRole == "hr payroll manager" ||
-  //         lowerCaseLoggedUserRole == "admin"
-  //       ) {
-  //         let addOnsRefreshToken = [];
-  //         addOnsRefreshToken.skip_inventory_audit = true;
-  //         let newToken = await refreshToken(
-  //           reqBody.headers.authorization,
-  //           models,
-  //           addOnsRefreshToken
-  //         );
-  //         res.data.new_token = newToken;
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.log(error);
-  //     throw new Error("Unable to locate all users");
-  //   }
-  // };
+  MachineList.GetMachine = async (reqBody, models) => {
+    try {
+      const loggeduserid = reqBody.userData.id;
+      const loggeduser_role = reqBody.userData.role;
+      let res = await api_getMyInventories(
+        loggeduserid,
+        loggeduser_role,
+        models
+      );
+      if (
+        typeof reqBody.body.skip_inventory_audit != undefined &&
+        reqBody.body.skip_inventory_audit == 1
+      ) {
+        let lowerCaseLoggedUserRole = loggeduser_role.toLowerCase();
+        if (
+          lowerCaseLoggedUserRole == "hr" ||
+          lowerCaseLoggedUserRole == "inventory manager" ||
+          lowerCaseLoggedUserRole == "hr payroll manager" ||
+          lowerCaseLoggedUserRole == "admin"
+        ) {
+          let addOnsRefreshToken = [];
+          addOnsRefreshToken.skip_inventory_audit = true;
+          let newToken = await refreshToken(
+            reqBody.headers.authorization,
+            models,
+            addOnsRefreshToken
+          );
+          res.data.new_token = newToken;
+        }
+      }
+    } catch (error) {
+      console.log(error);
+      throw new Error("Unable to locate all users");
+    }
+  };
 
   // MachineList.getMachineDetail = async (reqBody,models, res) => {
   //   try {

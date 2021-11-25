@@ -3,10 +3,22 @@ function inventoryauditmonthwise(database, type) {
     "inventory_audit_month_wise",
     {
       inventory_id: type.INTEGER,
-      month: type.INTEGER,
-      year: type.INTEGER,
-      audit_done_by_user_id: type.INTEGER,
-      inventory_comment_id: type.INTEGER,
+      month: {
+        type: type.INTEGER,
+        defaultValue: false,
+      },
+      year: {
+        type: type.INTEGER,
+        defaultValue: false,
+      },
+      audit_done_by_user_id: {
+        type: type.INTEGER,
+        defaultValue: false,
+      },
+      inventory_comment_id: {
+        type: type.INTEGER,
+        defaultValue: false,
+      },
       updated_at: type.DATE,
     },
     {
@@ -15,16 +27,16 @@ function inventoryauditmonthwise(database, type) {
     }
   );
 
-  inventoryauditmonthwise.associate = (models) => {
-    models.inventoryauditmonthwise.hasOne(models.MachineList, {
+  inventory_audit_month_wise.associate = (models) => {
+    inventory_audit_month_wise.hasOne(models.MachineList, {
       foreignKey: "inventory_id",
       as: "inventory",
     });
-    models.inventoryauditmonthwise.hasOne(models.User, {
+    inventory_audit_month_wise.hasOne(models.User, {
       foreignKey: "audit_done_by_user_id",
       as: "audit_done_by_user",
     });
-    models.inventoryauditmonthwise.hasOne(models.InventoryCommentsModel, {
+    inventory_audit_month_wise.hasOne(models.InventoryCommentsModel, {
       foreignKey: "inventory_comment_id",
       as: "inventory_comment",
     });

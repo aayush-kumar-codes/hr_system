@@ -26,7 +26,8 @@ const { response } = require("express");
 
 exports.getUserProfileController = async (req, res, next) => {
   try {
-    let id = req.userData.data.id;
+    let id = req.userData.id;
+    // let loggeduserid=req.userData.data.id;
     let userProfileDetails = await getUserDetailInfo(id, req, db);
     res.data = userProfileDetails.data;
     res.error = userProfileDetails.error;
@@ -189,7 +190,7 @@ exports.addTeamController = async (req, res, next) => {
 
 exports.getUserPolicyDocument = async (req, res, next) => {
   try {
-    let userid = req.userData.data.id;
+    let userid = req.userData.id;
     let userPolicyDocument = await getUserPolicyDocument(userid, req, db);
     res.error = userPolicyDocument.error;
     res.data = userPolicyDocument.data;
@@ -358,7 +359,7 @@ exports.updateEmployeePassControllers = async (req, res, next) => {
 
 exports.getUserDocument = async (req, res, next) => {
   try {
-    let user_id = req.userData.data.id;
+    let user_id = req.userData.id;
     let userDocument = await getUserDocumentDetail(user_id, req, db);
     res.data = userDocument.data.user_document_info;
     res.error = userDocument.error;

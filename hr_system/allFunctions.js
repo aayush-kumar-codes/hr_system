@@ -29,9 +29,8 @@ let getPageById = async (id) => {
 
 
 let getRolePages = async (roleid, models) => {
-  let rows = await models.RolesPage.findAll({
-    where: { role_id: roleid },
-  });
+  let rows = await models.sequelize.query(`Select * from roles_pages 
+  where roles_pages.role_id = '${roleid}'`, {type: QueryTypes.SELECT});
   if (rows.length > 0) {
     let data = await Promise.all(
       rows.map(async (doc) => {
@@ -42,15 +41,8 @@ let getRolePages = async (roleid, models) => {
         return obj;
       })
     );
-    // rows =  data;
-    // for(let [key, row] of Object.entries(rows)){
-    //   let page = await getPageById(row.page_id);
-    //   row.page_name = page.name;
-    //   rows[key] = row;
-    // }
     return data;
   }
-  // return rows;
 };
 let getActionById = async (id) => {
   let data=false;
@@ -63,13 +55,11 @@ let getActionById = async (id) => {
   return data;
 };
 
-
 let getRoleActions = async (roleid, models) => {
   let rows = await models.RolesAction.findAll({
     where: { role_id: roleid },
   });
   if (rows.length > 0) {
-
     let data = await Promise.all(
       rows.map(async (doc) => {
         doc = JSON.parse(JSON.stringify(doc));
@@ -80,11 +70,6 @@ let getRoleActions = async (roleid, models) => {
       })
     );
     rows =  data;
-    // for(let [key, row] of Object.entries(rows)){
-    //   let action = await getActionById(row.action_id);
-    //   row.action_name = action.name;
-    //   rows[key] = row;
-    // }
   }
   return rows;
 };
@@ -161,8 +146,6 @@ let getUserprofileDetail=async(userid,req,models)=>{
 let getRolePagesForSuperAdmin = async () => {
   let data = await getGenericPagesForAllRoles();
   let allPages = await getAllPages();
-  // console.log("+++++++++++++++++");
-  // console.log(allPages);
   allPages.forEach((page) => {
     newPage = { page_id: page.id, page_name: page.name };
     data.push(newPage);
@@ -805,7 +788,7 @@ let generateUserToken = async (userId, models,addOns = false) => {
   }
 
   // let token = jwt.sign({ data: u }, secret.jwtSecret, {
-    let token = jwt.sign( u , secret.jwtSecret, {
+    let token = jwt.sign( u, secret.jwtSecret, {
     expiresIn: "2hr",
   });
   return token;
@@ -869,7 +852,6 @@ let getMachineDetail = async (id, models) => {
     Return.data = row;
     return Return;
   } catch (error) {
-    console.log(error);
     throw new Error("Unable to locate all users");
   }
 };
@@ -932,14 +914,17 @@ const addInventoryAudit= async(loggedUserInfo,inventory_id,updated_by_user_id,au
   let dateTimeData = await _getDateTimeData();
   let audit_month  = dateTimeData.current_month_number;
   let audit_year   = dateTimeData.current_year_number;
-
-  let inventory_comment_id  = await addInventoryComment(inventory_id,loggedUserInfo.id,models,req)
-  let q= await models.InventoryAuditMonthWise.create(inventory_id, audit_month, audit_year, audit_done_by_user_id, inventory_comment_id )
+  let inventory_comment_id  = await addInventoryComment(inventory_id,loggedUserInfo.id,models,req);
+  let q = await models.sequelize.query(`INSERT INTO inventory_audit_month_wise
+  ( inventory_id, month, year, audit_done_by_user_id, inventory_comment_id )
+  VALUES
+  (${inventory_id}, ${audit_month}, ${audit_year}, ${audit_done_by_user_id}, ${inventory_comment_id})
+  `, {type:QueryTypes.INSERT});
   return true;
 }
 
 let assignUserMachine = async (machine_id, userid, loggeduserid,req,models) => {
-  let r_error=1;
+  let r_error=0;
   let r_message;
   let Return={};
   if (
@@ -1283,7 +1268,7 @@ if(priorCheckError==false){
       if (data[key]!= machine_detail.data.q[0].key) {
         let arr =[];
         arr[key]=data[key];
-        resp = await DBupdateBySingleWhere('MachineList', whereField, whereFieldVal, arr,key,models);
+        resp = await DBupdateBySingleWhere('machines_list', whereField, whereFieldVal, arr,key,models);
         msg[key]=data[key]
     }
   }
@@ -1476,7 +1461,7 @@ let assignDefaultValuesToRole = async (new_role_id, roleName = false) => {
 };
 
 let getAllRole = async (models) => {
-  let q=await models.sequelize.query(`Select * from roles`,{type:QueryTypes.SELECT})
+  let q = await models.sequelize.query(`select * from roles`, {type: QueryTypes.SELECT});
   return q;
 };
 
@@ -1644,7 +1629,7 @@ let inventoriesAuditEmployeeWise=async(data,req,models)=>{
       employeeWiseData.assigned_user_id.employee.emp_name =inventory.assigned_to;
      }
      let addInventoryToList = true;
-     for([key,inv] in (employeeWiseData.assigned_user_id.inventories)){
+     for([key,inv] in employeeWiseData.assigned_user_id.inventories){
       if(inv.id==inventory.id){
         addInventoryToList = false;
         break;
@@ -1692,7 +1677,8 @@ let assignUserRole = async (userid, roleid, models) => {
       error = 0;
       message = "User Role removed!!";
     } else {
-      let q = await models.UserRole.findAll({ where: { user_id: userid } });
+      let q = await models.sequelize.query(`select * from user_roles where user_roles.user_id = ${userid}`, {type: QueryTypes.SELECT});
+      // let q = await models.UserRole.findAll({ where: { user_id: userid } });
       if (q.length == 0) {
         let creation = await models.UserRole.create({
           user_id: userid,
@@ -1719,7 +1705,8 @@ let assignUserRole = async (userid, roleid, models) => {
 };
 
 let assignAdminRoleToUserTypeAdminIfNoRoleAssigned = async (roles, models) => {
-    let q = await models.sequelize.query(`Select * from users where users.type='admin' and users.status='Enabled'`,{type:QueryTypes.SELECT})
+  let q = await models.sequelize.query(`select * from users where 
+  users.type = 'admin' and users.status = 'Enabled'`, {type: QueryTypes.SELECT})
   if (q.length > 0) {
     let adminRoleDetails = null;
     for (let key in roles) {
@@ -1763,12 +1750,21 @@ let getEnabledUsersList = async (sorted_by=false, models) => {
       );
     } else if (sorted_by == "dateofjoining") {
       q = await models.sequelize.query(
-        "SELECT users.*, user_profile.*,roles.id as role_id,roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile.user_Id LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' ORDER BY user_profile.dateofjoining ASC ",
+        `SELECT users.*, user_profile.*,
+        roles.id as role_id,roles.name as role_name FROM users 
+        LEFT JOIN user_profile ON users.id = user_profile.user_Id 
+        LEFT JOIN user_roles ON users.id = user_roles.user_id 
+        LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' ORDER BY user_profile.dateofjoining ASC `,
         { type: QueryTypes.SELECT }
       );
     } else {
       q = await models.sequelize.query(
-        `SELECT users.*, user_profile.*,roles.id as role_id, roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile.user_Id LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' `,
+        `SELECT users.*, user_profile.*,
+        roles.id as role_id, 
+        roles.name as role_name FROM users 
+        LEFT JOIN user_profile ON users.id = user_profile.user_Id 
+        LEFT JOIN user_roles ON users.id = user_roles.user_id 
+        LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' `,
         { type: QueryTypes.SELECT }
       );
     }
@@ -1829,8 +1825,8 @@ let getEnabledUsersListWithoutPass = async (models,role = null,sorted_by = null,
     "role_name",
     "eth_token",
   ];
-  for (let val in row) {
-    delete row[val].password;
+  for (let val of row) {
+    delete val.password;
     if(role !==null){
     if (role.toLowerCase() == "guest") {
       for (let key in val) {
@@ -1841,12 +1837,12 @@ let getEnabledUsersListWithoutPass = async (models,role = null,sorted_by = null,
         }
       }
     }
-    rows.push(row[val]);
+    rows.push(val);
   }
   return rows;
   };
 }
-const api_getMyInventories = async (user_id, user_role, models) => {
+const api_getMyInventories = async (user_id,user_role,models) => {
   let error = 0;
   let message = "";
   let data = {};
@@ -1912,16 +1908,16 @@ const api_getMyInventories = async (user_id, user_role, models) => {
   return Return;
 };
 let API_getTempUploadedInventoryFiles=async(req,models)=>{
+  let message="";
 let query1=await models.sequelize.query(`SELECT 
 inventory_temp_files.*,
 files.updated_by_user_id as updated_by_user_id,
 files.file_name as file_name,
 files.google_drive_path as google_drive_path
 FROM inventory_temp_files
-LEFT JOIN files on inventory_temp_files.file_id = files.id`,{type:QueryTypes.SELECT})
-
-if(Array.isArray(query1)&&query1.length!=0){
-  for([key,row] of query1){
+LEFT JOIN files on inventory_temp_files.file_id = files.id`,{type:QueryTypes.SELECT});
+if(Array.isArray(query1)&&query1.length>0){
+  for([key,row] of Object.entries(query1)){
     if(typeof row.file_name!="undefined"&&row.file_name!=null){
       //working on it
       query1.key.file_name=`$_ENV['ENV_BASE_URL'].'attendance/uploads/inventories/'.$row['file_name'];` 
@@ -1929,26 +1925,31 @@ if(Array.isArray(query1)&&query1.length!=0){
     }
   }
 }
+if(query1.length==0){
+  message="no temp uploaded inventory file present"
+}
 let Return={}
 Return.error=0;
-Return.message="";
+Return.message=message;
 Return.data=query1;
 return Return;
 
 }
 let removeMachineDetails = async(inventory_id,logged_user_id,req,models)=>{
-  try{
-  let error=0;
+  try {
+    let error=0;
   let r_message;
   let inventoryDetails=await getMachineDetail(inventory_id,models)
   if(typeof inventoryDetails.data.q.user_ID !="undefined" && inventoryDetails.data.q.user_ID !=null){
     error=1;
     r_message="You need to Unassign this inventory first!!";
   }else{
+    
     await removeInventoryAudits(inventory_id,req,models);
     await removeInventoryComments(inventory_id,req,models);
     await removeMachineAssignToUser(inventory_id,req,models);
-    let query1=await models.sequelize.query(`Delete from machines_list where machines_list.id=${inventory_id}`,{type:QueryTypes.DELETE});
+    // inventory_id =1;
+    let query1=await models.sequelize.query(`Delete from machines_list where id=${inventory_id}`,{type:QueryTypes.DELETE});
     error=0;
     r_message= "Inventory deleted successfully";
   }
@@ -1956,9 +1957,10 @@ let removeMachineDetails = async(inventory_id,logged_user_id,req,models)=>{
   Return.error = error;
   Return.message= r_message;
   return Return;
-}catch(error){
-  console.log(error)
-}
+  } catch (error) {
+    console.log(error);
+    throw new Error(error);
+  }
 }
 let removeMachineAssignToUser =async(inventory_id,req,models,loggeduserid)=>{
   const machine_Info = await getMachineDetail(inventory_id,models);
@@ -1966,7 +1968,8 @@ let removeMachineAssignToUser =async(inventory_id,req,models,loggeduserid)=>{
       const message = [];
       message.inventoryName = machine_Info.machine_name;
       message.invetoryType = machine_Info.machine_type;
-    let loggeduserid=req.userData.data.id;
+    // let loggeduserid=req.userData.data.id;
+    let loggeduserid=req.userData.id;
       addInventoryComment(inventory_id, loggeduserid, req, db);
     }
     await models.sequelize.query(`Delete from machines_user where machine_id=${inventory_id}`,{type:QueryTypes.DELETE});
@@ -2002,7 +2005,7 @@ let inventoryUnassignRequest =async(inventoryId,req,models)=>{
 let API_deleteTempUploadedInventoryFile=async(req,models)=>{
   let r_error   = 1;
   let r_message = "";
-  if(typeof req.body.temp_id !="undefined" && req.body.temp_id!=null && req.body.temp_id==""){
+  if(typeof req.body.temp_id !=="undefined" && req.body.temp_id!==null){
     let tempId = req.body.temp_id;
     let query1= await models.sequelize.query(`DELETE FROM inventory_temp_files WHERE id=${tempId}`,{type:QueryTypes.DELETE});
     r_error   = 0;

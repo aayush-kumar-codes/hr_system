@@ -32,7 +32,7 @@ router.get(
 );
 router.post(
   "/add_new_employee",
-  middleware.AuthForHr,
+  middleware.AuthForHrAdmin,
   validators.addNewEmployeeValidator,
   userController.addNewEmployeeController,
   handlers.addNewEmployeeResponseHandle

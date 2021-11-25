@@ -67,7 +67,7 @@ exports.inventoryGetController = async (req, res, next) => {
 
 exports.AssignUserMachineController = async (req, res, next) => {
   try {
-    let logged_user_id = req.userData.data.id;
+    let logged_user_id = req.userData.id;
     //  let logged_user_id=req.userData.id;
     let ownership_change_request = false;
     let response;
@@ -198,7 +198,7 @@ exports.getMachineController = async (req, res, next) => {
 
 exports.inventoryUpdateMachineController = async (req, res, next) => {
   try {
-    let logged_user_id = req.userData.data.id;
+    let logged_user_id = req.userData.id;
     // let logged_user_id = req.userData.id;
     let updatedMachine = await UpdateOfficeMachine(logged_user_id, req, db);
     res.status_code = 200;
@@ -362,7 +362,7 @@ exports.getMachinesDetailController = async (req, res, next) => {
 
 exports.getUnapprovedInventoryControllers = async (req, res, next) => {
   try {
-    let logged_user_id = req.userData.data.id;
+    let logged_user_id = req.userData.id;
     // let logged_user_id = req.userData.id;
     let unapprovedInventory = await api_getUnapprovedInventories(
       logged_user_id,
@@ -433,6 +433,7 @@ exports.inventoryUnassignRequestController = async (req, res, next) => {
 exports.getTempFilesController = async (req, res, next) => {
   try {
     let tempFiles = await API_getTempUploadedInventoryFiles(req, db);
+    console.log(tempFiles,"++++++++++++++++++++++++++++++++++++++++++++++")
     res.status_code = 200;
     res.message = tempFiles.message;
     res.error = tempFiles.error;
