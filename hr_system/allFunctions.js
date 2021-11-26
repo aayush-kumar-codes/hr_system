@@ -171,7 +171,6 @@ let getUserInfo = async (userid, models) => {
     // q.slack_profile = userSlackInfo;
     return q;
   } catch (error) {
-    console.log(error)
     throw new Error(error);
   }
 };
@@ -207,18 +206,10 @@ let getRoleCompleteDetails = async (roleId, models) => {
   query = JSON.parse(JSON.stringify(query));
   if (query.length > 0) {
     let role = query[0];
-    // let data = await Promise.all(await getRolePages(roleId, models))
-    // console.log(9999999);
-    // console.log(data)
     let pages = await getRolePages(roleId, models)
-
     let actions = await getRoleActions(roleId, models);
-    // let notification = await getRoleNotifications(
-    //   roleId, models
-    // );
     role.role_pages = pages;
     role.role_actions = actions;
-    // role.role_notifications = notification;
     data = role;
   }
   return data;
@@ -645,8 +636,6 @@ let generateUserToken = async (userId, models,addOns = false) => {
       u.role_pages = await getRolePagesForSuperAdmin();
     } else {
       let roleInfo = await getUserRole(userInfo[0].user_Id, models);
-      console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-      console.log(roleInfo);
       if (roleInfo != null&&typeof roleInfo.role_pages!="undefined") {
         let role_pages = await getRolePagesForApiToken(
           roleInfo.id,
@@ -654,18 +643,13 @@ let generateUserToken = async (userId, models,addOns = false) => {
         );
           for (let [key,page] of Object.entries(role_pages)) {
           if (!await checkifPageEnabled(page.page_id, models)) {
-            // role_pages.page.pop();
             delete role_pages.page;
           }
         }
-        console.log("+++++++++++++++++");
-        console.log(role_pages);
         u.role_pages = role_pages;
       }
       if (roleInfo !== null &&roleInfo.role_actions!="undefined") {
-        console.log(99999999999);
         let role_actions = roleInfo.role_actions;
-        console.log(role_actions);
         for(let[key,value] of Object.entries(role_actions)) {
           roleAction.push(value.action_name);
         }
@@ -673,19 +657,15 @@ let generateUserToken = async (userId, models,addOns = false) => {
     }
 
     u.role_actions = roleAction;
-    console.log(99999999);
-    console.log(u.role_actions);
     u.is_policy_documents_read_by_user = 1;
     u.is_inventory_audit_pending = 0;
     if (userInfo[0].type.toLowerCase() == "admin") {
       if (await isInventoryAuditPending(userInfo[0].user_Id, models)) {
         let generic_pages = await getGenericPagesForAllRoles();
-        console.log(generic_pages)
         u.right_to_skip_inventory_audit = 1;
         u.is_inventory_audit_pending = 1;
         generic_pages.forEach(async(ele) => {
           if (!await checkifPageEnabled(ele.page_id, models)) {
-            // key.pop();
             delete key;
           }
         });
@@ -704,7 +684,6 @@ let generateUserToken = async (userId, models,addOns = false) => {
         u.is_policy_documents_read_by_user = 0;
         for(let[key,generic] of Object.entries(generic_pages) ){
           if (!await checkifPageEnabled(generic.page_id, models)) {
-            // key.pop();
             delete key;
           }
         }
@@ -712,7 +691,7 @@ let generateUserToken = async (userId, models,addOns = false) => {
       }
       let hasUnassignRequestInventories = false;
       let hasOwnershipChangeInventoriesRequestPending = false;
-      if (userInfo[0].type.toLowerCase() == ("HR" || "inventory manager")) {
+      if (userInfo[0].type.toLowerCase() == ("hr" || "inventory manager")) {
         hasUnassignRequestInventories =
           await isUnassignInventoriesRequestPending(models);
         hasOwnershipChangeInventoriesRequestPending =
@@ -741,7 +720,7 @@ let generateUserToken = async (userId, models,addOns = false) => {
       }
       if (
         userInfo[0].type.toLowerCase() ==
-        ("HR" || "inventory manager" || "hr payroll manager")
+        ("hr" || "inventory manager" || "hr payroll manager")
       ) {
         if (u.is_inventory_audit_pending == 1) {
           // if (addOns.skip_inventory_audit) {
