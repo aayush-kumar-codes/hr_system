@@ -6,7 +6,7 @@ const db = {};
 
 // const sequelize = new Sequelize(databaseUri.psql_url,{logging: false});
 
-const sequelize = new Sequelize('excellen_hr_test', 'developer', 'dev_password', {
+const sequelize = new Sequelize('excellen_hr_test', 'sammy', 'password', {
   host: 'localhost',
   dialect: 'mysql',
 },{logging: false});
@@ -14,13 +14,11 @@ const sequelize = new Sequelize('excellen_hr_test', 'developer', 'dev_password',
 Object.keys(Models).forEach((modelName) => {
   const model = Models[modelName](sequelize, Sequelize.DataTypes);
   db[modelName] = model;
-  console.log(`Loading model - ${modelName}`);
 });
 
 Object.keys(db).forEach((modelName) => {
   try {
     if ("associate" in db[modelName]) {
-      console.log(db[modelName]);
       db[modelName].associate(db);
     }
   } catch (error) {

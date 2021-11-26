@@ -180,6 +180,7 @@ function user(database, type) {
       Return.message = message;
       return Return;
     } catch (error) {
+      console.log(error);
       throw new Error(error);
     }
   };
@@ -200,36 +201,6 @@ function user(database, type) {
       );
       if (statusToChange[0] !== 0) {
         return "updated";
-      } else {
-        return "not updated";
-      }
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
-  User.updatePassword = async (reqBody, userData) => {
-    try {
-      let passwordToUpdate = await User.update(
-        { password: reqBody.password },
-        { where: { id: userData.user_id } }
-      );
-      if (passwordToUpdate[0] !== 0) {
-        return "updated password";
-      } else {
-        return "updated password";
-      }
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
-  User.empUpdatePass = async (reqBody) => {
-    try {
-      let empPassToUpdate = await User.update(
-        { password: reqBody.password },
-        { where: { id: reqBody.empid } }
-      );
-      if (empPassToUpdate[0] !== 0) {
-        return "updated password";
       } else {
         return "not updated";
       }

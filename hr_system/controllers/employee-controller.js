@@ -3,6 +3,11 @@ const providers = require("../providers/creation-provider");
 const reqUser = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
+
+// exports.getUserProfileController = async (req, res, next) => {
+//   try {
+//     let userProfileDetails = await  getUserDetailInfo(userid,req,db);
+//     res.data = userProfileDetails;
 const {
   getUserDetailInfo,
   getEnabledEmployeesBriefDetails,
@@ -13,8 +18,10 @@ const {
   updateELC,
   getTeamList,
   saveTeamList,
-  UpdateUserBankInfo,
-  getSalaryInfo,
+  UpdateUserBankInfo,updatePassword,
+  getSalaryInfo,UpdateUserInfo,
+  updateEmployeePassword,
+  deleteRole
 } = require("../employeeFunction");
 const { validateSecretKey } = require("../allFunctions");
 const { response } = require("express");
@@ -55,6 +62,7 @@ exports.getUserProfileDetailByIdConttroller = async (req, res, next) => {
     if (typeof req.body.user_id != "undefined" && req.body.user_id !== "") {
       user_id = req.body.user_id;
       response = await getUserDetailInfo(user_id, req, db);
+      console.log(response)
       if (
         typeof req.body.secret_key != "undefined" &&
         req.body.secret_key !== ""
@@ -128,6 +136,7 @@ exports.getEnabledUser = async (req, res, next) => {
     res.status_code = 200;
     return next();
   } catch (error) {
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();
@@ -188,6 +197,7 @@ exports.getUserPolicyDocument = async (req, res, next) => {
     let userid = req.userData.id;
     let userPolicyDocument = await getUserPolicyDocument(userid, req, db);
     res.error = userPolicyDocument.error;
+    res.message=userPolicyDocument.message;
     res.data = userPolicyDocument.data;
     res.status_code = 200;
     return next();
@@ -199,8 +209,8 @@ exports.getUserPolicyDocument = async (req, res, next) => {
 };
 exports.updateUserPolicyDocument = async (req, res, next) => {
   try {
-    let updatedUserPolicyDocument =
-      await db.UserProfile.updateUserPolicyDocument(req);
+    let logged_user_id=req.userData.id;
+    let updatedUserPolicyDocument =await db.UserProfile.updateUserPolicyDocument(req,logged_user_id);
     res.message = "updated";
     res.status_code = 200;
     return next();
@@ -240,7 +250,6 @@ exports.getTeamListController = async (req, res, next) => {
 
 exports.updateBankDetailsController = async (req, res, next) => {
   try {
-    console.log("in controller updateBankDetailsController");
     let updatedDetails = await UpdateUserBankInfo(req, db);
     res.status_code = 200;
     res.error = updatedDetails.error;
@@ -255,7 +264,8 @@ exports.updateBankDetailsController = async (req, res, next) => {
 
 exports.deleteRoleController = async (req, res, next) => {
   try {
-    let deletedRole = await db.Role.deleteRole(req.body);
+    let role_id=req.body.role_id;
+    let deletedRole = await deleteRole(role_id,req,db);
     res.status_code = 200;
     res.message = deletedRole;
     return next();
@@ -281,9 +291,10 @@ exports.changeStatusController = async (req, res, next) => {
 
 exports.updateUserBYIdController = async (req, res, next) => {
   try {
+    let response12;
     if (typeof req.body.user_id !== undefined && req.body.user_id !== "") {
       let user_id = req.body.user_id;
-      let update = true;
+      let update =true;
       let showFirstSalaryTobeAddedWarning = false;
       let tr_completion_date = req.body.training_completion_date;
       let check_sendConfirmationEmail = false;
@@ -294,7 +305,7 @@ exports.updateUserBYIdController = async (req, res, next) => {
       ) {
         let check_sendConfirmationEmail = true;
       }
-      // if(check_sendConfirmationEmail ){
+      if(check_sendConfirmationEmail ){
       let sal_details = await getSalaryInfo(user_id, db);
       let sendConfirmationEmail = true;
       if (sal_details.length > 1) {
@@ -304,22 +315,22 @@ exports.updateUserBYIdController = async (req, res, next) => {
       if (sendConfirmationEmail) {
         req.body.sendConfirmationEmail = true;
       }
-      // }
+      }
       if (update) {
-        let response = await UpdateUserInfo(req, db);
+        response12 = await UpdateUserInfo(req, db);
         if (showFirstSalaryTobeAddedWarning) {
-          response["message_warning"] =
+          response12["message_warning"] =
             "Salary is not added for this employee!!";
         }
       }
     } else {
-      response.data.message = "Please give user_id ";
+      response12.data.message = "Please give user_id ";
     }
     res.status_code = 200;
-    res.message = response;
+    res.message = response12.data.message;
     return next();
   } catch (error) {
-    console.log(error);
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();
@@ -329,7 +340,7 @@ exports.updateUserBYIdController = async (req, res, next) => {
 exports.updateNewPassController = async (req, res, next) => {
   try {
     let userData = req.userData;
-    let updatedPassword = await db.User.updatePassword(req.body, userData);
+    let updatedPassword = await updatePassword(req, userData,db);
     res.status_code = 200;
     res.message = updatedPassword;
     return next();
@@ -342,11 +353,13 @@ exports.updateNewPassController = async (req, res, next) => {
 
 exports.updateEmployeePassControllers = async (req, res, next) => {
   try {
-    let updatedEmployeePass = await db.User.empUpdatePass(req.body);
+    let logged_user_id=req.userData.id;
+    let updatedEmployeePass = await updateEmployeePassword(logged_user_id,req,db);
     res.status_code = 200;
     res.message = updatedEmployeePass;
     return next();
   } catch (error) {
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();

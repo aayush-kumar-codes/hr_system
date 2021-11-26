@@ -142,7 +142,6 @@ function machinelist(database, type) {
         is_unassign_request: req.body.is_unassign_request,
         ownership_change_req_by_user: req.body.ownership_change_req_by_user,
       });
-      // console.log(creation.machine_type);
       if (creation.id != null) {
         const machine_id = creation.id;
         if (req.body.user_id === "" || req.body.user_id == null) {

@@ -15,17 +15,17 @@ exports.userRegister = async (req, res, next) => {
   try {
     let request_Validate = await reqUser(req);
     let user_details = await providers.validateCreation(req.body);
-    let user_create = await db.User.createUser(req.body, db);
-    req.body.user_id = user_create;
+    let result = await db.User.createUser(req.body, db);
+    req.body.user_id = result;
     const token = await jwt.sign(
-      { user_id: user_create, email: user_create.email },
+      { user_id: result, email: result.email },
       secret.jwtSecret,
       { expiresIn: "2hr" }
     );
     res.token = token;
     res.status_code = 201;
-    res.message = user_create.message;
-    res.error = user_create.error;
+    res.error = result.error;
+    res.message = result.message;
     return next();
   } catch (error) {
     res.status_code = 500;

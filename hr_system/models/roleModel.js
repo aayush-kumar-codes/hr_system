@@ -78,7 +78,9 @@ function roles(database, type) {
     try {
       let result = {};
       let allpages = await getAllPages();
+
       let allactions = await getAllActions();
+
       // let allnotifications = await getAllNotifications();
       result.default_pages = allpages;
       result.default_actions = allactions;
@@ -151,8 +153,10 @@ function roles(database, type) {
         error: 0,
         data: result,
       };
+
       return Return;
     } catch (error) {
+      console.log(error)
       throw new Error(error);
     }
   };
@@ -188,20 +192,6 @@ function roles(database, type) {
     try {
       let list = await roles.findAll({});
       return list;
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
-  roles.deleteRole = async (reqBody) => {
-    try {
-      let roletoDelete = await roles.destroy({
-        where: { id: reqBody.role_id },
-      });
-      if (roletoDelete == 1) {
-        return "deleted";
-      } else {
-        return "not deleted";
-      }
     } catch (error) {
       throw new Error(error);
     }

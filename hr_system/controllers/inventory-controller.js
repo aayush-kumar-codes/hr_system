@@ -142,6 +142,10 @@ exports.inventoryAuditController = async (req, res, next) => {
 
 exports.getMyInventoryController = async (req, res, next) => {
   try {
+    // console.log("getMyInventoryController");
+    // let machine_list = await db.MachineList.GetMachine(req, db);
+    // let machine_list = await db.MachineList.GetMachine(req, db);
+    // console.log(machine_list)
     const loggeduserid = req.userData.id;
     const loggeduser_role = req.userData.role;
     let result = await api_getMyInventories(loggeduserid, loggeduser_role, db);
