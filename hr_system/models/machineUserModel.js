@@ -28,10 +28,10 @@ function machineuser(database, type) {
         },
         { where: { machine_id: reqBody.machine_id } }
       );
-      if(creation){
+      if (creation) {
         return creation;
-      }else{
-        return ("machine_id not found");
+      } else {
+        return "machine_id not found";
       }
     } catch (error) {
       throw new Error(error);
@@ -70,7 +70,7 @@ function machineuser(database, type) {
   //     return "Done";
   //   }
   //   else{
-  //     return "error"; 
+  //     return "error";
   //   }
   //   } catch (error) {
   //     console.log(error, "error from assign machine");

@@ -15,17 +15,17 @@ exports.userRegister = async (req, res, next) => {
   try {
     let request_Validate = await reqUser(req);
     let user_details = await providers.validateCreation(req.body);
-    let user_create = await db.User.createUser(req.body, db);
-    req.body.user_id = user_create;
+    let result = await db.User.createUser(req.body, db);
+    req.body.user_id = result;
     const token = await jwt.sign(
-      { user_id: user_create, email: user_create.email },
+      { user_id: result, email: result.email },
       secret.jwtSecret,
       { expiresIn: "2hr" }
     );
     res.token = token;
     res.status_code = 201;
-    res.message = user_create.message;
-    res.error=user_create.error;
+    res.error = result.error;
+    res.message = result.message;
     return next();
   } catch (error) {
     res.status_code = 500;
@@ -39,13 +39,12 @@ exports.userLogin = async (req, res, next) => {
     let request_Validate = await reqUser(req);
     let username = req.body.username;
     let password = md5(req.body.password);
-
     let result = await db.User.login(username, password, db);
     res.status_code = 200;
     res.error = result.error;
     res.message = result.message;
     res.token = result.data.token;
-    if(result.data.userId){
+    if (result.data.userId) {
       res.userId = result.data.userId.toString();
     }
     return next();
@@ -59,12 +58,12 @@ exports.userLogin = async (req, res, next) => {
 
 exports.addNewEmployeeController = async (req, res, next) => {
   try {
-    let result = await db.UserProfile.addNewEmployee(req.body,db);
+    let result = await db.UserProfile.addNewEmployee(req.body, db);
     res.status_code = 200;
     res.error = result.error;
     res.message = result.message;
-    if(result.data.userID){
-      res.data = result.data
+    if (result.data.userID) {
+      res.data = result.data;
     }
     return next();
   } catch (error) {
@@ -86,7 +85,7 @@ exports.addUserRole = async (req, res, next) => {
     }
     let name = req.body.name;
     let description = req.body.description;
-    let role_create = await db.Role.AddNewRole(name, description, base_role_id);
+    let role_create = await db.Role.AddNewRole(name, description, base_role_id, db);
     res.status_code = 201;
     res.error = role_create.error;
     res.message = role_create.message;
@@ -105,6 +104,7 @@ exports.getUserRole = async (req, res, next) => {
     res.data = machine_count;
     return next();
   } catch (error) {
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();
@@ -146,11 +146,11 @@ exports.getEnableUser = async (req, res, next) => {
     }
     let sorted_by =
       typeof req.body.sorted_by != "undefined" ? req.body.sorted_by : false;
-    let result = await getEnabledUsersListWithoutPass(db,role, sorted_by, res);
+    let result = await getEnabledUsersListWithoutPass(db, role, sorted_by, res);
     res.status_code = 200;
     res.error = 0;
     res.data = result;
-	return next();
+    return next();
   } catch (error) {
     console.log(error);
     res.status_code = 500;
@@ -175,8 +175,10 @@ exports.updateRoleController = async (req, res, next) => {
 exports.listAllRolesController = async (req, res, next) => {
   try {
     let listofRoles = await db.Role.getListOfRoles();
+    console.log(listofRoles);
     res.status_code = 200;
     res.data = listofRoles;
+    res.message = listofRoles.error
     return next();
   } catch (error) {
     res.status_code = 500;

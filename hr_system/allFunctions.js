@@ -14,6 +14,7 @@ const db = require("./db");
 const { sequelize } = require("./db");
 const { MachineStatusDeleteValidator } = require("./validators/req-validators");
 const user = require("./models/userModel");
+const { Query } = require("pg");
 
 let getPageById = async (id) => {
   let data;
@@ -28,17 +29,20 @@ let getPageById = async (id) => {
 
 
 let getRolePages = async (roleid, models) => {
-  let rows = await models.RolesPage.findAll({
-    where: { role_id: roleid },
-  });
+  let rows = await models.sequelize.query(`Select * from roles_pages 
+  where roles_pages.role_id = '${roleid}'`, {type: QueryTypes.SELECT});
   if (rows.length > 0) {
-    for(let [key, row] of Object.entries(rows)){
-      let page = await getPageById(row.page_id);
-      row.page_name = page.name;
-      rows[key] = row;
-    }
+    let data = await Promise.all(
+      rows.map(async (doc) => {
+        doc = JSON.parse(JSON.stringify(doc));
+        let obj = { ...doc };
+        let page = await getPageById(doc.page_id);
+        obj.page_name = page.name;
+        return obj;
+      })
+    );
+    return data;
   }
-  return rows;
 };
 let getActionById = async (id) => {
   let data=false;
@@ -51,21 +55,56 @@ let getActionById = async (id) => {
   return data;
 };
 
-
 let getRoleActions = async (roleid, models) => {
   let rows = await models.RolesAction.findAll({
     where: { role_id: roleid },
   });
   if (rows.length > 0) {
-    for(let [key, row] of Object.entries(rows)){
-      let action = await getActionById(row.action_id);
-      row.action_name = action.name;
-      rows[key] = row;
-    }
+    let data = await Promise.all(
+      rows.map(async (doc) => {
+        doc = JSON.parse(JSON.stringify(doc));
+        let obj = { ...doc };
+        let action = await getActionById(doc.action_id);
+        obj.action_name = action.name;
+        return obj;
+      })
+    );
+    rows =  data;
   }
   return rows;
 };
 
+let getUserDetailInfo =async(userid,req,models)=>{
+  let r_error=1;
+  let r_message = "";
+  user_bank_detail = await getUserBankDetail(userid,req,models);
+  user_profile_detail =await getUserprofileDetail(userid,req,models);
+  user_assign_machine = await getUserAssignMachines(userid,req,models);
+  let Return ={};
+  Return.error=r_error;
+  Return.data.user_profile_detail;
+  Return.data.user_bank_detail;
+  Return.data.user_assign_machine;
+  return Return;
+}
+
+let getUserBankDetail=async(userid,req,models)=>{
+  let query=await models.sequelize.query(`SELECT * FROM user_bank_details WHERE "user_Id" = ${userid}`,{type:QueryTypes.SELECT})
+  let arr="";
+  arr=query;
+  return arr;
+}
+let getUserprofileDetail=async(userid,req,models)=>{
+  let query=await models.sequelize.query(`SELECT users.status, users.username, users.type, user_profile.* 
+  FROM users 
+  LEFT JOIN user_profile ON users.id = user_profile."user_Id" 
+  where 
+  users.status = 'Enabled' AND users.id = ${userid}`,{type:QueryTypes.SELECT})
+  if(query[0].type==Admin){
+    delete query[0].holding_comments;
+  }
+  return query;
+}
 // let registerRole=async(user)=>{
 // let allRoles=await db.Role.findOne({where:{name:user.type}});
 // await db.UserRole.create(user.id,allRoles.id);
@@ -163,7 +202,12 @@ let getGenericPagesForAllRoles = async () => {
 let getUserInfo = async (userid, models) => {
   try {
     let isAdmin;
-    let q = await models.sequelize.query(`SELECT users.*, user_profile.*, roles.id as role_id, roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile."user_Id" LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.id = ${userid} `,{type: QueryTypes.SELECT});
+    let q = await models.sequelize.query(`SELECT users.*, user_profile.*, 
+    roles.id as role_id, 
+    roles.name as role_name FROM users 
+    LEFT JOIN user_profile ON users.id = user_profile.user_Id 
+    LEFT JOIN user_roles ON users.id = user_roles.user_id 
+    LEFT JOIN roles ON user_roles.role_id = roles.id where users.id = ${userid} `,{type: QueryTypes.SELECT});
     if(isAdmin == null){
       delete q.holding_comments;
     }
@@ -200,9 +244,7 @@ let getUserInfoByWorkEmail = async (workEmailId, models) => {
 
 let getRoleCompleteDetails = async (roleId, models) => {
   let data;
-  let query = await models.Role.findAll({
-    where: { id: roleId },
-  });
+  let query = await models.sequelize.query(`SELECT * from roles where roles.id = ${roleId} `,{type: QueryTypes.SELECT})
   query = JSON.parse(JSON.stringify(query));
   if (query.length > 0) {
     let role = query[0];
@@ -226,8 +268,8 @@ let getUserRole = async (userId, models) => {
     );
     data = roleCompleteDetails;
   }
-  console.log("+++++");
-  console.log(data);
+  // console.log("+++++");
+  // console.log(data);
   return data;
 };
 
@@ -294,7 +336,9 @@ let getUserInventories = async (userid, models, userRole = false) => {
   let roleName;
   if (userRole == false) {
     let roleDetails = await getUserRole(userid, models);
-    if (roleDetails.name) {
+// console.log(23432);
+//     console.log(roleDetails.name);
+    if (typeof roleDetails.name!="undefined") {
       roleName = roleDetails.name;
     }
   } else {
@@ -310,12 +354,12 @@ let getUserInventories = async (userid, models, userRole = false) => {
     query = query.concat(unassignRequestInventories);
     if (query.length > 1) {
       let tempExists = [];
-      query.forEach((key) => {
-        if (tempExists.includes(key.machine_id)) {
+     for(let [key,inv] of Object.entries(query)){
+        if (tempExists.includes(inv.machine_id)) {
           delete key;
         }
-        tempExists.push(key.machine_id);
-      });
+        tempExists.push(inv.machine_id)
+    }
     }
   }
   if (
@@ -327,12 +371,12 @@ let getUserInventories = async (userid, models, userRole = false) => {
     query = query.concat(ownershipChangeRequestInventories);
     if (query.length > 1) {
       let tempExists = [];
-      query.forEach((key) => {
-        if (tempExists.includes(key.machine_id)) {
+      for(let[key,inv] of Object.entries(query)){
+        if (tempExists.includes(inv.machine_id)) {
           delete key;
         }
-        tempExists.push(key.machine_id);
-      });
+        tempExists.push(inv.machine_id);
+      }
     }
   }
   if (query.length == 0) {
@@ -358,8 +402,8 @@ let getInventoryComments = async (inventory_id, models) => {
   p1.jobtitle as updated_by_user_job_title, 
   p2.name as assign_unassign_user_name, 
   p2.jobtitle as assign_unassign_job_title FROM inventory_comments 
-  LEFT JOIN user_profile as p1 ON inventory_comments.updated_by_user_id = p1."user_Id" 
-  LEFT JOIN user_profile as p2 ON inventory_comments.assign_unassign_user_id = p2."user_Id" 
+  LEFT JOIN user_profile as p1 ON inventory_comments.updated_by_user_id = p1.user_Id 
+  LEFT JOIN user_profile as p2 ON inventory_comments.assign_unassign_user_id = p2.user_Id 
   where inventory_id=${inventory_id} ORDER BY updated_at DESC`,{type: QueryTypes.SELECT});
   // JSON.parse(JSON.stringify(row))
   return row;
@@ -400,7 +444,7 @@ let getInvenoryAuditFullDetails = async (audit_id, models) => {
   inventory_comments.comment_type
   from 
   inventory_audit_month_wise
-  left join user_profile on inventory_audit_month_wise.audit_done_by_user_id = user_profile."user_Id"
+  left join user_profile on inventory_audit_month_wise.audit_done_by_user_id = user_profile.user_Id
   left join inventory_comments on inventory_comments.id = inventory_audit_month_wise.inventory_comment_id
   where 
   inventory_audit_month_wise.id = ${audit_id}`,{type:QueryTypes.SELECT}
@@ -436,8 +480,8 @@ let getInventoryAuditStatusforYearMonth = async (inventory_id, year,month, model
 
 let getInventoryFullDetails = async (id,hide_assigned_user_info = false,models) => {
  let row = await models.sequelize.query(`select 
-  machinelist.*,
-  machines_user."user_Id",
+  machines_list.*,
+  machines_user.user_Id,
   machines_user.assign_date,
   user_profile.name,
   user_profile.work_email,
@@ -445,14 +489,14 @@ let getInventoryFullDetails = async (id,hide_assigned_user_info = false,models) 
   f2.file_name as fileInventoryWarranty,
   f3.file_name as fileInventoryPhoto 
   from 
-  machinelist 
-  left join machines_user on machinelist.id = machines_user.machine_id 
-  left join user_profile on machines_user."user_Id" = user_profile."user_Id" 
-  left join files as f1 ON machinelist.file_inventory_invoice = f1.id 
-  left join files as f2 ON machinelist.file_inventory_warranty = f2.id 
-  left join files as f3 ON machinelist.file_inventory_photo = f3.id 
+  machines_list 
+  left join machines_user on machines_list.id = machines_user.machine_id 
+  left join user_profile on machines_user.user_Id = user_profile.user_Id 
+  left join files as f1 ON machines_list.file_inventory_invoice = f1.id 
+  left join files as f2 ON machines_list.file_inventory_warranty = f2.id 
+  left join files as f3 ON machines_list.file_inventory_photo = f3.id 
   where 
-  machinelist.id = ${id}`,
+  machines_list.id = ${id}`,
   {type:QueryTypes.SELECT})
   let r_error = 0;
   let inventoryHistory = await getInventoryHistory(id, models);
@@ -609,7 +653,8 @@ let isOwnershipChangeInventoriesRequestPending = async (models) => {
 
 let generateUserToken = async (userId, models,addOns = false) => {
   let userInfo = await getUserInfo(userId, models);
-  if (userInfo == null) {
+  let u;
+  if (userInfo.length == 0) {
   } else {
     let userRole;
     if (userInfo[0].type.toLowerCase() == "admin") {
@@ -632,9 +677,9 @@ let generateUserToken = async (userId, models,addOns = false) => {
       // eth_token : userInfo.users.eth_token,
     };
     let roleAction = [];
-    if (userInfo[0].type.toLowerCase() == "admin") {
-      u.role_pages = await getRolePagesForSuperAdmin();
-    } else {
+    // if (userInfo[0].type.toLowerCase() == "admin") {
+    //   u.role_pages = await getRolePagesForSuperAdmin();
+    // } else {
       let roleInfo = await getUserRole(userInfo[0].user_Id, models);
       if (roleInfo != null&&typeof roleInfo.role_pages!="undefined") {
         let role_pages = await getRolePagesForApiToken(
@@ -654,8 +699,6 @@ let generateUserToken = async (userId, models,addOns = false) => {
           roleAction.push(value.action_name);
         }
       }
-    }
-
     u.role_actions = roleAction;
     u.is_policy_documents_read_by_user = 1;
     u.is_inventory_audit_pending = 0;
@@ -739,7 +782,8 @@ let generateUserToken = async (userId, models,addOns = false) => {
     }
   }
 
-  let token = jwt.sign({ data: u }, secret.jwtSecret, {
+  // let token = jwt.sign({ data: u }, secret.jwtSecret, {
+    let token = jwt.sign( u, secret.jwtSecret, {
     expiresIn: "2hr",
   });
   return token;
@@ -781,20 +825,20 @@ let getMachineDetail = async (id, models) => {
     let error = 1;
     let row = {};
     let q =await models.sequelize.query(`select 
-      machinelist.*,
-      machines_user."user_Id",
+      machines_list.*,
+      machines_user.user_Id,
       machines_user.assign_date ,
       f1.file_name as fileInventoryInvoice,
       f2.file_name as fileInventoryWarranty,
       f3.file_name as fileInventoryPhoto
       from 
-      machinelist 
-      left join machines_user on machinelist.id = machines_user.machine_id
-      left join files as f1 ON machinelist.file_inventory_invoice = f1.id
-      left join files as f2 ON machinelist.file_inventory_warranty = f2.id
-      left join files as f3 ON machinelist.file_inventory_photo = f3.id
+      machines_list 
+      left join machines_user on machines_list.id = machines_user.machine_id
+      left join files as f1 ON machines_list.file_inventory_invoice = f1.id
+      left join files as f2 ON machines_list.file_inventory_warranty = f2.id
+      left join files as f3 ON machines_list.file_inventory_photo = f3.id
       where 
-      machinelist.id = ${id}`,{ type:QueryTypes.SELECT});
+      machines_list.id = ${id}`,{ type:QueryTypes.SELECT});
       row.q=q;
     const inventoryHistory = await getInventoryHistory(id, models);
     row.history = inventoryHistory;
@@ -803,7 +847,6 @@ let getMachineDetail = async (id, models) => {
     Return.data = row;
     return Return;
   } catch (error) {
-    console.log(error);
     throw new Error("Unable to locate all users");
   }
 };
@@ -866,14 +909,17 @@ const addInventoryAudit= async(loggedUserInfo,inventory_id,updated_by_user_id,au
   let dateTimeData = await _getDateTimeData();
   let audit_month  = dateTimeData.current_month_number;
   let audit_year   = dateTimeData.current_year_number;
-
-  let inventory_comment_id  = await addInventoryComment(inventory_id,loggedUserInfo.id,models,req)
-  let q= await models.InventoryAuditMonthWise.create(inventory_id, audit_month, audit_year, audit_done_by_user_id, inventory_comment_id )
+  let inventory_comment_id  = await addInventoryComment(inventory_id,loggedUserInfo.id,models,req);
+  let q = await models.sequelize.query(`INSERT INTO inventory_audit_month_wise
+  ( inventory_id, month, year, audit_done_by_user_id, inventory_comment_id )
+  VALUES
+  (${inventory_id}, ${audit_month}, ${audit_year}, ${audit_done_by_user_id}, ${inventory_comment_id})
+  `, {type:QueryTypes.INSERT});
   return true;
 }
 
 let assignUserMachine = async (machine_id, userid, loggeduserid,req,models) => {
-  let r_error=1;
+  let r_error=0;
   let r_message;
   let Return={};
   if (
@@ -883,7 +929,7 @@ let assignUserMachine = async (machine_id, userid, loggeduserid,req,models) => {
   ) {
     Return=await removeMachineAssignToUser(machine_id, req,models,loggeduserid);
   } else {
-    const machine_info = await  getMachineDetail(machine_id,models);
+    const machine_info = await getMachineDetail(machine_id,models);
     let checkpass = true;
     if (typeof machine_info.status!="undefined" && machine_info.status == "sold") {
       checkpass = false;
@@ -899,7 +945,7 @@ let assignUserMachine = async (machine_id, userid, loggeduserid,req,models) => {
         await addInventoryComment(machine_id,loggeduserid,models,req,comment,oldUserId)
         comment="Inventory Assigned",
         await addInventoryComment(machine_id,loggeduserid,models,req,comment,oldUserId)
-        q=await models.sequelize.query(`UPDATE machines_user SET  "user_Id" = ${userid}, assign_date = '${date}' where id =${q[0].id}`,{type:QueryTypes.UPDATE})
+        q=await models.sequelize.query(`UPDATE machines_user SET  user_Id = ${userid}, assign_date = '${date}' where id =${q[0].id}`,{type:QueryTypes.UPDATE})
       }else{
         let q= (`INSERT INTO machines_user ( machine_id, user_Id, assign_date ) VALUES ( machine_id, userid, date)`,{type:QueryTypes.INSERT});
         let comment="Inventory Assigned"
@@ -918,7 +964,7 @@ let getMachineStatusList=async(req,models)=>{
   let r_error=1;
   let r_message="";
   let r_data=[];
-  let q1 =await models.sequelize.query(`SELECT machine_status.*, (SELECT COUNT(*) FROM machinelist WHERE machinelist.status = machine_status.status) AS total_inventories FROM machine_status`, {type:QueryTypes.SELECT })
+  let q1 =await models.sequelize.query(`SELECT machine_status.*, (SELECT COUNT(*) FROM machines_list WHERE machines_list.status = machine_status.status) AS total_inventories FROM machine_status`, {type:QueryTypes.SELECT })
   JSON.parse(JSON.stringify(q1))
   if(q1.length==0){
     r_message="no machine status list found";
@@ -937,7 +983,9 @@ let getMachineStatusList=async(req,models)=>{
 let getMachineCount=async(req,models)=>{
   let r_error=1;
   let r_message = "";
-  let query=await models.sequelize.query( 'SELECT machinelist.*, machines_user."user_Id" FROM machinelist LEFT JOIN machines_user ON machinelist.id= machines_user."machine_id"',{type:QueryTypes.SELECT })
+  let query=await models.sequelize.query( `SELECT machines_list.*, 
+  machines_user.user_Id FROM machines_list 
+  LEFT JOIN machines_user ON machines_list.id= machines_user.machine_id`,{type:QueryTypes.SELECT })
   JSON.parse(JSON.stringify(query))
   let arr_device={};
   if(query.length>0){ 
@@ -1047,7 +1095,7 @@ let addMachineType=async(req,models)=>{
     .concat(arr2.filter(x => !arr1.includes(x)));
     if(s.length>0){
         for(let v of s){
-        let query=await models.sequelize.query(`select * from machinelist where machine_type ='${v}'`,{type:QueryTypes.SELECT})
+        let query=await models.sequelize.query(`select * from machines_list where machine_type ='${v}'`,{type:QueryTypes.SELECT})
          if(query.length>0){
           r_data['not_delete']=v;
           arr2.push(v)
@@ -1075,12 +1123,41 @@ const getAllMachinesDetail =async(req,models,sort=null,status_sort=null)=>{
   try{
     let q;
   if(sort!==null){
-   q=await models.sequelize.query(`select machinelist.*, machines_user."user_Id", machines_user.assign_date, user_profile.name, user_profile.work_email, f1.file_name as fileInventoryInvoice, f2.file_name as fileInventoryWarranty, f3.file_name as fileInventoryPhoto from machinelist left join machines_user on machinelist.id = machines_user.machine_id left join user_profile on machines_user."user_Id" = user_profile."user_Id" left join files as f1 ON machinelist.file_inventory_invoice = f1.id left join files as f2 ON machinelist.file_inventory_warranty = f2.id left join files as f3 ON machinelist.file_inventory_photo = f3.id where machinelist.machine_type='${sort}' and machinelist.approval_status = 1`,{type:QueryTypes.SELECT})
+   q=await models.sequelize.query(`select machines_list.*, 
+   machines_user.user_Id, 
+   machines_user.assign_date, user_profile.name, user_profile.work_email, 
+   f1.file_name as fileInventoryInvoice, 
+   f2.file_name as fileInventoryWarranty, 
+   f3.file_name as fileInventoryPhoto from machines_list 
+   left join machines_user on machines_list.id = machines_user.machine_id 
+   left join user_profile on machines_user.user_Id = user_profile.user_Id 
+   left join files as f1 ON machines_list.file_inventory_invoice = f1.id 
+   left join files as f2 ON machines_list.file_inventory_warranty = f2.id 
+   left join files as f3 ON machines_list.file_inventory_photo = f3.id 
+   where machines_list.machine_type='${sort}' and machines_list.approval_status = 1`,{type:QueryTypes.SELECT})
   }
   if(status_sort!==null){
-    q=await models.sequelize.query(`select machinelist.*, machines_user."user_Id",machines_user.assign_date,user_profile.name,user_profile.work_email,f1.file_name as fileInventoryInvoice,f2.file_name as fileInventoryWarranty,f3.file_name as fileInventoryPhoto from machinelist left join machines_user on machinelist.id = machines_user.machine_id left join user_profile on machines_user."user_Id" = user_profile."user_Id" left join files as f1 ON machinelist.file_inventory_invoice = f1.id left join files as f2 ON machinelist.file_inventory_warranty = f2.id left join files as f3 ON machinelist.file_inventory_photo = f3.id where machinelist.status='${status_sort}' and machinelist.approval_status = 1`,{type:QueryTypes.SELECT})
+    q=await models.sequelize.query(`select machines_list.*, 
+    machines_user.user_Id,machines_user.assign_date,user_profile.name,user_profile.work_email,
+    f1.file_name as fileInventoryInvoice,
+    f2.file_name as fileInventoryWarranty,
+    f3.file_name as fileInventoryPhoto from machines_list 
+    left join machines_user on machines_list.id = machines_user.machine_id 
+    left join user_profile on machines_user.user_Id = user_profile.user_Id 
+    left join files as f1 ON machines_list.file_inventory_invoice = f1.id 
+    left join files as f2 ON machines_list.file_inventory_warranty = f2.id 
+    left join files as f3 ON machines_list.file_inventory_photo = f3.id where machines_list.status='${status_sort}' and machines_list.approval_status = 1`,{type:QueryTypes.SELECT})
     }else{
-      q=await models.sequelize.query(`select machinelist.*, machines_user."user_Id",machines_user.assign_date,user_profile.name,user_profile.work_email,f1.file_name as fileInventoryInvoice,f2.file_name as fileInventoryWarranty,f3.file_name as fileInventoryPhoto from machinelist left join machines_user on machinelist.id = machines_user.machine_id left join user_profile on machines_user."user_Id" = user_profile."user_Id" left join files as f1 ON machinelist.file_inventory_invoice = f1.id left join files as f2 ON machinelist.file_inventory_warranty = f2.id left join files as f3 ON machinelist.file_inventory_photo = f3.id where machinelist.approval_status = 1 ORDER BY machinelist.id DESC`,{type:QueryTypes.SELECT})
+      q=await models.sequelize.query(`select machines_list.*, 
+      machines_user.user_Id,machines_user.assign_date,user_profile.name,user_profile.work_email,
+      f1.file_name as fileInventoryInvoice,
+      f2.file_name as fileInventoryWarranty,
+      f3.file_name as fileInventoryPhoto from machines_list 
+      left join machines_user on machines_list.id = machines_user.machine_id 
+      left join user_profile on machines_user.user_Id = user_profile.user_Id 
+      left join files as f1 ON machines_list.file_inventory_invoice = f1.id 
+      left join files as f2 ON machines_list.file_inventory_warranty = f2.id 
+      left join files as f3 ON machines_list.file_inventory_photo = f3.id where machines_list.approval_status = 1 ORDER BY machines_list.id DESC`,{type:QueryTypes.SELECT})
     }
     JSON.parse(JSON.stringify(q))
     for(let [key,row]of Object.entries(q)){
@@ -1144,11 +1221,11 @@ Return['data']    = r_data;
 return Return;
 }
 const UpdateOfficeMachine=async(logged_user_id,req,models)=>{
-  try{
-let r_error=1;
-let r_message="";
-let r_data=[];
-let data =[];
+try{
+  let r_error=1;
+  let r_message="";
+  let r_data=[];
+  let data =[];
   data.machine_type=req.body.machine_type;
   data.machine_name =req.body.machine_name;
   data.machine_price =req.body.machine_price;
@@ -1163,11 +1240,11 @@ let data =[];
   data.warranty_comment =req.body.warranty_comment;
   data.repair_comment =req.body.repair_comment;
   data.warranty_years =req.body.warranty_years;
-let inventory_id=req.body.id;
-let machine_detail=await getMachineDetail(inventory_id,models);
-let priorCheckError = false;
-let newStatus=data.status;
-let oldStatus=machine_detail.data.q[0].status
+  let inventory_id=req.body.id;
+  let machine_detail=await getMachineDetail(inventory_id,models);
+  let priorCheckError = false;
+  let newStatus=data.status;
+  let oldStatus=machine_detail.data.q[0].status
 if(newStatus.toLowerCase()=='sold'&&newStatus!=oldStatus){
   if(typeof machine_detail['data'].q[0]['user_Id']!=="undefined"&&machine_detail.data.q[0].user_Id!=null){
     r_error=1;
@@ -1186,7 +1263,7 @@ if(priorCheckError==false){
       if (data[key]!= machine_detail.data.q[0].key) {
         let arr =[];
         arr[key]=data[key];
-        resp = await DBupdateBySingleWhere('MachineList', whereField, whereFieldVal, arr,key,models);
+        resp = await DBupdateBySingleWhere('machines_list', whereField, whereFieldVal, arr,key,models);
         msg[key]=data[key]
     }
   }
@@ -1220,8 +1297,9 @@ Return = [];
 Return.error = r_error;
 Return.message = r_message;
 return Return;
-  }catch(err){
-    console.log(err)
+  }catch(error){
+    console.log(error)
+    throw new Error(error);
   }
 }
 let DBupdateBySingleWhere= async (tableName, whereField, whereFieldVal,updateData,key,models) =>{
@@ -1264,7 +1342,7 @@ let api_getUnapprovedInventories= async(logged_user_id,req,models)=>{
 }
 let getUnapprovedInventories=async(req,models)=>{
   let Return=false;
-  let query=await models.sequelize.query(`select * from machinelist where approval_status = 0`,{type:QueryTypes.SELECT});
+  let query=await models.sequelize.query(`select * from machines_list where approval_status = 0`,{type:QueryTypes.SELECT});
   if(query.length==0){}
   else{
     Return =query;
@@ -1274,7 +1352,7 @@ let getUnapprovedInventories=async(req,models)=>{
 
 let getUnassignedInventories=async(req,models)=>{
 let Return= false;
-let q =await models.sequelize.query(`select * from machinelist where id not in(select machine_id from machines_user) AND approval_status = 1`,{type:QueryTypes.SELECT})
+let q =await models.sequelize.query(`select * from machines_list where id not in(select machine_id from machines_user) AND approval_status = 1`,{type:QueryTypes.SELECT})
 JSON.parse(JSON.stringify(q))
 if(q.length==0){
 }else{
@@ -1378,7 +1456,7 @@ let assignDefaultValuesToRole = async (new_role_id, roleName = false) => {
 };
 
 let getAllRole = async (models) => {
-  let q = await models.Role.findAll({});
+  let q = await models.sequelize.query(`select * from roles`, {type: QueryTypes.SELECT});
   return q;
 };
 
@@ -1418,21 +1496,21 @@ let isOnlyOneAdminRoleChanging = async (userid, models) => {
   }
   return false;
 };
-let getInventoriesAuditStatusForYearMonth= async(month, year,req,models)=>{
+let   getInventoriesAuditStatusForYearMonth= async(month, year,req,models)=>{
   try{
-let Return;
-let data;
-let error   = 0;
-let message = "";
-let q=await models.sequelize.query(
+    let Return;
+    let data;
+    let error   = 0;
+    let message = "";
+    let q=await models.sequelize.query(
     `SELECT
-    machinelist.id,
-    machinelist.machine_type,
-    machinelist.machine_name,
-    machinelist.serial_number,
-    machinelist.bill_number,
+    machines_list.id,
+    machines_list.machine_type,
+    machines_list.machine_name,
+    machines_list.serial_number,
+    machines_list.bill_number,
     machines_user.machine_id,
-    machines_user."user_Id" as assigned_user_id,
+    machines_user.user_Id as assigned_user_id,
     files.file_name,
     inventory_audit_month_wise.id as audit_id,
     inventory_audit_month_wise.inventory_id,
@@ -1444,17 +1522,17 @@ let q=await models.sequelize.query(
     up_audit.name as audit_done_by,
     up_assign.name as assigned_to
     FROM
-    machinelist
-    left join files on machinelist.file_inventory_photo = files.id
-    left join inventory_audit_month_wise on machinelist.id = inventory_audit_month_wise.inventory_id
+    machines_list
+    left join files on machines_list.file_inventory_photo = files.id
+    left join inventory_audit_month_wise on machines_list.id = inventory_audit_month_wise.inventory_id
     AND inventory_audit_month_wise.month = ${month}
     AND inventory_audit_month_wise.year = ${year}
-    left join user_profile as up_audit on inventory_audit_month_wise.audit_done_by_user_id = up_audit."user_Id"
+    left join user_profile as up_audit on inventory_audit_month_wise.audit_done_by_user_id = up_audit.user_Id
     left join inventory_comments on inventory_audit_month_wise.inventory_comment_id = inventory_comments.id
-    left join machines_user on machinelist.id = machines_user.machine_id
-    left join user_profile as up_assign on machines_user."user_Id" = up_assign."user_Id"
+    left join machines_user on machines_list.id = machines_user.machine_id
+    left join user_profile as up_assign on machines_user.user_Id = up_assign.user_Id
     ORDER BY audit_id DESC`,{type:QueryTypes.SELECT})
-
+    JSON.parse(JSON.stringify(q))
     let inventoriesCount =q.length;
     let auditDoneCount                   = 0;
     let auditPendingCount                = 0;
@@ -1475,12 +1553,11 @@ let q=await models.sequelize.query(
     let tempCheckArray = [];
 
     for(row of q){
-      if (typeof row.audit_id !="undefined" && row.audit_id  == "") {
+      if (typeof row.audit_id !="undefined" && row.audit_id  === "") {
         auditPendingCount++;
     } else {
         auditDoneCount++;
     }
-
     let inventoryAlreadyChecked = false;
     let invId  = row.id;
 
@@ -1502,9 +1579,9 @@ let q=await models.sequelize.query(
     let tempRow=[];
     tempRow=row;
     }
-
     message="Inventory Audit List";
     data={};
+    data.audit_list_employee_wise= await inventoriesAuditEmployeeWise(q)
     data.stats={};
     data.stats.total_inventories=inventoriesCount,
     data.stats.audit_done=auditDoneCount,
@@ -1514,27 +1591,28 @@ let q=await models.sequelize.query(
     data.stats.audit_issue=count_issue_inventories,
     data.stats.audit_critical_issue=count_critical_issue_inventories
     data.audit_list=q;
-    data.audit_list_employee_wise=await inventoriesAuditEmployeeWise(q)
-  }
+  } 
   Return={
     error: error,
-     message: message,
-     data:data
+    message: message,
+    data:data
   };
   return Return;
 }catch(error){
   console.log(error)
+  throw new Error(error);
 }
 }
 
 
 let inventoriesAuditEmployeeWise=async(data,req,models)=>{
-  let employeeWiseData=[];
+  let employeeWiseData={};
   for([key,inventory] of Object.entries(data)){
-    if(typeof inventory.assigned_user_id!="undefined" && inventory.assigned_user_id!=null ){
+    if(typeof inventory.assigned_user_id!="undefined" && inventory.assigned_user_id!=null )
+    {
      let  assigned_user_id = inventory.assigned_user_id;
      if(typeof employeeWiseData.assigned_user_id=="undefined"){
-      employeeWiseData.assigned_user_id=[];
+      employeeWiseData.assigned_user_id={};
       employeeWiseData.assigned_user_id.audit_good=0;
       employeeWiseData.assigned_user_id.audit_issue=0;
       employeeWiseData.assigned_user_id.audit_critical_issue=0;
@@ -1542,12 +1620,11 @@ let inventoriesAuditEmployeeWise=async(data,req,models)=>{
       employeeWiseData.assigned_user_id.audit_pending_count=0;
       employeeWiseData.assigned_user_id.employee=[];
       employeeWiseData.assigned_user_id.inventories=[];
-      
       employeeWiseData.assigned_user_id.employee.emp_userid=inventory.assigned_user_id;
       employeeWiseData.assigned_user_id.employee.emp_name =inventory.assigned_to;
      }
      let addInventoryToList = true;
-     for([key,inv] of employeeWiseData.assigned_user_id.inventories){
+     for([key,inv] in employeeWiseData.assigned_user_id.inventories){
       if(inv.id==inventory.id){
         addInventoryToList = false;
         break;
@@ -1574,12 +1651,15 @@ let inventoriesAuditEmployeeWise=async(data,req,models)=>{
     }
   }
 }
+
 if(employeeWiseData!==null){
  let  sort_audit_critical_issue=employeeWiseData.audit_critical_issue;
  let sort_audit_issue = employeeWiseData.audit_issue;
 }
   return employeeWiseData;
 }
+
+
 
 let assignUserRole = async (userid, roleid, models) => {
   let error = 1;
@@ -1592,7 +1672,8 @@ let assignUserRole = async (userid, roleid, models) => {
       error = 0;
       message = "User Role removed!!";
     } else {
-      let q = await models.UserRole.findAll({ where: { user_id: userid } });
+      let q = await models.sequelize.query(`select * from user_roles where user_roles.user_id = ${userid}`, {type: QueryTypes.SELECT});
+      // let q = await models.UserRole.findAll({ where: { user_id: userid } });
       if (q.length == 0) {
         let creation = await models.UserRole.create({
           user_id: userid,
@@ -1619,9 +1700,8 @@ let assignUserRole = async (userid, roleid, models) => {
 };
 
 let assignAdminRoleToUserTypeAdminIfNoRoleAssigned = async (roles, models) => {
-  let q = await models.User.findAll({
-    where: { [Op.and]: [{ type: "admin" }, { status: "Enabled" }] },
-  });
+  let q = await models.sequelize.query(`select * from users where 
+  users.type = 'admin' and users.status = 'Enabled'`, {type: QueryTypes.SELECT})
   if (q.length > 0) {
     let adminRoleDetails = null;
     for (let key in roles) {
@@ -1665,12 +1745,21 @@ let getEnabledUsersList = async (sorted_by=false, models) => {
       );
     } else if (sorted_by == "dateofjoining") {
       q = await models.sequelize.query(
-        "SELECT users.*, user_profile.*,roles.id as role_id,roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile.user_Id LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' ORDER BY user_profile.dateofjoining ASC ",
+        `SELECT users.*, user_profile.*,
+        roles.id as role_id,roles.name as role_name FROM users 
+        LEFT JOIN user_profile ON users.id = user_profile.user_Id 
+        LEFT JOIN user_roles ON users.id = user_roles.user_id 
+        LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' ORDER BY user_profile.dateofjoining ASC `,
         { type: QueryTypes.SELECT }
       );
     } else {
       q = await models.sequelize.query(
-        `SELECT users.*, user_profile.*,roles.id as role_id, roles.name as role_name FROM users LEFT JOIN user_profile ON users.id = user_profile."user_Id" LEFT JOIN user_roles ON users.id = user_roles.user_id LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' `,
+        `SELECT users.*, user_profile.*,
+        roles.id as role_id, 
+        roles.name as role_name FROM users 
+        LEFT JOIN user_profile ON users.id = user_profile.user_Id 
+        LEFT JOIN user_roles ON users.id = user_roles.user_id 
+        LEFT JOIN roles ON user_roles.role_id = roles.id where users.status = 'Enabled' `,
         { type: QueryTypes.SELECT }
       );
     }
@@ -1691,6 +1780,7 @@ let getEnabledUsersList = async (sorted_by=false, models) => {
     // }
     return newRows;
   } catch (error) {
+    console.log(error)
     throw new Error(error);
   }
 };
@@ -1730,8 +1820,8 @@ let getEnabledUsersListWithoutPass = async (models,role = null,sorted_by = null,
     "role_name",
     "eth_token",
   ];
-  for (let val in row) {
-    delete row[val].password;
+  for (let val of row) {
+    delete val.password;
     if(role !==null){
     if (role.toLowerCase() == "guest") {
       for (let key in val) {
@@ -1742,12 +1832,12 @@ let getEnabledUsersListWithoutPass = async (models,role = null,sorted_by = null,
         }
       }
     }
-    rows.push(row[val]);
+    rows.push(val);
   }
   return rows;
   };
 }
-const api_getMyInventories = async (user_id, user_role, models) => {
+const api_getMyInventories = async (user_id,user_role,models) => {
   let error = 0;
   let message = "";
   let data = {};
@@ -1813,16 +1903,16 @@ const api_getMyInventories = async (user_id, user_role, models) => {
   return Return;
 };
 let API_getTempUploadedInventoryFiles=async(req,models)=>{
+  let message="";
 let query1=await models.sequelize.query(`SELECT 
 inventory_temp_files.*,
 files.updated_by_user_id as updated_by_user_id,
 files.file_name as file_name,
 files.google_drive_path as google_drive_path
 FROM inventory_temp_files
-LEFT JOIN files on inventory_temp_files.file_id = files.id`,{type:QueryTypes.SELECT})
-
-if(Array.isArray(query1)&&query1.length!=0){
-  for([key,row] of query1){
+LEFT JOIN files on inventory_temp_files.file_id = files.id`,{type:QueryTypes.SELECT});
+if(Array.isArray(query1)&&query1.length>0){
+  for([key,row] of Object.entries(query1)){
     if(typeof row.file_name!="undefined"&&row.file_name!=null){
       //working on it
       query1.key.file_name=`$_ENV['ENV_BASE_URL'].'attendance/uploads/inventories/'.$row['file_name'];` 
@@ -1830,26 +1920,31 @@ if(Array.isArray(query1)&&query1.length!=0){
     }
   }
 }
+if(query1.length==0){
+  message="no temp uploaded inventory file present"
+}
 let Return={}
 Return.error=0;
-Return.message="";
+Return.message=message;
 Return.data=query1;
 return Return;
 
 }
 let removeMachineDetails = async(inventory_id,logged_user_id,req,models)=>{
-  let error=0;
+  try {
+    let error=0;
   let r_message;
   let inventoryDetails=await getMachineDetail(inventory_id,models)
   if(typeof inventoryDetails.data.q.user_ID !="undefined" && inventoryDetails.data.q.user_ID !=null){
     error=1;
     r_message="You need to Unassign this inventory first!!";
   }else{
+    
     await removeInventoryAudits(inventory_id,req,models);
     await removeInventoryComments(inventory_id,req,models);
     await removeMachineAssignToUser(inventory_id,req,models);
-    inventory_id =1;
-    let query1=await models.sequelize.query(`Delete from machinelist where id=${inventory_id}`,{type:QueryTypes.DELETE});
+    // inventory_id =1;
+    let query1=await models.sequelize.query(`Delete from machines_list where id=${inventory_id}`,{type:QueryTypes.DELETE});
     error=0;
     r_message= "Inventory deleted successfully";
   }
@@ -1857,6 +1952,10 @@ let removeMachineDetails = async(inventory_id,logged_user_id,req,models)=>{
   Return.error = error;
   Return.message= r_message;
   return Return;
+  } catch (error) {
+    console.log(error);
+    throw new Error(error);
+  }
 }
 let removeMachineAssignToUser =async(inventory_id,req,models,loggeduserid)=>{
   const machine_Info = await getMachineDetail(inventory_id,models);
@@ -1864,7 +1963,8 @@ let removeMachineAssignToUser =async(inventory_id,req,models,loggeduserid)=>{
       const message = [];
       message.inventoryName = machine_Info.machine_name;
       message.invetoryType = machine_Info.machine_type;
-    let loggeduserid=req.userData.data.id;
+    // let loggeduserid=req.userData.data.id;
+    let loggeduserid=req.userData.id;
       addInventoryComment(inventory_id, loggeduserid, req, db);
     }
     await models.sequelize.query(`Delete from machines_user where machine_id=${inventory_id}`,{type:QueryTypes.DELETE});
@@ -1882,7 +1982,7 @@ let removeInventoryComments=async(inventory_id,req,models)=>{
 }
 let inventoryUnassignRequest =async(inventoryId,req,models)=>{
   let machine_info=await getMachineDetail(inventoryId,models)
-  let query=await models.sequelize.query(`UPDATE machinelist set is_unassign_request=1 WHERE id=${inventoryId}`,{type:QueryTypes.UPDATE})
+  let query=await models.sequelize.query(`UPDATE machines_list set is_unassign_request=1 WHERE id=${inventoryId}`,{type:QueryTypes.UPDATE})
   //for slack message
   // if(machine_info.data.q[0].user_id!=null){
   // let userid =machine_info.data.q[0].user_Id;
@@ -1900,7 +2000,7 @@ let inventoryUnassignRequest =async(inventoryId,req,models)=>{
 let API_deleteTempUploadedInventoryFile=async(req,models)=>{
   let r_error   = 1;
   let r_message = "";
-  if(typeof req.body.temp_id !="undefined" && req.body.temp_id!=null && req.body.temp_id==""){
+  if(typeof req.body.temp_id !=="undefined" && req.body.temp_id!==null){
     let tempId = req.body.temp_id;
     let query1= await models.sequelize.query(`DELETE FROM inventory_temp_files WHERE id=${tempId}`,{type:QueryTypes.DELETE});
     r_error   = 0;
@@ -1938,7 +2038,7 @@ return Return;
 }
 let getInventoryBySerialNumber=async(serialNumber,models)=>{
 let Return=false;
-let q =await models.sequelize.query(`select * from machinelist where serial_number = ${serialNumber}`,{type:QueryTypes.SELECT});
+let q =await models.sequelize.query(`select * from machines_list where serial_number = ${serialNumber}`,{type:QueryTypes.SELECT});
 if(q.length>0){
   Return=q;
 }
@@ -1970,7 +2070,7 @@ let getMachineTypeList = async (req,models) => {
   }
 };
 let getNextInternalSerialNumberOfInventory=async(req,models)=>{
- let q=await models.sequelize.query(`select * from machinelist ORDER BY id DESC LIMIT 1`,{type:QueryTypes.SELECT})
+ let q=await models.sequelize.query(`select * from machines_list ORDER BY id DESC LIMIT 1`,{type:QueryTypes.SELECT})
  JSON.parse(JSON.stringify(q))
  if( q == null ){
   return 1;
@@ -2046,5 +2146,5 @@ module.exports = {
   removeMachineDetails,inventoryUnassignRequest,
   inventoryOwnershipChangeRequest,
   assignUserMachine,
-  getMachineTypeList
+  getMachineTypeList,DBupdateBySingleWhere
 }

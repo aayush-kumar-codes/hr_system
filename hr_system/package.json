@@ -18,11 +18,11 @@
     "md5": "^2.3.0",
     "morgan": "~1.9.1",
     "multer": "^1.4.3",
-    "mysql2": "^2.3.0",
+    "mysql2": "^2.3.3",
     "nodemailer": "^6.7.0",
     "nodemailer-sendgrid": "^1.0.3",
     "nodemon": "^2.0.14",
     "pg": "^8.7.1",
-    "sequelize": "^6.6.5"
+    "sequelize": "^6.11.0"
   }
 }
