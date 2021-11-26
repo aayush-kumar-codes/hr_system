@@ -6,7 +6,7 @@ const {
     getAllPages,
     getAllActions,
   } = require("./roles");
-  
+  const md5=require("md5")
   const jwt = require("jsonwebtoken");
   const secret = require("./config.json");
   const {Op,QueryTypes, json } = require("sequelize");
@@ -15,6 +15,7 @@ const {
   const { MachineStatusDeleteValidator } = require("./validators/req-validators");
 const { getUserInfo, copyExistingRoleRightsToNewRole } = require("./allFunctions");
 const elc_stages_step = require("./models/elc_stages_stepModel");
+const { object } = require("webidl-conversions");
 
   
   let getUserDetailInfo = async (userid,req,models) => {
@@ -491,6 +492,180 @@ let getTeamList= async(req,models)=>{
   return Return;
 
 }
+let UpdateUserInfo =async(req,models)=>{
+  let r_error = 0;
+  let r_message = "";
+  req.body['updated_on'] = date("Y-m-d");
+  let r_data =[];
+  let userid = req.body['user_id'];
+  let user_profile_detail =await getUserprofileDetail(uuserid,req,models);
+  let whereField = 'user_Id';
+  let whereFieldVal = userid;
+  let emailAlert_termination = false;
+  let do_updateConfirmationEmail = false;
+  if(typeof req.body['sendConfirmationEmail']!=undefinded && req.body['sendConfirmationEmail'] == true ){
+    do_updateConfirmationEmail = true;
+}
+let dates_keys = [
+  'termination_date',
+  'training_completion_date',
+  'dateofjoining',
+  'dob'
+]
+let msg = [];
+let res1 = [];
+for (let [key,val] of Object.entries(user_profile_detail)) {
+  if (key in req.body) {
+      if (req.body.key != user_profile_detail[key] || ( key == "training_completion_date" && do_updateConfirmationEmail == true ) ) {
+          /* check new other_email new email id already exist*/
+          let other_email_exists = false;
+          if( key == "other_email" ){
+              let qCheck = (`SELECT * FROM user_profile WHERE user_Id != ${userid} AND other_email='${data.key}'`,{type:QueryTypes.SELECT})
+              if( qCheck.length > 0 ){
+                  other_email_exists = true;
+              }
+          }
+          if( other_email_exists ){
+              r_error = 1;
+              r_message = "Personal email id already exists!!";
+              break;
+          }                    
+          /* check new other_email new email id already exist*/
+
+          /* check new work_email new email id already exist*/
+           work_email_exists = false;
+          if( key == "work_email" ){
+              qCheck = (`SELECT * FROM user_profile WHERE user_Id != ${userid} AND work_email='${data.key}";`,{type:QueryTypes.SELECT})
+              if(  qCheck.length > 0 ){
+                  work_email_exists = true;
+              }
+          }
+          if( work_email_exists ){
+              r_error = 1;
+              r_message = "Work email id already exists!!";
+              break;
+          }                    
+          /* check new work_email new email id already exist*/
+          
+          let arr = [];
+          arr[key] = req.body[key];
+          updateCheck = await DBupdateBySingleWhere('user_profile', $whereField, $whereFieldVal, $arr);
+          if( updateCheck ){
+              if( key == "termination_date" ){
+                  emailAlert_termination = true;
+              }
+              res.push(updateCheck);
+          }
+          msg[key] = req.body[key];
+      }
+
+      if(key in dates_keys&& req.body.key ){
+          let q = (`UPDATE user_profile SET ${key}= NULL WHERE user_Id = ${userid}`,{type:QueryTypes.SELECT})
+          res.push(q) ;;                 
+      }
+  }
+}
+if( r_error == 1){
+  r_data['message'] = r_message;
+}else{
+  if (res.length == 0) {
+    r_error = 0;
+    r_message = "No fields updated into table";
+    r_data['message'] = r_message;
+}else{
+  let userInfo = await getUserInfo(userid,models);
+  let userInfo_name = userInfo['name'];
+  let slack_userChannelid =userInfo['slack_profile']['id'];
+  if (req.body['send_slack_msg'] == "") {
+
+    if (msg.length > 0) {
+       let detailsUpdated = "";
+        for (let [key,valu] of Object.entries(msg)) {
+            if (key != "holding_comments" && key != "termination_date") {
+                detailsUpdated[key] = valu;
+            }
+        }
+
+        let messageBody = [   
+        ]
+        messageBody.details=detailsUpdated;
+        // slackMessageStatus = await sendNotification( "employee_profile_update", $userid, $messageBody);
+    }
+}
+
+
+
+if( emailAlert_termination ){
+  if(req.body['notifyEmpTermination']!=undefined && req.body['notifyEmpTermination'] == true ){
+      let to = [];
+      to.push(userInfo['work_email'])
+      if(typeof userInfo['other_email']!=undefined && userInfo['other_email']){
+          to.push(userInfo['other_email'])
+      }
+      let emailData =[]
+      emailData['sendEmail'] = [
+      ]
+      emailData['sendEmail']["to"]=to;
+      emailData['templatekey'] = "Employee Termination";
+      emailData['templateSubject'] = "";
+      emailData['templateData'] = await getEmployeeCompleteInformation(userid);
+      await sendTemplateEmail(emailData);
+  }
+  if(typeof req.body['notifyEmpTerminationPolicies']!=undefined && req.body['notifyEmpTerminationPolicies'] == true ){
+     let to = []
+      to.push(userInfo['work_email'])
+      if(typeof userInfo['other_email']!=undefined && userInfo['other_email']){
+          to.push(userInfo['other_email'])
+      }
+      let emailData = []
+      emailData['sendEmail'] = [
+      ]
+      emailData['sendEmail'][to]=to;
+      emailData['templatekey'] = "Employee Termination Policies";
+      emailData['templateSubject'] = "";
+      emailData['templateData'] = await getEmployeeCompleteInformation(userid);
+      await sendTemplateEmail(emailData);
+  }
+}
+  /* send confirmation email */
+  if(typeof req.body['sendConfirmationEmail']!=undefined && req.body['sendConfirmationEmail'] == true ){
+    if( typeof req.body['notifyEmpConfirmation']!=undefined && req.body['notifyEmpConfirmation'] == true ){
+        let to = [];
+        to.push(userInfo['work_email'])
+        let emailData =[]
+        emailData['sendEmail'] =[
+        ]
+        emailData['sendEmail'][to]=to;
+        emailData['templatekey'] = "Employee Confirmation";
+        emailData['templateSubject'] = "";
+        emailData['templateData'] = await getEmployeeCompleteInformation(userid);
+        // await sendTemplateEmail(emailData);
+    }
+    if(typeof req.body['notifyEmpConfirmationPolicies'] && req.body['notifyEmpConfirmationPolicies'] == true ){
+        let to = array();
+        to.push(userInfo['work_email'])
+        let emailData =[]
+        emailData['sendEmail'] =[
+        ]
+        emailData['sendEmail'][to]=to;
+        emailData['templatekey'] = "Employee Confirmation Policies";
+        emailData['templateSubject'] = "";
+        emailData['templateData'] = await getEmployeeCompleteInformation(userid);
+        // await sendTemplateEmail(emailData);
+    }
+}
+/* send email */
+  r_error = 0;
+  r_message = "Employee details updated successfully!!";
+  r_data['message'] = r_message;
+}
+}
+let Return = {}
+Return.error = r_error;
+Return.data = r_data;
+return Return;
+
+}
 let saveTeamList=async(req,models)=>{
   try{
   let r_error = 0;
@@ -607,7 +782,7 @@ let getSalaryInfo= async(userid,models,sort=false,date=false)=>{
  let q=await models.sequelize.query(`select * from salary where "user_Id" = ${userid}`,{type:QueryTypes.SELECT})
   if (sort == 'first_to_last') {
     q = (`select * from salary where "user_Id" = ${userid} ORDER by id ASC`,{type:QueryTypes.SELECT});
-}
+       }
   let applicable_month = 0;
   for(let[key,r] of Object.entries(q)){
     if(typeof r.applicable_from !==undefinded && r.applicable_from !=="" && r.applicable_from !=="0000-00-00"){
@@ -616,16 +791,75 @@ let getSalaryInfo= async(userid,models,sort=false,date=false)=>{
     if(typeof r.applicable_from !==undefinded && r.applicable_till != "" && r.applicable_till!=="0000-00-00"){
     applicable_till = r.applicable_till;
     }
-   if( typeof applicable_from !==undefined && typeof applicable_till){              
+   if( typeof applicable_from !==undefined && typeof applicable_till){         
     begin = new DateTime( applicable_from );
     end = new DateTime( applicable_till );
     interval =createFromDateString('1 month');
     period = new DatePeriod($begin, $interval, $end);                                
     applicable_month = iterator_count($period);
 } 
+q[key]['applicable_month']=applicable_month;
+applicable_month=0;
   }
+  if(date!=false){
+    let arr=[];
+    for(let val of Object.entries(row) ){
+      arr.push(val)
+    }
+    return arr;
+  }else{
+    return q;
+  }
+}
+let updatePassword=async(req,userData,db)=>{
+  try{
+  let r_error = 1;
+  let r_message = "";
+  let r_data ={}
 
+  let f_userid = "";
+  let f_newPassword = "";
+  let loggedUserInfo=userData;
+  if(typeof loggedUserInfo.id !=undefined){
+    f_userid = loggedUserInfo['id'];
+    if (req.body.password){
+      f_newPassword = req.body.password.trim();
+    }
+    if (f_newPassword == '') {
+        r_message = "Password is empty!!";
+        }else if (f_newPassword.length< 4) {
+        r_message = "Password must be atleast 4 characters!!";
+        }else {
+        await updateUserPassword(f_userid, f_newPassword,db);
+        r_error = 0;
+        r_message = "Password updated Successfully!!";
 
+        let messageBody ={}
+       // $slackMessageStatus = self::sendNotification( "password_update", $f_userid, $messageBody);
+      }
+  } else {
+  let r_error= 1;
+  r_data['message'] = "User not found";
+}
+        let Return = {};
+        Return.error = r_error;
+        r_data.message = r_message;
+        Return.data = r_data;
+        return Return;
+}catch(error){
+  console.log(error)
+}
+}
+let updateUserPassword=async(f_userid, f_newPassword,models)=>{
+  try {
+    console.log(f_userid)
+    let newPassword=md5(f_newPassword);
+    let q=await models.sequelize.query(`UPDATE users set password='${newPassword}' WHERE users.id='${f_userid}'`,{type:QueryTypes.UPDATE})
+    console.log(q)
+
+  } catch (error) {
+    console.log(error)
+  }
 }
   module.exports={
     getUserDetailInfo,
@@ -644,6 +878,6 @@ let getSalaryInfo= async(userid,models,sort=false,date=false)=>{
     saveTeamList,
     getAllUserDetail,
     UpdateUserBankInfo,
-    getSalaryInfo
+    getSalaryInfo,UpdateUserInfo,updatePassword
 
   }

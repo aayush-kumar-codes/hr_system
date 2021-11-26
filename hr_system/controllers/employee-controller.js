@@ -18,8 +18,8 @@ const {
   updateELC,
   getTeamList,
   saveTeamList,
-  UpdateUserBankInfo,
-  getSalaryInfo,
+  UpdateUserBankInfo,updatePassword,
+  getSalaryInfo,UpdateUserInfo
 } = require("../employeeFunction");
 const { validateSecretKey } = require("../allFunctions");
 const { response } = require("express");
@@ -336,7 +336,7 @@ exports.updateUserBYIdController = async (req, res, next) => {
 exports.updateNewPassController = async (req, res, next) => {
   try {
     let userData = req.userData;
-    let updatedPassword = await db.User.updatePassword(req.body, userData);
+    let updatedPassword = await updatePassword(req, userData,db);
     res.status_code = 200;
     res.message = updatedPassword;
     return next();
