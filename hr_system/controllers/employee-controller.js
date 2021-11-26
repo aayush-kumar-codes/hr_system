@@ -289,9 +289,10 @@ exports.changeStatusController = async (req, res, next) => {
 
 exports.updateUserBYIdController = async (req, res, next) => {
   try {
+    let response12;
     if (typeof req.body.user_id !== undefined && req.body.user_id !== "") {
       let user_id = req.body.user_id;
-      let update = true;
+      let update =true;
       let showFirstSalaryTobeAddedWarning = false;
       let tr_completion_date = req.body.training_completion_date;
       let check_sendConfirmationEmail = false;
@@ -302,7 +303,7 @@ exports.updateUserBYIdController = async (req, res, next) => {
       ) {
         let check_sendConfirmationEmail = true;
       }
-      // if(check_sendConfirmationEmail ){
+      if(check_sendConfirmationEmail ){
       let sal_details = await getSalaryInfo(user_id, db);
       let sendConfirmationEmail = true;
       if (sal_details.length > 1) {
@@ -312,22 +313,22 @@ exports.updateUserBYIdController = async (req, res, next) => {
       if (sendConfirmationEmail) {
         req.body.sendConfirmationEmail = true;
       }
-      // }
+      }
       if (update) {
-        let response = await UpdateUserInfo(req, db);
+        response12 = await UpdateUserInfo(req, db);
         if (showFirstSalaryTobeAddedWarning) {
-          response["message_warning"] =
+          response12["message_warning"] =
             "Salary is not added for this employee!!";
         }
       }
     } else {
-      response.data.message = "Please give user_id ";
+      response12.data.message = "Please give user_id ";
     }
     res.status_code = 200;
-    res.message = response;
+    res.message = response12.data.message;
     return next();
   } catch (error) {
-    console.log(error);
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();

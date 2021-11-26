@@ -13,7 +13,7 @@ const {
   const db = require("./db");
   const { sequelize } = require("./db");
   const { MachineStatusDeleteValidator } = require("./validators/req-validators");
-const { getUserInfo, copyExistingRoleRightsToNewRole } = require("./allFunctions");
+const { getUserInfo,DBupdateBySingleWhere,copyExistingRoleRightsToNewRole } = require("./allFunctions");
 const elc_stages_step = require("./models/elc_stages_stepModel");
 const { object } = require("webidl-conversions");
 
@@ -493,17 +493,18 @@ let getTeamList= async(req,models)=>{
 
 }
 let UpdateUserInfo =async(req,models)=>{
+  try{
   let r_error = 0;
   let r_message = "";
-  req.body['updated_on'] = date("Y-m-d");
-  let r_data =[];
+  // req.body['updated_on'] = date("Y-m-d");
+  let r_data ={};
   let userid = req.body['user_id'];
-  let user_profile_detail =await getUserprofileDetail(uuserid,req,models);
+  let user_profile_detail =await getUserprofileDetail(userid,req,models);
   let whereField = 'user_Id';
   let whereFieldVal = userid;
   let emailAlert_termination = false;
   let do_updateConfirmationEmail = false;
-  if(typeof req.body['sendConfirmationEmail']!=undefinded && req.body['sendConfirmationEmail'] == true ){
+  if(req.body['sendConfirmationEmail']&& req.body['sendConfirmationEmail'] == true ){
     do_updateConfirmationEmail = true;
 }
 let dates_keys = [
@@ -512,10 +513,11 @@ let dates_keys = [
   'dateofjoining',
   'dob'
 ]
+let Body=req.body;
 let msg = [];
 let res1 = [];
-for (let [key,val] of Object.entries(user_profile_detail)) {
-  if (key in req.body) {
+for (let [key,val] of Object.entries(user_profile_detail[0])) {
+  if (Body.hasOwnProperty(key)) {
       if (req.body.key != user_profile_detail[key] || ( key == "training_completion_date" && do_updateConfirmationEmail == true ) ) {
           /* check new other_email new email id already exist*/
           let other_email_exists = false;
@@ -546,38 +548,37 @@ for (let [key,val] of Object.entries(user_profile_detail)) {
               break;
           }                    
           /* check new work_email new email id already exist*/
-          
+
           let arr = [];
           arr[key] = req.body[key];
-          updateCheck = await DBupdateBySingleWhere('user_profile', $whereField, $whereFieldVal, $arr);
+          updateCheck = await DBupdateBySingleWhere('user_profile', whereField, whereFieldVal, arr,req,models);
           if( updateCheck ){
               if( key == "termination_date" ){
                   emailAlert_termination = true;
               }
-              res.push(updateCheck);
+              res1.push(updateCheck);
           }
           msg[key] = req.body[key];
-      }
-
-      if(key in dates_keys&& req.body.key ){
-          let q = (`UPDATE user_profile SET ${key}= NULL WHERE user_Id = ${userid}`,{type:QueryTypes.SELECT})
-          res.push(q) ;;                 
+    }
+      if(dates_keys.includes(key)&& (req.body[key]==null || req.body[key]==="")){
+          let q = await models.sequelize.query(`UPDATE user_profile SET ${key}= NULL WHERE user_Id = ${userid}`,{type:QueryTypes.UPDATE})
+          res1.push(q) ;
+          console.log(res1)              
       }
   }
 }
 if( r_error == 1){
   r_data['message'] = r_message;
 }else{
-  if (res.length == 0) {
+  if (res1.length == 0) {
     r_error = 0;
     r_message = "No fields updated into table";
-    r_data['message'] = r_message;
-}else{
+    r_data.message = r_message;
+  }else{
   let userInfo = await getUserInfo(userid,models);
   let userInfo_name = userInfo['name'];
-  let slack_userChannelid =userInfo['slack_profile']['id'];
+  let slack_userChannelid =userInfo['slack_id'];
   if (req.body['send_slack_msg'] == "") {
-
     if (msg.length > 0) {
        let detailsUpdated = "";
         for (let [key,valu] of Object.entries(msg)) {
@@ -609,7 +610,7 @@ if( emailAlert_termination ){
       emailData['templatekey'] = "Employee Termination";
       emailData['templateSubject'] = "";
       emailData['templateData'] = await getEmployeeCompleteInformation(userid);
-      await sendTemplateEmail(emailData);
+      // await sendTemplateEmail(emailData);
   }
   if(typeof req.body['notifyEmpTerminationPolicies']!=undefined && req.body['notifyEmpTerminationPolicies'] == true ){
      let to = []
@@ -624,7 +625,7 @@ if( emailAlert_termination ){
       emailData['templatekey'] = "Employee Termination Policies";
       emailData['templateSubject'] = "";
       emailData['templateData'] = await getEmployeeCompleteInformation(userid);
-      await sendTemplateEmail(emailData);
+      // await sendTemplateEmail(emailData);
   }
 }
   /* send confirmation email */
@@ -657,14 +658,16 @@ if( emailAlert_termination ){
 /* send email */
   r_error = 0;
   r_message = "Employee details updated successfully!!";
-  r_data['message'] = r_message;
+  r_data.message = r_message;
 }
 }
 let Return = {}
 Return.error = r_error;
 Return.data = r_data;
 return Return;
-
+  }catch(error){
+  console.log(error)
+  }
 }
 let saveTeamList=async(req,models)=>{
   try{
@@ -947,7 +950,6 @@ let getEmployeeCompleteInformation=async(empid,req,models)=>{
   return diffInMs / (1000 * 60 * 60);
  }
  let getUserlatestSalary =async(userid,req,models)=>{
-   console.log(12334)
   let q  =await models.sequelize.query(`select * from salary where user_Id = ${userid} ORDER BY id DESC LIMIT 2`,{type:QueryTypes.SELECT});
   return q;
  }

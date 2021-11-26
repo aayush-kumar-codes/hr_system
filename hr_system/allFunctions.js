@@ -2151,5 +2151,5 @@ module.exports = {
   removeMachineDetails,inventoryUnassignRequest,
   inventoryOwnershipChangeRequest,
   assignUserMachine,
-  getMachineTypeList
+  getMachineTypeList,DBupdateBySingleWhere
 }
