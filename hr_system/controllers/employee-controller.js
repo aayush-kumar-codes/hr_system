@@ -20,7 +20,8 @@ const {
   saveTeamList,
   UpdateUserBankInfo,updatePassword,
   getSalaryInfo,UpdateUserInfo,
-  updateEmployeePassword
+  updateEmployeePassword,
+  deleteRole
 } = require("../employeeFunction");
 const { validateSecretKey } = require("../allFunctions");
 const { response } = require("express");
@@ -263,7 +264,8 @@ exports.updateBankDetailsController = async (req, res, next) => {
 
 exports.deleteRoleController = async (req, res, next) => {
   try {
-    let deletedRole = await db.Role.deleteRole(req.body);
+    let role_id=req.body.role_id;
+    let deletedRole = await deleteRole(role_id,req,db);
     res.status_code = 200;
     res.message = deletedRole;
     return next();

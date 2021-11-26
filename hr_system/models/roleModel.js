@@ -196,20 +196,6 @@ function roles(database, type) {
       throw new Error(error);
     }
   };
-  roles.deleteRole = async (reqBody) => {
-    try {
-      let roletoDelete = await roles.destroy({
-        where: { id: reqBody.role_id },
-      });
-      if (roletoDelete == 1) {
-        return "deleted";
-      } else {
-        return "not deleted";
-      }
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
 
   return roles;
 }

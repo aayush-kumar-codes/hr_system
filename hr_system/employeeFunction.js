@@ -13,7 +13,7 @@ const {
   const db = require("./db");
   const { sequelize } = require("./db");
   const { MachineStatusDeleteValidator } = require("./validators/req-validators");
-const { getUserInfo,DBupdateBySingleWhere,copyExistingRoleRightsToNewRole } = require("./allFunctions");
+const { getUserInfo,DBupdateBySingleWhere,copyExistingRoleRightsToNewRole,getAllRole,assignUserRole } = require("./allFunctions");
 const elc_stages_step = require("./models/elc_stages_stepModel");
 const { object } = require("webidl-conversions");
 
@@ -953,6 +953,59 @@ let getEmployeeCompleteInformation=async(empid,req,models)=>{
   let q  =await models.sequelize.query(`select * from salary where user_Id = ${userid} ORDER BY id DESC LIMIT 2`,{type:QueryTypes.SELECT});
   return q;
  }
+ let deleteRole=async(id,req,models)=>{
+   try{
+   await deleteRolePages(id,req,models);
+   await deleteRoleActions(id,req,models );
+   await deleteRoleNotifications(id,req,models);
+   await deleteRoleUsers(id,req,models);
+   let run=await models.sequelize.query(`DELETE FROM roles WHERE id=${id}`,{type:QueryTypes.DELETE});
+   let Return = {}
+        Return.error = 0;
+        Return.message = 'Role deleted!!';
+        return Return;
+   }catch(error){
+     console.log(error)
+   }
+ }
+ let deleteRolePages=async(id,req,models)=>{
+   let q=await models.sequelize.query(`DELETE FROM roles_pages WHERE role_id=${id}`,{type:QueryTypes.DELETE})
+   return true;
+ }
+ let deleteRoleActions=async(id,req,models )=>{
+  let q=await models.sequelize.query(`DELETE FROM roles_actions WHERE role_id=${id}`,{type:QueryTypes.DELETE})
+  return true;
+ }
+ let deleteRoleNotifications=async(id,req,models)=>{
+  let q=await models.sequelize.query(`DELETE FROM roles_notifications WHERE role_id=${id}`,{type:QueryTypes.DELETE})
+  return true;
+ }
+
+ let deleteRoleUsers=async(id,req,models)=>{
+   await resetToBeDeleteRoleUsersToDefaultRole(id,req,models);
+   let q=await models.sequelize.query(`DELETE FROM user_roles WHERE role_id=${id}`,{type:QueryTypes.DELETE})
+   return true;
+  }
+  let resetToBeDeleteRoleUsersToDefaultRole=async(roleId,req,models)=>{
+    let defaultRoleName = "Employee";
+    let defaultRoleId = false;
+    let q = (`SELECT * FROM user_roles WHERE role_id=${roleId}`,{type:QueryTypes.SELECT});
+    let existingRoleUsers =q;
+    if( existingRoleUsers.length> 0 ){
+      let allDbRoles = await getAllRole(models);
+      for(let[key,role] of Object.entries(allDbRoles)){
+        if(defaultRoleName.toLowerCase() == role['name'].toLowerCase()){
+          defaultRoleId = role['id'];
+          break;
+      }
+      }
+      if(defaultRoleId != false ){
+        for (let[key,emp] of Object.entries(existingRoleUsers)) {
+         await assignUserRole(emp['user_id'],defaultRoleId,models );
+        }
+    }
+  }
+}
   module.exports={
     getUserDetailInfo,
     getUserBankDetail,
@@ -971,6 +1024,6 @@ let getEmployeeCompleteInformation=async(empid,req,models)=>{
     getAllUserDetail,
     UpdateUserBankInfo,
     getSalaryInfo,UpdateUserInfo,updatePassword,
-    updateEmployeePassword
+    updateEmployeePassword,deleteRole
 
   }
