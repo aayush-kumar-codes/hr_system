@@ -140,6 +140,6 @@ router.post(
   validators.updateEmployeePassValidators,
   employeeController.updateEmployeePassControllers,
   handlers.responseForEmployee
-);
+);//need to work on val part else completed
 
 module.exports = router;

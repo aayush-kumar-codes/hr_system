@@ -208,21 +208,6 @@ function user(database, type) {
       throw new Error(error);
     }
   };
-  User.empUpdatePass = async (reqBody) => {
-    try {
-      let empPassToUpdate = await User.update(
-        { password: reqBody.password },
-        { where: { id: reqBody.empid } }
-      );
-      if (empPassToUpdate[0] !== 0) {
-        return "updated password";
-      } else {
-        return "not updated";
-      }
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
   return User;
 }
 

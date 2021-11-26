@@ -19,7 +19,8 @@ const {
   getTeamList,
   saveTeamList,
   UpdateUserBankInfo,updatePassword,
-  getSalaryInfo,UpdateUserInfo
+  getSalaryInfo,UpdateUserInfo,
+  updateEmployeePassword
 } = require("../employeeFunction");
 const { validateSecretKey } = require("../allFunctions");
 const { response } = require("express");
@@ -349,11 +350,13 @@ exports.updateNewPassController = async (req, res, next) => {
 
 exports.updateEmployeePassControllers = async (req, res, next) => {
   try {
-    let updatedEmployeePass = await db.User.empUpdatePass(req.body);
+    let logged_user_id=req.userData.id;
+    let updatedEmployeePass = await updateEmployeePassword(logged_user_id,req,db);
     res.status_code = 200;
     res.message = updatedEmployeePass;
     return next();
   } catch (error) {
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();

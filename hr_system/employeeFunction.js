@@ -861,6 +861,96 @@ let updateUserPassword=async(f_userid, f_newPassword,models)=>{
     console.log(error)
   }
 }
+let updateEmployeePassword=async(logged_user_id,req,models)=>{
+  let r_error = 0;
+  let r_message = "";
+  let empid=req.body.empid;
+  let newpassword=req.body.newpassword;
+  if( empid == "" ){
+    r_error = 1;
+    r_message = "Employee id is empty";
+} else if( newpassword == "" ){
+    r_error = 1;
+    r_message = "New password is empty";
+} else if(newpassword.length < 5 ){
+    r_error = 1;
+    r_message = "New password must be atleast 5 characters";
+} else {
+    let checkEmployee = await getEmployeeCompleteInformation(empid,req,models);
+    if( checkEmployee['username']){
+        r_error = 1;
+        r_message = "Employee not found";
+    } else {
+       let canChangePassword = true;
+        if(checkEmployee['type'] && checkEmployee['type'].toLowerCase() == 'admin' ){
+            if( checkEmployee['user_Id'] != req.body['logged_user_id'] ){
+                canChangePassword = false;
+            }
+        }
+        if(canChangePassword){
+            await updateUserPassword(empid, newpassword,models);
+            r_message = "Password updated successfully";
+        } else {
+            r_message = "You can't updated Password for this employee";
+            r_error = 1;
+        }
+    }
+}
+let Return={};
+Return['error']= r_error;
+Return['message'] = r_message;
+return Return;
+}
+let getEmployeeCompleteInformation=async(empid,req,models)=>{
+  let userInfo = await getUserInfo(empid,models);
+  userInfo['user_bank_detail'] = await getUserBankDetail(empid,req,models);
+  userInfo['user_assign_machine']=await getUserAssignMachines(empid,req,models);
+  let sal =await getUserlatestSalary(empid,req,models);
+  let salary_detail = 0;
+  let previous_increment = 0;
+  let next_increment_date = "";
+  let slack_image = "";
+  let holding = 0;
+  let start_increment_date;
+  if(sal.length > 0 ){
+    let latest_sal_id = sal[0]['id'];
+    let q = (`SELECT * FROM salary_details WHERE salary_id= ${latest_sal_id} AND key = 'Misc_Deductions'`,{type:QueryTypes.SELECT})
+    if (sal.length >= 2) {
+        previous_increment = (sal[0]['total_salary'] - sal[1]['total_salary']);
+        salary_detail = sal[0]['total_salary'] + q['value'];
+        next_increment_date = sal[0]['applicable_till'];
+        start_increment_date = sal[0]['applicable_from'];
+    }
+    if (sal.length >= 1 && sal.length < 2) {
+        salary_detail = sal[0]['total_salary'] + q['value'];
+        next_increment_date = sal[0]['applicable_till'];
+        start_increment_date = sal[0]['applicable_from'];
+    }
+  }
+  let date1=10/12/2000;
+  let date2=new Date();
+  userInfo['slack_image'] = "";
+  userInfo['user_slack_id'] = "";
+  userInfo['salary_detail'] = salary_detail;
+  userInfo['previous_increment'] = previous_increment;
+  userInfo['next_increment_date'] = next_increment_date;
+  userInfo['start_increment_date'] = start_increment_date;
+  userInfo['no_of_days_join'] = Math.trunc(await intervalfunction(date1,date2))
+  userInfo['holdin_amt_detail'] = holding;
+  console.log(userInfo)
+  return userInfo;
+}
+
+
+ let intervalfunction=async(date1,date2)=>{
+  let diffInMs = Math.abs(date2 - date1);
+  return diffInMs / (1000 * 60 * 60);
+ }
+ let getUserlatestSalary =async(userid,req,models)=>{
+   console.log(12334)
+  let q  =await models.sequelize.query(`select * from salary where user_Id = ${userid} ORDER BY id DESC LIMIT 2`,{type:QueryTypes.SELECT});
+  return q;
+ }
   module.exports={
     getUserDetailInfo,
     getUserBankDetail,
@@ -878,6 +968,7 @@ let updateUserPassword=async(f_userid, f_newPassword,models)=>{
     saveTeamList,
     getAllUserDetail,
     UpdateUserBankInfo,
-    getSalaryInfo,UpdateUserInfo,updatePassword
+    getSalaryInfo,UpdateUserInfo,updatePassword,
+    updateEmployeePassword
 
   }
