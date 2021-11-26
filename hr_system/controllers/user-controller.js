@@ -142,7 +142,7 @@ exports.getEnableUser = async (req, res, next) => {
     } else {
       let token = req.headers.authorization.split(" ");
       let loggedUserInfo = jwt.verify(token[1], secret.jwtSecret);
-      role = loggedUserInfo.data.role;
+      role = loggedUserInfo.role;
     }
     let sorted_by =
       typeof req.body.sorted_by != "undefined" ? req.body.sorted_by : false;
@@ -175,7 +175,7 @@ exports.updateRoleController = async (req, res, next) => {
 exports.listAllRolesController = async (req, res, next) => {
   try {
     let listofRoles = await db.Role.getListOfRoles();
-    console.log(listofRoles);
+    // console.log(listofRoles);
     res.status_code = 200;
     res.data = listofRoles;
     res.message = listofRoles.error

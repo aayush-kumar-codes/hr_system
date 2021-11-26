@@ -58,15 +58,14 @@ function user_profile(database, type) {
       let message;
       let userId;
       let password = await randomString(5);
-      let username = await models.User.findAll({
-        where: { username: reqBody.username },
-      });
-      let workemail = await user_profile.findAll({
-        where: { work_email: reqBody.workemail },
-      });
-      let otheremail = await user_profile.findAll({
-        where: { other_email: reqBody.email },
-      });
+      let username = await models.sequelize.query(`select * from users where users.username = '${reqBody.username}'`, 
+      {type: QueryTypes.SELECT});
+      let workemail = await models.sequelize.query(`select * from user_profile 
+      where user_profile.work_email = '${reqBody.workemail}'`, 
+      {type: QueryTypes.SELECT});
+      let otheremail = await models.sequelize.query(`select * from user_profile 
+      where user_profile.other_email = '${reqBody.email}'`, 
+      {type: QueryTypes.SELECT});
       if (username.length !== 0) {
         error = 1;
         message = "username exists";
@@ -111,7 +110,7 @@ function user_profile(database, type) {
           } else {
             error = 0;
             message = "Employee added Successfully";
-            let allRoles = await models.Role.findAll({});
+            let allRoles = await models.sequelize.query(`select * from roles`,{type: QueryTypes.SELECT})
             for (let roles in allRoles) {
               if (allRoles[roles].name == reqBody.type) {
                 let defaultRoleId = allRoles[roles].id;
@@ -141,6 +140,7 @@ function user_profile(database, type) {
       Return.data = data;
       return Return;
     } catch (error) {
+      console.log(error);
       throw new Error(error);
     }
   };

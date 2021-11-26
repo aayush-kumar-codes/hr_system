@@ -82,7 +82,7 @@ const { getUserInfo, copyExistingRoleRightsToNewRole } = require("./allFunctions
 let getEnabledUsersListWithoutPass=async(req,models,role=false,sorted_by=false)=>{
 let row=await getEnabledUsersList(req,models,sorted_by);
 let secureKeys = [ 'bank_account_num', 'blood_group', 'address1', 'address2', 'emergency_ph1', 'emergency_ph2', 'medical_condition', 'dob', 'marital_status', 'city', 'state', 'zip_postal', 'country', 'home_ph', 'mobile_ph', 'work_email', 'other_email', 'special_instructions', 'pan_card_num', 'permanent_address', 'current_address', 'slack_id', 'policy_document', 'training_completion_date', 'termination_date', 'training_month', 'slack_msg', 'signature', 'role_id', 'role_name', 'eth_token' ]
-console.log(row)
+// console.log(row)
 let rows=[];
 for(let val of row){
   delete val.password;
@@ -213,7 +213,7 @@ let getDisabledUser=async(req,models)=>{
   LEFT JOIN roles ON user_roles.role_id = roles.id
   where
   users.status = 'Disabled'`,{type:QueryTypes.SELECT})
-  console.log(query)
+  // console.log(query)
   Return={};
   if(query.length!==0){
     Return.error=0;

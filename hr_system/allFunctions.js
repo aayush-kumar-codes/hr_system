@@ -55,6 +55,8 @@ let getActionById = async (id) => {
 };
 
 let getRoleActions = async (roleid, models) => {
+  // let rows = await models.sequelize.query(`Select * from roles_actions where roles_actions.role_id='${roleid}'`, 
+  // {type:QueryTypes.SELECT})
   let rows = await models.RolesAction.findAll({
     where: { role_id: roleid },
   });
@@ -241,8 +243,6 @@ let getUserRole = async (userId, models) => {
     );
     data = roleCompleteDetails;
   }
-  // console.log("+++++");
-  // console.log(data);
   return data;
 };
 
@@ -1011,21 +1011,18 @@ let getMachineCount=async(req,models)=>{
 let addInventoryComment = async (machine_id, loggeduserid,models,req,comment,oldUserId) => {
   let inventoryComment;
     if(comment){
-      inventoryComment = await models.InventoryCommentsModel.create({
-      inventory_id: machine_id,
-      updated_by_user_id: loggeduserid,
-      comment_type: req.body.comment_type,
-      comment:comment,
-       });
-          }
+      inventoryComment = await models.sequelize.query(`insert into inventory_comments 
+      (inventory_id, updated_by_user_id, comment_type, comment) values 
+      ('${machine_id}', '${loggeduserid}','${req.body.comment_type}', '${comment}')`, {type: QueryTypes.INSERT});
+    }
     if(!comment && !oldUserId){
-     inventoryComment = await models.InventoryCommentsModel.create({
-     inventory_id: machine_id,
-     updated_by_user_id: loggeduserid,
-     comment_type: req.body.comment_type,
-     comment: req.body.unassign_comment,
-        });
-        }
+    inventoryComment = await models.InventoryCommentsModel.create({
+    inventory_id: machine_id,
+    updated_by_user_id: loggeduserid,
+    comment_type: req.body.comment_type,
+    comment: req.body.unassign_comment,
+    });
+   }
   if (oldUserId != null&&typeof req.body.assign_unassign_user_id !=="undefined") {
     inventoryComment = await models.InventoryCommentsModel.create({
       inventory_id: machine_id,
@@ -1035,8 +1032,8 @@ let addInventoryComment = async (machine_id, loggeduserid,models,req,comment,old
       assign_unassign_user_id: req.body.assign_unassign_user_id,
     });
   }
-  // JSON.parse(JSON.stringify(inventoryComment))
-  return inventoryComment.dataValues.id;
+
+  return inventoryComment.id;
 };
 
 let addMachineType=async(req,models)=>{
@@ -1154,7 +1151,8 @@ const getAllMachinesDetail =async(req,models,sort=null,status_sort=null)=>{
     Return.data=q;
     return Return;
   }catch(error){
-console.log(error)
+console.log(error);
+throw new Error(error);
   }
 }
 const addInventoryStatusType = async(req,models)=>{
@@ -1434,7 +1432,7 @@ let getAllRole = async (models) => {
 let manageUserTypeOnRoleChange = async (userid, models) => {
   let roleDetails = await getUserRole(userid, models);
   let currentRoleName = roleDetails.name;
-  let q = await models.User.findOne({ where: { id: userid } });
+  let q = await models.sequelize.query(`select * from users where users.id = '${userid}'`, {plain: true,type:QueryTypes.SELECT})
   let userType = q.type;
   if (
     currentRoleName.toLowerCase() == "admin" &&
@@ -2058,6 +2056,62 @@ let getSystemDefaultRoles = async() => {
   return array;
 }
 
+let addRoleAction = async(roleid, actionid, models) => {
+  let q = await models.sequelize.query(`SELECT * FROM roles_actions WHERE role_id = ${roleid} AND action_id = ${actionid}`, {type:QueryTypes.SELECT});
+  if(q.length == 0){
+    let newQ = await models.sequelize.query(`insert into roles_actions (role_id, action_id) values (${roleid}, ${actionid})`, {type: QueryTypes.INSERT});
+  }
+}
+
+let addPagesActions = async(roleid,pageid, models) => {
+  try {
+  let allPages = await getAllPages();
+  let selectedPage = false;
+  for(let page of allPages){
+    if(page.id == pageid){
+      selectedPage = page;
+      break;
+    }
+  }
+  if(selectedPage != false && typeof selectedPage[actions_list] !== "undefined"){
+    actionsToAdd = selectedPage[actions_list];
+      for(let ac of actionsToAdd){
+        await addRoleAction(roleid, ac[id], models)
+      }
+    } 
+  } catch (error) {
+    throw new Error(error);
+  }
+}
+
+let removeRoleAction = async(roleid, actionid, models) =>{
+  let q = models.sequelize.query(`DELETE FROM roles_actions 
+  WHERE role_id = ${roleid} AND action_id = ${actionid}`,
+  {type:QueryTypes.DELETE});
+}
+
+let removePageActions = async(roleid, pageid) => {
+  try {
+    let allPages = await getAllPages();
+    let selectedPage = false;
+    for(let page of allPages){
+    if(page.id == pageid){
+      selectedPage = page;
+      break;
+    }
+  }
+  if(selectedPage != false && typeof selectedPage[actions_list] !== "undefined"){
+    actionsToRemove = selectedPage[actions_list];
+      for(let ac of actionsToRemove){
+        await removeRoleAction(roleid, ac[id], models)
+      }
+    }  
+  } catch (error) {
+    console.log(error);
+    throw new Error(error);
+  }
+}
+
 module.exports = {
   // registerRole,
   API_getTempUploadedInventoryFiles,
@@ -2112,5 +2166,7 @@ module.exports = {
   removeMachineDetails,inventoryUnassignRequest,
   inventoryOwnershipChangeRequest,
   assignUserMachine,
-  getMachineTypeList
+  getMachineTypeList,
+  addPagesActions,
+  removePageActions
 }

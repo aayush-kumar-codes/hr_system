@@ -10,17 +10,17 @@ function inventorycomments(database, type) {
       inventory_id: type.INTEGER,
       updated_by_user_id: {
         type: type.INTEGER,
-        defaultValue: 0,
+        defaultValue: false,
       },
       assign_unassign_user_id: type.INTEGER,
       comment: {
         type: type.STRING,
-        defaultValue: 0,
+        defaultValue: false,
       },
       updated_at: type.DATE,
       comment_type: {
         type: type.STRING,
-        defaultValue: 0,
+        defaultValue: false,
       },
     },
     {
