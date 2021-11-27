@@ -411,7 +411,42 @@ let getHolidayDetails=async(holiday_id,db)=>{
     console.log(q)
     return q;
 }
+let addHoliday=async(name,date,type,db)=>{
+    console.log(12213425)
+    let r_error = 0;
+    let r_data = {};
+    let Return = {};
+
+    if((name) || name == ""){
+        r_data.message = "Please provide holiday name.";
+
+    } else if ((date) || date == ""){
+        r_data.message = "Please provide a holiday date.";
+
+    } else if ((type) || type == ""){
+        r_data.message= "Please provide holiday type.";
+
+    } else {
+        
+        date = new Date(date);
+        let rows = await db.sequelize.query(`SELECT * from holidays where date = '${date}'`,{type:QueryTypes.SELECT});
+        if( rows.length > 0 ){
+            r_error = 1;
+            r_data.message = "Date Already Exists.";
+
+        } else {
+            let insert_holiday = await db.sequelize.query(`Insert into holidays VALUES (${name}, ${date}, ${type}`,{type:QueryTypes.INSERT})
+            console(insert_holiday)
+            r_data.message = "Holiday inserted successfully.";
+        }
+    }
+
+    Return.error= r_error,
+    Return.data=r_data
+    console.log(Return)
+    return Return;
+}
 module.exports = {
   _getPreviousMonth,
-  getEmployeeLastPresentDay,API_deleteHoliday
+  getEmployeeLastPresentDay,API_deleteHoliday,addHoliday
 };

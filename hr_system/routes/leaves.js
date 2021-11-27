@@ -17,4 +17,10 @@ router.post(
   leavesControllers.delete_holiday,
   handlers.responseForData
 )
+router.post(
+  "/add_holiday",
+  middleware.AuthForHrAdmin,
+  leavesControllers.add_holiday,
+  handlers.responseForData
+)
   module.exports = router;
