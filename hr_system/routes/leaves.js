@@ -8,9 +8,13 @@ const middleware = require("../middleware/Auth");
 router.post(
     "/admin_user_apply_leave",
     middleware.AuthForHrAdmin,
-    validators.addRoleValidator,
     leavesControllers.adminUserApplyLeave,
     handlers.addNewEmployeeResponseHandle
   );
-
+router.post(
+  "/delete_holiday",
+  middleware.AuthForHrAdmin,
+  leavesControllers.delete_holiday,
+  handlers.responseForData
+)
   module.exports = router;

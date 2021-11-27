@@ -18,7 +18,6 @@ let _getPreviousMonth = async (currentDate) => {
   let previousMonth = {};
   previousMonth.year = prev.getFullYear();
   previousMonth.month = prev.getMonth();
-  console.log(previousMonth)
   return previousMonth;
 };
 
@@ -36,7 +35,6 @@ let getEmployeeLastPresentDay = async (userid, year, month, db) => {
 };
 let getUserMonthAttendace = async (userid, year, month, db) => {
   let genericMonthDays = await getGenericMonthSummary(year, month, userid, db); // $userid added on 5jan2018 by arun so as to use user working hours
-  console.log(genericMonthDays);
   let userMonthPunching = await getUserMonthPunching(userid, year, month, db);
   let userMonthLeaves = await getUserMonthLeaves(userid, year, month, db);
 
@@ -55,7 +53,8 @@ let getUserMonthAttendace = async (userid, year, month, db) => {
   }
 
   let Return = [];
-  for (let [k, v] of genericMonthDays) {
+  for(let [k,v] of Object.entries(genericMonthDays)) {
+      console.log(k,v);
     if (userMonthPunching.includes(k)) {
       v["in_time"] = userMonthPunching[k]["in_time"];
       v["out_time"] = userMonthPunching[k]["out_time"];
@@ -118,14 +117,12 @@ let getUserMonthAttendace = async (userid, year, month, db) => {
   for (let r of Object.entries(Return)) {
     finalReturn.push(r);
   }
-  console.log(4432546574);
   return finalReturn;
 };
-let getGenericMonthSummary = async (year, month, userid = false) => {
+let getGenericMonthSummary = async (year, month, userid = false,db) => {
   // DEFAULT_WORKING_HOURS = $_ENV['DEFAULT_WORKING_HOURS'] ? $_ENV['DEFAULT_WORKING_HOURS'] : "09:00";
   let DEFAULT_WORKING_HOURS = "9:00";
   let daysOfMonth = await getDaysOfMonth(year, month, db);
-//   console.log(daysOfMonth)
   for (let [kk, pp] of Object.entries(daysOfMonth)) {
     daysOfMonth[kk]["office_working_hours"] = DEFAULT_WORKING_HOURS;
   }
@@ -154,7 +151,7 @@ let getGenericMonthSummary = async (year, month, userid = false) => {
     }
   }
   if (userid != false) {
-    userWorkingHours = await getUserMangedHours(userid);
+    userWorkingHours = await getUserMangedHours(userid,db);
     if (userWorkingHours.length > 0) {
       for (let [key, dm] of Object.entries(daysOfMonth)) {
         for (let [hm_key, hm] of Object.entries(userWorkingHours)) {
@@ -176,12 +173,18 @@ let getGenericMonthSummary = async (year, month, userid = false) => {
       explodeDayWorkingHours = dom["office_working_hours"].split(":");
       explodeDay_hour = explodeDayWorkingHours[0] * 60 * 60;
       explodeDay_minute = explodeDayWorkingHours[1] * 60;
-      orignal_total_time = int(explodeDay_hour + $explodeDay_minute);
+      orignal_total_time = (explodeDay_hour + explodeDay_minute);
       daysOfMonth[key]["orignal_total_time"] = orignal_total_time;
     }
   }
   return daysOfMonth;
 };
+ let  getNonworkingdayAsWorking=async(year, month,db)=> {
+    let list ;
+    list = await getWorkingHoursOfMonth(year, month,db);
+    return list;
+}
+
 let getDaysOfMonth = async (year, month) => {
   let list = [];
   for (d = 1; d <= 31; d++) {
@@ -222,6 +225,10 @@ let _addRequiredKeysForADay = async (days) => {
   }
   return Return;
 };
+ let   getUserMangedHours=async(userid,db)=> {
+    let rows = (`SELECT * FROM user_working_hours WHERE user_Id = userid order by id DESC`,{type:QueryTypes.SELECT});
+    return rows;
+} 
 let getHolidaysOfMonth = async (year, month, models) => {
   let q = await models.sequelize.query(`SELECT * FROM holidays`, {
     type: QueryTypes.SELECT,
@@ -249,9 +256,15 @@ let getWeekendsOfMonth=async(year,month,db)=>{
         list[k] = v;  
       }
     }
-    let list2=await getWorkingHoursOfMonth(year,month,db)
+    let list2=await getWorkingHoursOfMonth(year,month,db);
+    let arr=[];
+    for(key in list){
+      if(list2.includes(key)){
+       arr[key].push(list2[key]);
+      }
+    }
+    return arr;
 
-    
 }
 let getWorkingHoursOfMonth=async(year,month,db)=>{
     let q = await db.sequelize.query('SELECT * FROM working_hours',{type:QueryTypes.SELECT});
@@ -269,7 +282,136 @@ let getWorkingHoursOfMonth=async(year,month,db)=>{
     }
     return list;
 }
+ let getUserMonthPunching=async(userid, year, month,db)=>{
+    let list = [];
+    let rows = await db.sequelize.query(`SELECT * FROM attendance Where user_id = ${userid}`,{type:QueryTypes.SELECT});
+    let allMonthAttendance = [];
+    for(let d of rows ) {
+        let d_timing = d['timing'];
+        d_timing = d_timing.replace("-","/")
+        d_timing=new Date(d_timing)
+        // check if date and time are not there in string
+        if( d_timing.length < 10 ){
+
+        } else {
+            let d_full_date = new Date(d_timing.getFullYear(), d_timing .getMonth(), d_timing .getDate());
+            let d_timestamp = (d_timing).getTime();
+            let d_month=(d_timing).getMonth();
+            let d_year = d_timing.getFullYear();
+            let d_date = d_timing.getDate()
+            if (d_year == year && d_month == month) {
+                d['timestamp'] = d_timestamp;
+                allMonthAttendance[d_date]=[];
+                allMonthAttendance[d_date]=d;
+            }
+
+        }
+    }
+
+    // // added on 5jan2018----
+    let genericMonthDays = await getGenericMonthSummary(year, month, userid,db); // $userid added on 5jan2018 by arun so as to use user working hours
+    
+    // // userMonthLeaves is added to get the working hours for halfday
+    let userMonthLeaves = await getUserMonthLeaves(userid,year,month,db);
+
+    // foreach ($allMonthAttendance as $pp_key => $pp) {
+    //     $dayW_hours = false;
+    //     if( isset($genericMonthDays[$pp_key]) && isset($genericMonthDays[$pp_key]['office_working_hours'])){
+    //         $dayW_hours = $genericMonthDays[$pp_key]['office_working_hours'];
+    //     }
+    //     // check if day is a leave and it is half day then daywhours will be 04:30 hours
+    //     if( isset($userMonthLeaves[$pp_key]) && isset($userMonthLeaves[$pp_key]['no_of_days']) && $userMonthLeaves[$pp_key]['no_of_days'] == '0.5' ){
+    //         $dayW_hours = '04:30';
+    //     }
+    //     $daySummary = self::_beautyDaySummary($pp, $dayW_hours);
+    //     $list[$pp_key] = $daySummary;
+    // }
+    // return $list;
+}
+let getUserMonthLeaves=async(userid,year,month,db)=>{
+        let list = [];
+        let rows = await db.sequelize.query(`SELECT * FROM leaves Where user_Id = ${userid}`,{type:QueryTypes.SELECT});
+        for (let pp of rows) {
+            let pp_start = pp['from_date'];
+            let pp_end = pp['to_date'];
+            let datesBetween = await _getDatesBetweenTwoDates(pp_start, pp_end);
+            for(d of datesBetween) {
+                let h_month = d.getMonth();
+                let h_year = d.getFullYear()
+
+                if (h_year == year && h_month == month) {
+                   let h_full_date = new Date(d);
+                   let h_date = d.getDate()
+                    list[h_date] = pp;
+                }
+            }
+        }
+        // console.log(list)
+        // ksort($list);
+
+
+        // ///// remove non working days from leaves
+        // $monthHolidays = self::getHolidaysOfMonth($year, $month);
+        // $monthWeekends = self::getWeekendsOfMonth($year, $month);
+        // if (sizeof($monthHolidays) > 0) {
+        //     foreach ($monthHolidays as $d => $v) {
+        //         if (array_key_exists($d, $list)) {
+        //             unset($list[$d]);
+        //         }
+        //     }
+        // }
+        // if (sizeof($monthWeekends) > 0) {
+        //     foreach ($monthWeekends as $w => $v2) {
+        //         if (array_key_exists($w, $list)) {
+        //             unset($list[$w]);
+        //         }
+        //     }
+        // }
+
+        return list;
+}
+let  _getDatesBetweenTwoDates=async(startDate, endDate)=>{
+    startDate=new Date(startDate);
+    Return = [];
+    Return.push(startDate)
+    let start =startDate;
+    let i = 1;
+    if (startDate.getTime() < new Date(endDate).getTime()) {
+        while (start.getTime() < new Date(endDate).getTime()) {
+            // console.log(start,endDate)
+            let date=startDate.getDate();
+            date=date+i;
+            start =startDate.setDate(date)
+            start=new Date(start);
+            Return.push(start);
+            i++;
+        }
+    }
+    // console.log(Return)
+    return Return;
+}
+let API_deleteHoliday=async(holiday_id,db)=>{
+    let r_error = 0;
+    r_data ={}
+    let Return = {};
+    let holiday = await getHolidayDetails(holiday_id,db);        
+    if((holiday).length > 0 ){
+        let q = await db.sequelize.query(` DELETE FROM holidays WHERE id = 'holiday_id'`,{type:QueryTypes.DELETE})
+        r_data.message = "Holiday Deleted Successfully.";
+    } else {
+        r_error = 1;
+        r_data.message = "Holiday not Found.";
+    }
+    Return.error= r_error;
+    Return.data= r_data;
+    return Return;
+};
+let getHolidayDetails=async(holiday_id,db)=>{
+    let q = await db.sequelize.query(` SELECT * from holidays WHERE id = '${holiday_id}' `,{type:QueryTypes.SELECT});
+    console.log(q)
+    return q;
+}
 module.exports = {
   _getPreviousMonth,
-  getEmployeeLastPresentDay,
+  getEmployeeLastPresentDay,API_deleteHoliday
 };
