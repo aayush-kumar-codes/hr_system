@@ -29,4 +29,16 @@ router.post(
   leavesControllers.get_holiday_types_list,
   handlers.responseForData
 )
+router.post(
+  "/get_holidays_list",
+  middleware.AuthForHrAdmin,
+  leavesControllers.get_holidays_list,
+  handlers.responseForLeaveApis
+)
+router.post(
+  "/cancel_applied_leave",
+  middleware.AuthForHrAdmin,
+  leavesControllers.cancel_applied_leave,
+  handlers.responseForLeaveApis
+)
   module.exports = router;

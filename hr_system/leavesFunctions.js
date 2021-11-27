@@ -7,6 +7,7 @@ const { MachineStatusDeleteValidator } = require("./validators/req-validators");
 const user = require("./models/userModel");
 const { Query } = require("pg");
 const { object } = require("webidl-conversions");
+const e = require("express");
 
 let _getPreviousMonth = async (currentDate) => {
   var makeDate = new Date(currentDate);
@@ -467,7 +468,90 @@ let API_getHolidayTypesList=async(db)=>{
      Return.data= r_data;
     return Return;
 }
+
+ let API_getYearHolidays=async(year,db)=>{
+    if (year == false) {
+      year= new Date().getFullYear()
+    }
+    let rows =await db.sequelize.query(`SELECT * FROM holidays`,{type:QueryTypes.SELECT});
+    let list = [];
+    
+    let type_text = await getHolidayTypesList(db);
+
+    if (year == false) {
+        list = rows;
+    } else {
+        for(let pp of rows){
+            let h_date = pp['date'];
+            h_date=new Date(h_date)
+            h_year =h_date.getFullYear();
+            for(let text of type_text){
+                if( pp['type'] == text['type'] ){
+                    pp['type_text'] = text['text'];
+                }
+            }
+            if (h_year == year) {
+                list.push(pp)
+            }                
+        }
+    }
+    // if (list.length > 0) {
+        for(let [key,v] of Object.entries(list) ) {
+            list[key]['month'] = new Date(v['date']).toLocaleString('default', { month: 'long' })
+            list[key]['dayOfWeek'] = new Date(v['date']).toLocaleString('default', {weekday: 'long' })
+          }
+    // }
+
+    
+    let r_error = 0;
+    let r_data = {};
+    let Return = {};
+    Return['error'] = r_error;
+    r_data['message'] = "";
+    r_data['holidays'] = list;
+    Return['data'] = r_data;
+    return Return;
+ }
+ let cancelAppliedLeave=async(req,db)=>{
+  try{
+  let r_error = 1;
+  let r_message = "";
+  let r_data ={};
+  let user_id = req.body['user_id'];
+  let leave_start_date = new Date(req.body['date']);
+  let current_date = new Date();
+  let time1=current_date.getTime();
+  let time2=leave_start_date.getTime()
+  if(time1 < time2){
+    leave_start_date=(leave_start_date.toISOString().split('T')[0])
+    let row2=await db.sequelize.query(`SELECT * FROM leaves WHERE user_Id= ${user_id}  AND from_date= '${leave_start_date}' AND (status = 'Approved' OR status = 'Pending')`,{type:QueryTypes.SELECT});
+    if(row2.length>0){
+      let q2 = await db.sequelize.query(`UPDATE leaves SET status = 'Cancelled Request' WHERE id=${row2[0]['id']}`,{type:QueryTypes.UPDATE});
+                r_error = 0;
+                r_message = `Your applied leave for ${req.body['date']} has been cancelled`;
+                r_data['message'] = r_message;
+    }else{
+      r_error = 1;
+      r_message = `No Leave applied on ${req.body['date']} or it has been cancelled already`
+      r_data['message'] = r_message;
+    }
+
+  }else{
+    r_error = 1;
+    r_message = `You cannot cancel leave of  ${req.body['date'] } .Contact HR for cancellation`;
+    r_data['message'] = r_message;
+  }
+  let Return = {};
+  Return['error'] = r_error;
+  Return['data'] = r_data;
+  return Return;
+  
+  }catch(error){
+    console.log(error);
+  }
+ }
+
 module.exports = {
   _getPreviousMonth,
-  getEmployeeLastPresentDay,API_deleteHoliday,addHoliday,getHolidayTypesList,API_getHolidayTypesList
+  getEmployeeLastPresentDay,API_deleteHoliday,addHoliday,getHolidayTypesList,API_getHolidayTypesList,API_getYearHolidays,cancelAppliedLeave
 };

@@ -3,7 +3,7 @@ const providers = require("../providers/creation-provider");
 const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
-const{_getPreviousMonth,getEmployeeLastPresentDay,API_deleteHoliday,addHoliday,API_getHolidayTypesList}=require("../leavesFunctions")
+const{_getPreviousMonth,getEmployeeLastPresentDay,API_deleteHoliday,addHoliday,API_getHolidayTypesList,API_getYearHolidays,cancelAppliedLeave}=require("../leavesFunctions")
 
 exports.adminUserApplyLeave=async(req,res,next)=>{
     let from_date = to_date = no_of_days = reason = day_status = '';   
@@ -105,4 +105,40 @@ exports.get_holiday_types_list=async(req,res,next)=>{
     res.message = error.message;
     return next();
   }
+}
+exports.get_holidays_list=async(req,res,next)=>{
+    try{
+    let year = req.body['year'];
+    let resp = await API_getYearHolidays(year,db);
+    res.status_code = 200;
+    res.message=resp.data.message;
+    res.data=resp.data.holidays;
+    res.error=resp.error
+    return next();
+} catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+}
+exports.cancel_applied_leave=async(req,res,next)=>{
+    try{
+        let resp={};
+        if ((req.body['user_id']) && req.body['user_id'] != "") {
+            console.log(12)
+            resp = await cancelAppliedLeave(req,db);
+            console.log(resp)
+        } else {
+            resp.data={};
+            resp['data']['message'] = 'Please give user_id ';
+        }  
+        res.status_code =200;
+        // console.log(resp)
+        res.data=resp;
+        return next();
+    } catch (error) {
+        res.status_code = 500;
+        res.message = error.message;
+        return next();
+      }
 }

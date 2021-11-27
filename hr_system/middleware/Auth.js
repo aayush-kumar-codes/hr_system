@@ -29,7 +29,7 @@ exports.AuthForAdmin = async (req, res, next) => {
   }
 };
 
-exports.AuthForHrAdmin = async (req, res, next) => {
+exports.AuthForHrAdmin = async (req, res, next) => {  
   if (!req.headers.authorization) {
     return res.status(401).json({
       message: "Auth token missing in header",
