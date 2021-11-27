@@ -593,6 +593,7 @@ let getUserPolicyDocument = async (userid, models) => {
   let arr = [];
   if (ar0 == null) {
     for (let v2 in ar1) {
+      console.log(v2)
       ar1[v2].read = 0;
       let mandatory = 1;
       if (typeof ar1[v2].mandatory !== "undefined") {

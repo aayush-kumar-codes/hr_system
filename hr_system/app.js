@@ -7,9 +7,8 @@ const cors = require('cors')
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 var inventoryRouter = require("./routes/inventory");
-
-
 const employeeRouter=require("./routes/employee")
+const leaveRouter=require("./routes/leaves")
 var app = express();
 
 // view engine setup
@@ -27,6 +26,7 @@ app.use("/", indexRouter);
 app.use("/users", usersRouter);
 app.use("/inventory", inventoryRouter);
 app.use("/employee",employeeRouter)
+app.use("/leaves",leaveRouter)
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
