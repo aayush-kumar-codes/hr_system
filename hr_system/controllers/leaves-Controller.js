@@ -3,7 +3,7 @@ const providers = require("../providers/creation-provider");
 const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
-const{_getPreviousMonth,getEmployeeLastPresentDay,API_deleteHoliday,addHoliday}=require("../leavesFunctions")
+const{_getPreviousMonth,getEmployeeLastPresentDay,API_deleteHoliday,addHoliday,API_getHolidayTypesList}=require("../leavesFunctions")
 
 exports.adminUserApplyLeave=async(req,res,next)=>{
     let from_date = to_date = no_of_days = reason = day_status = '';   
@@ -92,4 +92,17 @@ exports.add_holiday=async(req,res,next)=>{
       res.message = error.message;
       return next();
     }
+}
+exports.get_holiday_types_list=async(req,res,next)=>{
+    try{
+    resp=await API_getHolidayTypesList(db)
+    res.status_code = 200;
+    res.message=resp.data;
+    res.error=resp.error
+    return next();
+} catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
 }

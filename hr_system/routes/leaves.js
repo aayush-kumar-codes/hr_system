@@ -23,4 +23,10 @@ router.post(
   leavesControllers.add_holiday,
   handlers.responseForData
 )
+router.post(
+  "/get_holiday_types_list",
+  middleware.AuthForHrAdmin,
+  leavesControllers.get_holiday_types_list,
+  handlers.responseForData
+)
   module.exports = router;

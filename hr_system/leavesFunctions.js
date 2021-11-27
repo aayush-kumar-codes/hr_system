@@ -446,7 +446,28 @@ let addHoliday=async(name,date,type,db)=>{
     console.log(Return)
     return Return;
 }
+let getHolidayTypesList=async(db)=>{
+    let list = [
+        {
+            type:0,text:'Normal'
+        },
+        {
+            type:1,text:'Restricted'
+        }  
+    ]
+    return list;
+
+}
+let API_getHolidayTypesList=async(db)=>{
+    let r_error = 0;
+    let r_data = {}
+    r_data.holiday_type_list = await getHolidayTypesList(db);
+    let Return = {}
+     Return.error=r_error;
+     Return.data= r_data;
+    return Return;
+}
 module.exports = {
   _getPreviousMonth,
-  getEmployeeLastPresentDay,API_deleteHoliday,addHoliday
+  getEmployeeLastPresentDay,API_deleteHoliday,addHoliday,getHolidayTypesList,API_getHolidayTypesList
 };
