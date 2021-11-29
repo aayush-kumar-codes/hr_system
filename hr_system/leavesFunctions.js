@@ -7,6 +7,7 @@ const { MachineStatusDeleteValidator } = require("./validators/req-validators");
 const user = require("./models/userModel");
 const { Query } = require("pg");
 const { object } = require("webidl-conversions");
+// const leapYear = require('leap-year');
 const e = require("express");
 
 let _getPreviousMonth = async (currentDate) => {
@@ -25,13 +26,13 @@ let _getPreviousMonth = async (currentDate) => {
 let getEmployeeLastPresentDay = async (userid, year, month, db) => {
   let Return = false;
   let monthDetails = await getUserMonthAttendace(userid, year, month, db);
-  monthDetails = array_reverse(monthDetails);
-  // foreach( monthDetails as md ){
-  //     if( md['day_type'] == 'WORKING_DAY' && ( md['in_time'] || md['out_time'] )  ){
-  //         Return = md;
-  //         break;
-  //     }
-  // }
+  monthDetails = monthDetails.reverse();
+  for(let [k,md] of monthDetails ){
+      if( md['day_type'] == 'WORKING_DAY' && ( md['in_time'] || md['out_time'] )  ){
+          Return = md;
+          break;
+      }
+  }
   return Return;
 };
 let getUserMonthAttendace = async (userid, year, month, db) => {
@@ -55,8 +56,7 @@ let getUserMonthAttendace = async (userid, year, month, db) => {
 
   let Return = [];
   for(let [k,v] of Object.entries(genericMonthDays)) {
-      console.log(k,v);
-    if (userMonthPunching.includes(k)) {
+    if ((k) in userMonthPunching ) {
       v["in_time"] = userMonthPunching[k]["in_time"];
       v["out_time"] = userMonthPunching[k]["out_time"];
       v["total_time"] = userMonthPunching[k]["total_time"];
@@ -74,11 +74,12 @@ let getUserMonthAttendace = async (userid, year, month, db) => {
       Return[k] = v;
     } else {
       Return[k] = v;
+
     }
   }
 
   for (let [k, v] of Object.entries(Return)) {
-    if (userMonthLeaves.includes(key)) {
+    if (k in userMonthLeaves) {
       leave_number_of_days = userMonthLeaves[k]["no_of_days"];
       if (leave_number_of_days < 1) {
         // this means less then 1 day leave like half day
@@ -127,12 +128,10 @@ let getGenericMonthSummary = async (year, month, userid = false,db) => {
   for (let [kk, pp] of Object.entries(daysOfMonth)) {
     daysOfMonth[kk]["office_working_hours"] = DEFAULT_WORKING_HOURS;
   }
-  daysOfMonth = await _addRequiredKeysForADay(daysOfMonth, db);
   let holidaysOfMonth = await getHolidaysOfMonth(year, month, db);
-  let weekendsOfMonth = await getWeekendsOfMonth(year, month, db);
-  let nonworkingdayasWorking = await getNonworkingdayAsWorking(year, month, db);
-  let workingHoursOfMonth = await getWorkingHoursOfMonth(year, month, db);
-
+  let weekendsOfMonth = await getWeekendsOfMonth(year, month, db);//done
+  let nonworkingdayasWorking = await getNonworkingdayAsWorking(year, month, db);//done
+  let workingHoursOfMonth = await getWorkingHoursOfMonth(year, month, db);//done
   if (holidaysOfMonth.length > 0) {
     for (let [hm_key, hm] of Object.entries(holidaysOfMonth)) {
       daysOfMonth[hm_key]["day_type"] = "NON_WORKING_DAY";
@@ -237,7 +236,7 @@ let getHolidaysOfMonth = async (year, month, models) => {
   let list = [];
   for (let pp of q) {
     let h_date = new Date(pp["date"]);
-    let h_month = h_date.getMonth();
+    let h_month = h_date.getMonth()+1;
     let h_year = h_date.getFullYear();
     if (h_year == year && h_month == month) {
       let h_full_date = h_date;
@@ -272,14 +271,14 @@ let getWorkingHoursOfMonth=async(year,month,db)=>{
     let list = [];
     for(pp of (q)){
         let h_date = new Date(pp['date']);
-        let h_month = h_date.getMonth();
+        let h_month = h_date.getMonth()+1;
         let h_year = h_date.getFullYear();
         if (h_year == year && h_month == month) {
             let h_full_date = h_date;
             h_date = h_date.getDate();
             pp['date'] = h_date;
             list[h_date]=pp;
-        }
+          }
     }
     return list;
 }
@@ -287,19 +286,19 @@ let getWorkingHoursOfMonth=async(year,month,db)=>{
     let list = [];
     let rows = await db.sequelize.query(`SELECT * FROM attendance Where user_id = ${userid}`,{type:QueryTypes.SELECT});
     let allMonthAttendance = [];
-    for(let d of rows ) {
+    for(let[key,d] of Object.entries(rows) ) {
         let d_timing = d['timing'];
         d_timing = d_timing.replace("-","/")
         d_timing=new Date(d_timing)
         // check if date and time are not there in string
         if( d_timing.length < 10 ){
-
         } else {
             let d_full_date = new Date(d_timing.getFullYear(), d_timing .getMonth(), d_timing .getDate());
             let d_timestamp = (d_timing).getTime();
             let d_month=(d_timing).getMonth();
             let d_year = d_timing.getFullYear();
             let d_date = d_timing.getDate()
+
             if (d_year == year && d_month == month) {
                 d['timestamp'] = d_timestamp;
                 allMonthAttendance[d_date]=[];
@@ -308,27 +307,63 @@ let getWorkingHoursOfMonth=async(year,month,db)=>{
 
         }
     }
-
     // // added on 5jan2018----
     let genericMonthDays = await getGenericMonthSummary(year, month, userid,db); // $userid added on 5jan2018 by arun so as to use user working hours
-    
     // // userMonthLeaves is added to get the working hours for halfday
     let userMonthLeaves = await getUserMonthLeaves(userid,year,month,db);
-
-    // foreach ($allMonthAttendance as $pp_key => $pp) {
-    //     $dayW_hours = false;
-    //     if( isset($genericMonthDays[$pp_key]) && isset($genericMonthDays[$pp_key]['office_working_hours'])){
-    //         $dayW_hours = $genericMonthDays[$pp_key]['office_working_hours'];
-    //     }
-    //     // check if day is a leave and it is half day then daywhours will be 04:30 hours
-    //     if( isset($userMonthLeaves[$pp_key]) && isset($userMonthLeaves[$pp_key]['no_of_days']) && $userMonthLeaves[$pp_key]['no_of_days'] == '0.5' ){
-    //         $dayW_hours = '04:30';
-    //     }
-    //     $daySummary = self::_beautyDaySummary($pp, $dayW_hours);
-    //     $list[$pp_key] = $daySummary;
-    // }
-    // return $list;
+    console.log(allMonthAttendance)
+    for(let[pp_key,pp] of Object.entries(allMonthAttendance)) {
+        let dayW_hours = false;
+        if((genericMonthDays[pp_key]) && genericMonthDays[pp_key]['office_working_hours']){
+            dayW_hours = genericMonthDays[pp_key]['office_working_hours'];
+        }
+        // check if day is a leave and it is half day then daywhours will be 04:30 hours
+        if( userMonthLeaves[pp_key] && userMonthLeaves[pp_key]['no_of_days'] && userMonthLeaves[pp_key]['no_of_days'] == '0.5' ){
+            dayW_hours = '04:30';
+        }
+        // console.log("_beautyDaySummary function is not complete yet to work on it ")
+        let daySummary = await _beautyDaySummary(pp,dayWorkingHours=false,db);
+        list[pp_key] = daySummary;
+    }
+    return list;
+}; 
+let _beautyDaySummary=async(dayRaw,dayWorkingHours = false,db)=>{
+  let TIMESTAMP = '';
+  let numberOfPunch = dayRaw.length;
+  let timeStampWise = [];
+      TIMESTAMP = dayRaw['timestamp'];
+      timeStampWise[dayRaw['timestamp']] = dayRaw;
+  // sort on the basis of timestamp 
+    timeStampWise.sort();
+  // inTimeKey = key(timeStampWise);
+  // end(timeStampWise);
+  // $outTimeKey = key($timeStampWise);
+  // // employee in time   
+  // $inTime = date('h:i A', $inTimeKey);
+  // // employee out time   
+  // $outTime = date('h:i A', $outTimeKey);
+  // $r_date = (int) date('d', $TIMESTAMP);
+  // $r_day = date('l', $TIMESTAMP);
+  // $r_total_time = $r_extra_time_status = $r_extra_time = '';
+  // // total no of hours present  
+  // $r_total_time = (int) $outTimeKey - (int) $inTimeKey;
+  // // extra time  
+  // $r_extra_time = (int) $r_total_time - (int) ( 9 * 60 * 60 );
+  // if ($r_extra_time < 0) { // not completed minimum hours
+  //     $r_extra_time_status = "-";
+  //     $r_extra_time = $r_extra_time * -1;
+  // } else if ($r_extra_time > 0) {
+  //     $r_extra_time_status = "+";
+  // }
+  // $return = array();
+  // $return['in_time'] = $inTime;
+  // $return['out_time'] = $outTime;
+  // $return['total_time'] = $r_total_time;
+  // $return['extra_time_status'] = $r_extra_time_status;
+  // $return['extra_time'] = $r_extra_time;
+  // return $return;
 }
+
 let getUserMonthLeaves=async(userid,year,month,db)=>{
         let list = [];
         let rows = await db.sequelize.query(`SELECT * FROM leaves Where user_Id = ${userid}`,{type:QueryTypes.SELECT});
@@ -347,28 +382,25 @@ let getUserMonthLeaves=async(userid,year,month,db)=>{
                 }
             }
         }
-        // console.log(list)
-        // ksort($list);
 
-
-        // ///// remove non working days from leaves
-        // $monthHolidays = self::getHolidaysOfMonth($year, $month);
-        // $monthWeekends = self::getWeekendsOfMonth($year, $month);
-        // if (sizeof($monthHolidays) > 0) {
-        //     foreach ($monthHolidays as $d => $v) {
-        //         if (array_key_exists($d, $list)) {
-        //             unset($list[$d]);
-        //         }
-        //     }
-        // }
-        // if (sizeof($monthWeekends) > 0) {
-        //     foreach ($monthWeekends as $w => $v2) {
-        //         if (array_key_exists($w, $list)) {
-        //             unset($list[$w]);
-        //         }
-        //     }
-        // }
-
+        // ksort($list); sorts associative array in assending order
+        ///// remove non working days from leaves
+        let monthHolidays = await getHolidaysOfMonth(year,month,db);
+        let monthWeekends = await getWeekendsOfMonth(year,month,db);
+        if (monthHolidays.length > 0) {
+            for(let[d,v] of Object.entries(monthHolidays)) {
+                if (d in list) {
+                    delete list[d];
+                }
+            }
+        }
+        if (monthWeekends.length > 0) {
+            for (let[w,v2] of monthWeekends) {
+                if (w in list) {
+                    delete list[w];
+                }
+            }
+        }
         return list;
 }
 let  _getDatesBetweenTwoDates=async(startDate, endDate)=>{
@@ -409,43 +441,42 @@ let API_deleteHoliday=async(holiday_id,db)=>{
 };
 let getHolidayDetails=async(holiday_id,db)=>{
     let q = await db.sequelize.query(` SELECT * from holidays WHERE id = '${holiday_id}' `,{type:QueryTypes.SELECT});
-    console.log(q)
     return q;
 }
 let addHoliday=async(name,date,type,db)=>{
-    console.log(12213425)
+  try{
     let r_error = 0;
     let r_data = {};
     let Return = {};
 
-    if((name) || name == ""){
+    if((!name) || name == ""){
         r_data.message = "Please provide holiday name.";
 
-    } else if ((date) || date == ""){
+    } else if ((!date) || date == ""){
         r_data.message = "Please provide a holiday date.";
 
-    } else if ((type) || type == ""){
+    } else if ((!type) || type == ""){
         r_data.message= "Please provide holiday type.";
 
     } else {
-        
-        date = new Date(date);
+     date=date.split("T")[0]
         let rows = await db.sequelize.query(`SELECT * from holidays where date = '${date}'`,{type:QueryTypes.SELECT});
         if( rows.length > 0 ){
             r_error = 1;
             r_data.message = "Date Already Exists.";
 
         } else {
-            let insert_holiday = await db.sequelize.query(`Insert into holidays VALUES (${name}, ${date}, ${type}`,{type:QueryTypes.INSERT})
-            console(insert_holiday)
+            let insert_holiday = await db.sequelize.query(`INSERT INTO holidays (name,date,type) VALUES ('${name}', '${date}', '${type}')`,{type:QueryTypes.INSERT})
             r_data.message = "Holiday inserted successfully.";
         }
     }
 
     Return.error= r_error,
     Return.data=r_data
-    console.log(Return)
     return Return;
+  }catch(error){
+    console.log(error)
+  }
 }
 let getHolidayTypesList=async(db)=>{
     let list = [
@@ -550,8 +581,593 @@ let API_getHolidayTypesList=async(db)=>{
     console.log(error);
   }
  }
+ let API_getMyRHLeaves=async(userid,year,db)=>{
+  let r_error = 0;
+  let r_data ={};
+  if( !year || year == "" ){
+      year = new Date.getFullYear();
+  }
+  let rhList = await getMyRHLeaves( year,db);
+  let rhLeaves = await getUserRHLeaves( userid, year,db);
+  if( rhList.length > 0 ){       
+      for(let[key,rh] of Object.entries(rhList)){
+          rhList[key]['status'] = "";
+          for( let rhLeave of rhLeaves){
+              if( rhLeave['from_date'] == rh['raw_date'] ){
+                  rhList[key]['status'] = rhLeave['status'];
+              }
+          }
+      }     
+      r_data['rh_list'] = rhList;
+  } else {
+      r_data['message'] = "Restricted holidays not found for " . year;
+  }
+  let Return = {}
+  Return.error = r_error;
+  Return.data= r_data;
+  return Return;
+ }
+ let getUserRHLeaves=async(userid, year,db)=>{
+  let rows = await db.sequelize.query(`SELECT * FROM leaves WHERE leave_type = 'Restricted' AND user_Id = '${userid}' AND from_date LIKE '${year}%'`,{type:QueryTypes.SELECT});
+  return rows;
+ }
+let getMyRHLeaves=async(year,db)=>{
+  let rows = await db.sequelize.query(`SELECT * FROM holidays WHERE type = 1 AND date LIKE '${year}%' ORDER BY date ASC `,{type:QueryTypes.SELECT});       
+  if(rows.length > 0 ){
+    let rhType = await getHolidayTypesList();
+    let i=0;
+      for( let[key,row] of Object.entries(rows)){
+          for(let type of rhType ){
+              if( row['type'] == type['type'] ){
+                  rows[key]['type_text'] = type['text'];
+              }
+          }
+          rows[key]['raw_date'] = row['date'];
+          rows[key]['day'] = row['date'].toLocaleString('default', {weekday: 'long' })
+          rows[key]['month'] = row['date'].toLocaleString('default', { month: 'long' })
+          let explodeRawDate =row['date'].split('-')
+          rows[key]['date'] = explodeRawDate[2]+-+`${rows[key]['month']}`+-+explodeRawDate[0];
+      }
+  }   
+  return rows;
+}
+let applyLeave=async(userid, from_date, to_date, no_of_days, reason, day_status, leave_type, late_reason, pending_id = false, doc_link = false, rh_dates = false)=>{
+  let Return={};
+  let r_message;
+  let r_error;
+  let success;
+  from_date=new Date(from_date)
+  let from_date_year = from_date.getFullYear();
+  let leave_dates = await _getDatesBetweenTwoDates(from_date, to_date);
+
+  // Check for RH Quarterwise
+  if( leave_type.toLowerCase() == 'restricted' ){
+      let rh_check =await checkRHQuarterWise(userid, from_date);
+      if( rh_check['check'] ){
+        Return.error=1;
+        Return.data={};
+        Return.data.message= rh_check['message'];
+          return Return;
+      }
+  }
+
+  // Check for RH Compensation
+  if(leave_type.toLowerCase() == 'rh compensation' ){                                                      
+      let rh_compensation_check = await isEligibleForRHCompensation( userid, from_date_year, no_of_days, rh_dates);
+          for(let ld of leave_dates){
+              for(let rh of rh_dates) {
+           if( rh.getTime()  > ld.getTime()) {
+            Return.error=1;
+            Return.data={};
+            Return.data.message= `The RH selected on the RH Date: ${rh}  should be before the leave Date: ${ld} `
+              return Return;
+            } 
+          }
+        }           
+      rh_dates = JSON.parse(rh_dates);
+      if( !rh_compensation_check['check'] ){
+        Return.error=1;
+        Return.data={};
+        Return.data.message= rh_compensation_check['message']
+          return Return;
+      }
+  }
+
+  let alert_message = "N/A";
+  let check = await checkLeavesClashOfSameTeamMember( userid, from_date, to_date );
+  if( check ){
+      alert_message = "Another team member already has applied during this period so leave approve will depend on project.";
+  }
+  
+  let applied_date = new Date();
+  applied_date =JSON.stringify(applied_date ).split("T")[0]
+  applied_date =(applied_date .substr(1,11))
+  let originalText_reason = reason;
+  let originalText_late_reason = late_reason;
+  from_date=JSON.stringify(from_date).split("T")[0]
+ from_date=(from_date.substr(1,11))
+  let q = await db.sequelize.query(`INSERT into leaves ( user_Id, from_date, to_date, no_of_days, reason, status, applied_on, day_status,leave_type,late_reason, doc_link, rh_dates ) VALUES ( ${userid}, '${from_date}', '${to_date}', ${no_of_days}, '${reason}', 'Pending', '${applied_date}', '${day_status}','${leave_type}','${late_reason}', '${doc_link}', '${rh_dates}' )`,{type:QueryTypes.INSERT});        
+  if(q[0]){
+    leave_id=q[0];
+    success = true;
+    r_message = "Leave applied.";
+  }else{
+    r_error = 1;
+    r_message = "Error in applying leave.";
+  }
+  if (r_error == 0) {
+      if (pending_id != false) {
+          if ( await manipulatingPendingTimeWhenLeaveIsApplied( pending_id, no_of_days ) ) {
+              q = await db.sequelize.query(`Select * from users_previous_month_time where id = ${pending_id}`,{type:QueryTypes.SELECT});
+              oldStatus = row[0]['status'];
+              q1 = await db.sequelize.query(`UPDATE users_previous_month_time SET status = '${oldStatus} - Leave applied for previous month pending time', status_merged = 1  Where id = ${pending_id}`,{type:QueryTypes.UPDATE})
+          }
+      }
+
+  //     $numberOfDays = "";
+  //     if ($day_status == "2") {
+  //         $numberOfDays = "second half day";
+  //     } elseif ($day_status == "1") {
+  //         $numberOfDays = "first half day";
+  //     } else {
+  //         $numberOfDays = "$no_of_days days";
+  //     }
+  //     if ($late_reason == "") {
+  //         $late_reason = "N/A";
+  //     }
+
+  //     /* send message to employee and admin/hr*/
+  //     $messageBody = array(
+  //         "numberOfDays" => $numberOfDays,
+  //         "fromDate" => $from_date,
+  //         "toDate" => $to_date,
+  //         "reason" => $originalText_reason,
+  //         "alertMessage" => $alert_message,
+  //         "lateReason" => $originalText_late_reason,
+  //         "docLink" => $doc_link,
+  //         "leave_type" => $leave_type
+  //     );
+  //     $slackMessageStatus = self::sendNotification( "apply_leave", $userid, $messageBody);
+
+  //     /* send email */
+  //     $userInfo = self::getEmployeeCompleteInformation($userid);
+  //     $templateData = array_merge($messageBody, $userInfo);
+  //     $emailData = array();
+  //     $emailData['sendEmail'] = array(
+  //         "to" => array($userInfo['work_email']),
+  //         "cc" => self::getEmailCCList("Leave apply")
+  //     );
+  //     $emailData['templatekey'] = "Leave apply";
+  //     $emailData['templateSubject'] = "";
+  //     $emailData['templateData'] = $templateData;
+  //     self::sendTemplateEmail($emailData);
+  // }
+  // $return = array();
+  // $r_data = array();
+  // $return['error'] = $r_error;
+  // $r_data['message'] = $r_message;
+  // $r_data['leave_id'] = $leave_id;
+  // $return['data'] = $r_data;
+  // return $return;
+}
+}
+// let checkLeavesClashOfSameTeamMember=async()
+let checkRHQuarterWise=async()=>{
+  let check = false;
+  let Return = {};
+  let rh_config = await getConfigByType('rh_config');
+  let no_of_quaters =(await getAllQuarters()).length
+  let rh_extra = rh_config['rh_extra'];        
+  let rh_can_be_taken_per_quarter = rh_config['rh_per_quater'];
+  let rh_can_be_taken = no_of_quaters * rh_can_be_taken_per_quarter;
+  let max_rh_can_be_taken_per_quarter = rh_can_be_taken_per_quarter;
+  let user = await getUserInfo(userid);    
+
+  // if( $user['training_completion_date'] != null && $user['training_completion_date'] != '0000-00-00' && $user['training_completion_date'] != '1970-01-01' && strtotime($user['training_completion_date']) < time() ) {
+      
+  //     $from_date_year = date('Y', strtotime($from_date));
+  //     $from_date_month = date('m', strtotime($from_date));
+  //     $current_date = date('Y-m-d');
+  //     $current_year = date('Y');
+  //     $current_month = date('m');
+  //     $current_quarter = self::getQuarterByMonth();
+  //     $confirm_year = date('Y', strtotime($user['training_completion_date']));
+  //     $confirm_month = date('m', strtotime($user['training_completion_date']));
+  //     $confirm_quarter = self::getQuarterByMonth($confirm_month);
+  //     $from_date_quarter = self::getQuarterByMonth( $from_date_month );
+  //     $rh_leaves_all = self::getUserRHLeaves($userid, $current_year);
+  //     $rh_list = array_map( function($iter){ return $iter['raw_date']; }, self::getMyRHLeaves($current_year) );
+  //     $rh_leaves = array_map( function($iter){ return $iter['from_date']; }, $rh_leaves_all );
+  //     $rh_approved = array_map( function($iter){ return $iter['from_date']; }, self::getUserApprovedRHLeaves($userid, $current_year) );
+  //     $rh_approved_dates = array_map(function($iter){ return $iter['from_date']; }, self::getUserApprovedRHLeaves($userid, $current_year));    
+  //     $rh_approved_count = array_sum(array_map( function($iter){ return $iter['no_of_days']; }, self::getUserApprovedRHLeaves($userid, $current_year) ));
+  //     $rh_compensated = array_sum(array_map( function($iter){ return $iter['no_of_days']; }, self::getUserApprovedRHCompensationLeaves($userid, $current_year) ));                                    
+      
+  //     $rh_stats = self::getEmployeeRHStats($userid, $current_year);
+  //     $max_rh_can_be_taken_per_quarter = $rh_stats['rh_can_be_taken_this_quarter'];
+
+  //     if( $confirm_year == $current_year ){
+
+  //         $remaining_quarters = $no_of_quaters - $confirm_quarter['quarter'];
+  //         $eligible_for_confirm_quarter_rh = false;
+  //         if( $confirm_quarter['months'][0] == $confirm_month ){
+  //             $eligible_for_confirm_quarter_rh = true;
+  //         }
+  //         if( $eligible_for_confirm_quarter_rh ){
+  //             $rh_can_be_taken = ($remaining_quarters + 1) * $rh_can_be_taken_per_quarter;
+  //         } else {
+  //             $rh_can_be_taken = $remaining_quarters * $rh_can_be_taken_per_quarter;
+  //         }  
+
+  //     } else if( $confirm_year > $current_year ) {
+  //         $rh_can_be_taken = 0;
+  //     }
+
+  //     $total_rh_taken = $rh_approved_count + $rh_compensated;
+  //     $apply_next_rh = true;
+
+  //     // filter dates for calculating quarterly leave
+  //     $rh_taken_per_quarter = self::getPreviousTakenRHQuaterly($userid, $from_date_year);
+      
+  //     if( sizeof($rh_leaves_all) > 0 ){
+  //         foreach( $rh_leaves_all as $rh_leave ){
+  //             if( strtolower($rh_leave['status']) == 'pending' ){
+  //                 $apply_next_rh = false;
+  //                 break;
+  //             }
+  //         }
+  //     }
+      
+  //     if( strtotime($from_date) < strtotime($current_date) ){
+  //         $message = 'You cannot apply previous RH.';                
+
+  //     } else {
+          
+  //         if( in_array( $from_date, $rh_list ) ){
+
+  //             if( $apply_next_rh ){
+
+  //                 if( $total_rh_taken >= $rh_can_be_taken ){
+  //                     $message = 'You have reached the RH quota. You are not eligible for other RH this year.';
+                      
+  //                 } else {
+  //                     if( array_key_exists( $from_date_quarter['quarter'], $rh_taken_per_quarter ) ){
+  //                         if( $rh_taken_per_quarter[$from_date_quarter['quarter']] > 0 ) {
+  //                             if( $max_rh_can_be_taken_per_quarter > 0 ){
+  //                                 $check = true;
+  //                             } else {
+  //                                 $message = "You are not allowed take another RH this quarter.";
+  //                             }
+  //                         }
+  //                     } else {
+  //                         if( $confirm_year == $current_year && $from_date_quarter['quarter'] == $confirm_quarter['quarter'] ){
+  //                             if( $eligible_for_confirm_quarter_rh ){
+  //                                 $check = true;
+  //                             } else {
+  //                                 $message = "You are not eligible for current quarter RH.";
+  //                             }
+  //                         } else {
+  //                             $check = true;                                    
+  //                         }  
+  //                     }
+  //                 }
+
+  //             } else {
+  //                 $message = "Your previous RH status is pending. Contact admin.";
+  //             }
+
+  //         } else {
+  //             $message = "The date is not yet added in the RH list.";
+  //         } 
+  //     }
+
+  // } else {
+  //     $message = 'You are not a confirm employee so you are not eligible for RH';
+  // }
+
+  // $return['check'] = $check;
+  // $return['message'] = $message;
+
+  // return $return;
+}
+
+let leaveDocRequest=async(leaveid, doc_request, comment,db)=>{
+  let leaveDetails = await getLeaveDetails(leaveid,db);
+  let r_error = 0;
+  let r_message = "";
+  let message_to_user = "";
+  let r_data ={};
+  if(Array.isArray(leaveDetails)){
+      let old_status = leaveDetails['status'];
+      let from_date = leaveDetails['from_date'];
+      let to_date = leaveDetails['to_date'];
+      let no_of_days = leaveDetails['no_of_days'];
+      let applied_on = leaveDetails['applied_on'];
+      let reason = leaveDetails['reason'];
+      let q;
+      if (doc_request) {
+          q = await db.sequelize.query(`UPDATE leaves set doc_require= 1 WHERE id = '${leaveid}' `,{type:QueryTypes.UPDATE});               
+          message_to_user = "You are requested to submit doc proof for this leave";
+          r_message = 'Admin request for leave doc send';
+      }
+      if (comment) {
+           q = await db.sequelize.query(`UPDATE leaves set comment= '${comment}' WHERE id = '${leaveid}'`,{type:QueryTypes.UPDATE});
+          message_to_user = comment;
+          r_message = 'Admin commented on employee leave saved';
+      }
+
+      if (message_to_user != '') {
+          let userid = leaveDetails['user_Id'];
+          /* new notification system*/
+          // $messageBody = array(
+          //     "newStatus" => $old_status,
+          //     "fromDate" => $from_date,
+          //     "toDate" => $to_date,
+          //     "noOfDays" => $no_of_days,
+          //     "appliedOn" => $applied_on,
+          //     "reason" => $reason,
+          //     "messageFromAdmin" => $message_to_user,
+          // );
+          // $slackMessageStatus = self::sendNotification( "update_leave_status", $userid, $messageBody);
+      
+
+          /* send email */
+          // $userInfo = self::getEmployeeCompleteInformation($userid);
+          // $templateData = array_merge($messageBody, $userInfo);
+          // $emailData = array();
+          // $emailData['sendEmail'] = array(
+          //     "to" => array($userInfo['work_email'])
+          // );
+          // $emailData['templatekey'] = "Leave status change";
+          // $emailData['templateSubject'] = "";
+          // $emailData['templateData'] = $templateData;
+          // self::sendTemplateEmail($emailData);
+
+      }
+  } else {
+      r_message = "No such leave found";
+      r_error = 1;
+  }
+
+  Return ={};
+  r_data = {};
+  r_data.message = r_message;
+  r_data.leaveid = leaveid;
+  Return.error = r_error;
+  Return.data= r_data;
+console.log(Return)
+  return Return;
+}
+let  getLeaveDetails=async(leaveid,db)=>{
+  let row=await db.sequelize.query(`SELECT users.*,leaves.* FROM leaves LEFT JOIN users ON users.id = leaves.user_Id where leaves.id = '${leaveid}'`,{type:QueryTypes.SELECT})
+  if(row['username']) {
+      delete row['username'];
+  }
+  if(row['password'] ){
+      delete (row['password']);
+  }
+  row['doc_link'] = await _getLeaveDocFullLink(row,db);
+  return row;
+}
+let _getLeaveDocFullLink=async(leaveDetails,db)=>{
+  let leaveDoc = leaveDetails['doc_link'];
+  if( leaveDoc != "" && leaveDoc != "N/A" ){
+      let uploadedImage = "";
+      if(leaveDetails['doc_link']){
+         uploadedImage = leaveDetails['doc_link'];
+      }
+      if( uploadedImage != "" ){
+          leaveDoc = `$_ENV['ENV_BASE_URL'].'attendance/uploads/leaveDocuments/'.${leaveDetails}['doc_link'];`
+      }
+  }
+  return leaveDoc;        
+}
+let updateLeaveStatus=async(leaveid, newstatus, messagetouser,db)=>{
+  let leaveDetails = await getLeaveDetails(leaveid,db);
+  let r_error = 0;
+  let r_message = "";
+  if(Array.isArray(leaveDetails)){
+    let old_status = leaveDetails[0]['status'];
+    let from_date = leaveDetails[0]['from_date'];
+    let to_date = leaveDetails[0]['to_date'];
+    let no_of_days = leaveDetails[0]['no_of_days'];
+    let applied_on = leaveDetails[0]['applied_on'];
+    let reason = leaveDetails[0]['reason'];
+    let rejectedReason = "";
+    if(newstatus.toLowerCase() == "rejected" ){
+      rejectedReason = messagetouser;
+  }
+  let changeLeaveStatus1 = await changeLeaveStatus(leaveid, newstatus, rejectedReason,db); 
+  // if(leaveDetails[0].leave_type.toLowerCase() == 'restricted' ||leaveDetails[0].leave_type.toLowerCase() == 'rh compensation' ){
+    if(changeLeaveStatus1==true ){                  
+       let updatedLeaveDetails = await getLeaveDetails(leaveid,db);
+        let leave_dates = await getDaysBetweenLeaves(updatedLeaveDetails[0]['from_date'], updatedLeaveDetails[0]['to_date'],db);
+        if(updatedLeaveDetails[0]['status'].toLowerCase() == 'approved' ){                                                
+            for(let date of leave_dates['data']['days']){                            
+                // entry_time =_ENV['DEFAULT_ENTRY_TIME'] ? _ENV['DEFAULT_ENTRY_TIME'] : "10:30 AM";
+                // exit_time = _ENV['DEFAULT_EXIT_TIME'] ? _ENV['DEFAULT_EXIT_TIME'] : "07:30 PM";  
+                let entry_time ="10:30 AM";
+                let exit_time="07:30 PM"; 
+                let newdate = JSON.stringify(date['full_date'])
+                newdate= newdate.split("T")[0];
+                newdate=newdate.slice(1,11)         
+                await insertUserInOutTimeOfDay(updatedLeaveDetails[0]['user_Id'], newdate, entry_time, exit_time, reason,db);
+            }
+        } else {                        
+            for( date of leave_dates['data']['days'] ){                            
+               await deleteUserInOutTimeOfDay( updatedLeaveDetails[0]['user_Id'], date['full_date'] );                       
+            }
+        }
+    }
+// }
+
+  console.log("end of function",122332)
+  }
+};
+let insertUserInOutTimeOfDay=async(userid, date, inTime, outTime, reason,db, isadmin = true)=>{
+ let extra_time = 0;
+ let newdate=date;
+//  if (isadmin == false) {
+  let row = await db.sequelize.query(`select * from config where type='extra_time'`,{type:QueryTypes.SELECT});
+  let no_of_rows =row.length;
+  if (no_of_rows > 0) {
+      let extra_time = row[0]['value'];
+  }
+  let row2= await db.sequelize.query(`select * from hr_data where user_id= ${userid} AND date = '${newdate}' `,{type:QueryTypes.SELECT});
+  // if (row2.length > 0) {
+    let time=(inTime.split(" ")[0]);
+    let hours=time.split(":")[0]
+    let mins=time.split(":")[1]
+      if (!row2['entry_time']) {
+        date1 =new Date().setHours(hours)
+        date1 =new Date(date1).setMinutes(mins)
+        ab =new Date(date1).setSeconds(0)
+        ab=ab+extra_time*60;
+        ab=new Date(ab).getTime()
+        if(new Date(ab).getHours()>12){
+           inTime=(new Date(ab).getHours())/2+":"+'30'+' AM'
+        }else{
+           inTime=(new Date(ab).getHours())+":"+'30'+' AM'
+        } 
+      }
+      if (!row2['exit_time']) {
+         let outTime = date("h:i A", strtotime($outTime) - ($extra_time * 60));
+      }
+  // } else {
+  //     let outTime = date("h:i A", strtotime($outTime) - ($extra_time * 60));
+  // }
+// }
+}
+ 
+let deleteUserInOutTimeOfDay=async( userid, date, isadmin = true,db)=>
+{
+    let newdate = JSON.stringify(date['full_date'])
+    newdate= newdate.split("T")[0];
+    newdate=newdate.slice(1,11)      
+    let q = await db.sequelize.query(`SELECT * FROM attendance WHERE user_id = '${userid}' AND timing LIKE '%${newdate}%'`,{type:QueryTypes.SELECT});             
+    if( sizeof($rows) > 0 ){
+        let q =await db.sequelize.query(`DELETE FROM attendance WHERE user_id = '${userid}' AND timing LIKE '%${newdate}%'`,{type:QueryTypes.DELETE});
+    }
+    return true;
+}
+
+let  getDaysBetweenLeaves=async(startDate, endDate,db)=>{ // api calls
+  let allDates = await _getDatesBetweenTwoDates(startDate, endDate,db);
+
+  //extract year and month of b/w dates
+  let yearMonth =[];
+
+  for(let d of allDates){
+      let m = d.getMonth()+1;
+      let y = d.getFullYear();
+      let check_key = `${y}_${m}`;
+      if (!yearMonth.includes(check_key)) {
+          let row ={};
+          row.year=y;
+          row.month=m;
+          yearMonth[check_key] =row;
+      }
+  }
+  // //--all holidays between dates
+  let ALL_HOLIDAYS = [];
+  let ALL_WEEKENDS = [];
+
+  for(let[k,v] of Object.entries(yearMonth)) {
+      let my_holidays = await getHolidaysOfMonth(v['year'],v['month'],db);
+      let my_weekends = await getWeekendsOfMonth(v['year'], v['month'],db);
+
+      ALL_HOLIDAYS = ALL_HOLIDAYS.concat(my_holidays);
+      ALL_WEEKENDS = ALL_WEEKENDS.concat(my_weekends);
+  }
+  let finalDates = [];
+  for(ad of allDates) {
+      let row = {
+          type:'working',
+          sub_type: '',
+          sub_sub_type : '',
+          full_date :ad,
+      }
+      finalDates.push(row);
+  }
+
+  if (finalDates.length > 0 && ALL_WEEKENDS.length> 0) {
+      for (let[key,ad] of finalDates) {
+          for(let[k,aw] of Object.entries(ALL_WEEKENDS)) {
+              if (ad['full_date'] == aw['full_date']) {
+                  let row = {
+                      type : 'non_working',
+                      sub_type :'weekend',
+                      sub_sub_type :'',
+                      date : ad['full_date']
+                  }
+                  finalDates[key] = row;
+                  break;
+              }
+          }
+      }
+  }
+  if (finalDates.length > 0 && ALL_HOLIDAYS.length > 0) {
+      for(let[key,ad] of Object.entries(finalDates)) {
+          for(let[k,aw] of Object.entries(ALL_HOLIDAYS)) {
+              if (ad['full_date'] == aw['full_date']) {
+                let row = {
+                  type : 'non_working',
+                  sub_type : 'holiday',
+                  sub_sub_type :aw['name'],
+                  date : ad['full_date']
+              }
+                  finalDates[key] =row;
+                  break;
+              }
+          }
+      }
+  }
+
+  //-----------------
+  let res_working_days = 0;
+  let res_holidays = 0;
+  let res_weekends = 0;
+  for(let f of finalDates) {
+      if (f['type'] == 'working') {
+          res_working_days++;
+      } else if (f['type'] == 'non_working') {
+          if (f['sub_type'] == 'holiday') {
+              res_holidays++;
+          } else if (f['sub_type'] == 'weekend') {
+              res_weekends++;
+          }
+      }
+  }
+
+  let r_data ={};
+  r_data['start_date'] = startDate;
+  r_data['end_date'] = endDate;
+  r_data['working_days'] = res_working_days;
+  r_data['holidays'] = res_holidays;
+  r_data['weekends'] = res_weekends;
+  r_data['days'] = finalDates;
+
+
+ Return = {}
+ Return['error'] = 0;
+ r_data['message'] = '';
+ Return['data'] = r_data;
+
+  return Return;
+};
+
+let changeLeaveStatus=async(leaveid, newstatus, rejectedReason,db)=>{
+  let q;
+  if( rejectedReason != false ){
+    q = await db.sequelize.query(`UPDATE leaves set status='${newstatus}', rejected_reason='${rejectedReason}' WHERE id = ${leaveid}`,{type:QueryTypes.UPDATE});    
+} else {
+    q =  await db.sequelize.query(`UPDATE leaves set status='${newstatus}' WHERE id = ${leaveid}`,{type:QueryTypes.UPDATE});
+}
+return true;
+};
 
 module.exports = {
-  _getPreviousMonth,
-  getEmployeeLastPresentDay,API_deleteHoliday,addHoliday,getHolidayTypesList,API_getHolidayTypesList,API_getYearHolidays,cancelAppliedLeave
+  _getPreviousMonth,leaveDocRequest,
+  getEmployeeLastPresentDay,API_deleteHoliday,addHoliday,getHolidayTypesList,API_getHolidayTypesList,API_getYearHolidays,
+  cancelAppliedLeave,API_getMyRHLeaves,applyLeave,updateLeaveStatus
 };

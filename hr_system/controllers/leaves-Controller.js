@@ -3,9 +3,11 @@ const providers = require("../providers/creation-provider");
 const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
-const{_getPreviousMonth,getEmployeeLastPresentDay,API_deleteHoliday,addHoliday,API_getHolidayTypesList,API_getYearHolidays,cancelAppliedLeave}=require("../leavesFunctions")
+const{_getPreviousMonth,getEmployeeLastPresentDay,API_deleteHoliday,addHoliday,API_getHolidayTypesList,API_getYearHolidays,cancelAppliedLeave,applyLeave
+    ,API_getMyRHLeaves,leaveDocRequest,updateLeaveStatus}=require("../leavesFunctions")
 
 exports.adminUserApplyLeave=async(req,res,next)=>{
+    try{
     let from_date = to_date = no_of_days = reason = day_status = '';   
     let leave_type = late_reason = "";
     let doc_link = "N/A";
@@ -39,7 +41,6 @@ exports.adminUserApplyLeave=async(req,res,next)=>{
     if(req.body['rh_dates'] ){
         rh_dates = req.body['rh_dates'];    
     } 
-
     // if (req.body['pending_id']) {
         let date = new Date()
         let currentDateDate = date.getDate();
@@ -49,16 +50,22 @@ exports.adminUserApplyLeave=async(req,res,next)=>{
 
         let previousMonth = await _getPreviousMonth(currentDate);
         reason = 'Previous month pending time is applied as leave!!';
-
         // if( from_date == '' ){
             let employeeLastPresentDay = await getEmployeeLastPresentDay( userid, previousMonth.year, previousMonth.month,db);
             from_date =  employeeLastPresentDay['full_date'];
             to_date = employeeLastPresentDay['full_date'];
+
         // }
-        // res1 = await applyLeave(userid, from_date, to_date, no_of_days, reason, day_status, leave_type = "", late_reason = "", req.body['pending_id'], doc_link, rh_dates);
+    //     res1 = await applyLeave(userid, from_date, to_date, no_of_days, reason, day_status, leave_type = "", late_reason = "", req.body['pending_id'], doc_link, rh_dates);
     // }else{
-        // res1 = await applyLeave(userid, from_date, to_date, no_of_days, reason, day_status, leave_type, late_reason, "", doc_link, rh_dates);
+    //     res1 = await applyLeave(userid, from_date, to_date, no_of_days, reason, day_status, leave_type, late_reason, "", doc_link, rh_dates);
     // }
+    res.status_code=200;
+    res.message=res1
+    return next;
+ }catch(error){
+    console.log(error)
+}
 }
 
 
@@ -125,15 +132,12 @@ exports.cancel_applied_leave=async(req,res,next)=>{
     try{
         let resp={};
         if ((req.body['user_id']) && req.body['user_id'] != "") {
-            console.log(12)
             resp = await cancelAppliedLeave(req,db);
-            console.log(resp)
         } else {
             resp.data={};
             resp['data']['message'] = 'Please give user_id ';
         }  
         res.status_code =200;
-        // console.log(resp)
         res.data=resp;
         return next();
     } catch (error) {
@@ -141,4 +145,46 @@ exports.cancel_applied_leave=async(req,res,next)=>{
         res.message = error.message;
         return next();
       }
+}
+exports.get_my_rh_leaves=async(req,res,next)=>{
+    try{
+        let year=req.body.year;
+        let userid=req.body.user_id;
+        let resp = await API_getMyRHLeaves( userid, year,db );
+        res.status_code =200;
+        res.data=resp.data;
+        res.error=resp.error;
+        return next();
+    } catch (error) {
+        res.status_code = 500;
+        res.message = error.message;
+        return next();
+      }
+}
+
+exports.send_request_for_doc=async(req,res,next)=>{
+    try{
+    let leaveid = req.body['leaveid'];
+    let doc_request = req.body['doc_request'];
+    let comment = req.body['comment'];
+    let resp = await leaveDocRequest(leaveid, doc_request, comment,db);
+    res.status_code=200;
+    res.data=resp;
+    return next()
+    }catch(error){
+        console.log(error);
+        res.status_code = 500;
+        res.message = error.message;
+        return next();
+    }
+}
+exports.change_leave_status=async(req,res,next)=>{
+    try{
+        let leaveid = req.body['leaveid'];
+        let newstatus = req.body['newstatus'];
+        let messagetouser = req.body['messagetouser'];
+        let resp = await updateLeaveStatus(leaveid, newstatus, messagetouser,db);
+    }catch(error){
+  console.log(error)
+    }
 }
