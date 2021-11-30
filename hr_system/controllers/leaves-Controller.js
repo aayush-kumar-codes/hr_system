@@ -4,7 +4,7 @@ const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
 const{_getPreviousMonth,getEmployeeLastPresentDay,API_deleteHoliday,addHoliday,API_getHolidayTypesList,API_getYearHolidays,cancelAppliedLeave,applyLeave
-    ,API_getMyRHLeaves,leaveDocRequest,updateLeaveStatus}=require("../leavesFunctions")
+    ,API_getMyRHLeaves,leaveDocRequest,updateLeaveStatus,getDaysBetweenLeaves,getAllUsersPendingLeavesSummary}=require("../leavesFunctions")
 
 exports.adminUserApplyLeave=async(req,res,next)=>{
     try{
@@ -190,5 +190,41 @@ exports.change_leave_status=async(req,res,next)=>{
         return next()
     }catch(error){
   console.log(error)
+  res.status_code = 500;
+  res.message = error.message;
+  return next();
     }
+}
+exports.get_days_between_leaves=async(req,res,next)=>{
+    try{
+   let start_date =req.body['start_date'];
+   let end_date =req.body['end_date'];
+   let resp =await getDaysBetweenLeaves(start_date, end_date,db)
+   res.status_code=200;
+   res.data=resp.data;
+   res.error=resp.error;
+   return next();
+    }catch(error){
+        console.log(error);
+        res.status_code = 500;
+        res.message = error.message;
+        return next();
+    }
+}
+
+exports.get_all_leaves_summary=async(req,res,next)=>{
+   try {
+       let year=req.body.year;
+       let month=req.body.month;
+       let resp = await getAllUsersPendingLeavesSummary(year, month,db,req);
+       res.status_code=200;
+       res.data=resp.data
+       res.error=resp.error;
+       return next();
+   } catch (error) {
+       console.log(error)
+       res.status_code = 500;
+        res.message = error.message;
+        return next();  
+   } 
 }

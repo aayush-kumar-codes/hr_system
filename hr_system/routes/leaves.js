@@ -59,4 +59,17 @@ router.post(
   leavesControllers.change_leave_status,
   handlers.responseForLeaveApis
 )
+
+router.post(
+  "/get_days_between_leaves",
+  middleware.AuthForHrAdmin,
+  leavesControllers.get_days_between_leaves,
+  handlers.responseForEmployee
+);
+router.post(
+  "/get_all_leaves_summary",
+  middleware.AuthForHrAdmin,
+  leavesControllers.get_all_leaves_summary,
+  handlers.responseForEmployee
+);
   module.exports = router;

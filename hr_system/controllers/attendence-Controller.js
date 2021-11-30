@@ -3,7 +3,6 @@ const providers = require("../providers/creation-provider");
 const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
-const {getUserMonthAttendaceComplete}=require("../attendaceFunctions")
 exports.month_attendance=async(req,res,next)=>{
    let userid=req.body['userid'];
    let year = req.body['year'];
