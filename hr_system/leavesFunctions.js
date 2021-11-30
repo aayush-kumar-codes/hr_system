@@ -3,12 +3,14 @@ const secret = require("./config.json");
 const { Op, QueryTypes, json } = require("sequelize");
 const db = require("./db");
 const { sequelize } = require("./db");
-const { MachineStatusDeleteValidator } = require("./validators/req-validators");
 const user = require("./models/userModel");
 const { Query } = require("pg");
 const { object } = require("webidl-conversions");
 // const leapYear = require('leap-year');
 const e = require("express");
+const {getUserInfo}=require("./allFunctions");
+const{getEmployeeCompleteInformation}=require("./employeeFunction")
+const { query } = require("express");
 
 let _getPreviousMonth = async (currentDate) => {
   var makeDate = new Date(currentDate);
@@ -311,7 +313,6 @@ let getWorkingHoursOfMonth=async(year,month,db)=>{
     let genericMonthDays = await getGenericMonthSummary(year, month, userid,db); // $userid added on 5jan2018 by arun so as to use user working hours
     // // userMonthLeaves is added to get the working hours for halfday
     let userMonthLeaves = await getUserMonthLeaves(userid,year,month,db);
-    console.log(allMonthAttendance)
     for(let[pp_key,pp] of Object.entries(allMonthAttendance)) {
         let dayW_hours = false;
         if((genericMonthDays[pp_key]) && genericMonthDays[pp_key]['office_working_hours']){
@@ -962,7 +963,7 @@ let _getLeaveDocFullLink=async(leaveDetails,db)=>{
   }
   return leaveDoc;        
 }
-let updateLeaveStatus=async(leaveid, newstatus, messagetouser,db)=>{
+let updateLeaveStatus=async(leaveid, newstatus, messagetouser,db,req)=>{
   let leaveDetails = await getLeaveDetails(leaveid,db);
   let r_error = 0;
   let r_message = "";
@@ -976,9 +977,9 @@ let updateLeaveStatus=async(leaveid, newstatus, messagetouser,db)=>{
     let rejectedReason = "";
     if(newstatus.toLowerCase() == "rejected" ){
       rejectedReason = messagetouser;
-  }
-  let changeLeaveStatus1 = await changeLeaveStatus(leaveid, newstatus, rejectedReason,db); 
-  // if(leaveDetails[0].leave_type.toLowerCase() == 'restricted' ||leaveDetails[0].leave_type.toLowerCase() == 'rh compensation' ){
+    }
+    let changeLeaveStatus1 = await changeLeaveStatus(leaveid, newstatus, rejectedReason,db); 
+    if(leaveDetails[0].leave_type.toLowerCase() == 'restricted' ||leaveDetails[0].leave_type.toLowerCase() == 'rh compensation' ){
     if(changeLeaveStatus1==true ){                  
        let updatedLeaveDetails = await getLeaveDetails(leaveid,db);
         let leave_dates = await getDaysBetweenLeaves(updatedLeaveDetails[0]['from_date'], updatedLeaveDetails[0]['to_date'],db);
@@ -999,11 +1000,57 @@ let updateLeaveStatus=async(leaveid, newstatus, messagetouser,db)=>{
             }
         }
     }
-// }
+   }
+   if(messagetouser == ''){
+    messagetouser = "N/A";
+   }
+   console.log(leaveDetails,3323223323223)
+   let userid = leaveDetails[0].id;
+       messageBody = [];
+        messageBody.newStatus =newstatus,
+        messageBody.fromDate =from_date,
+        messageBody.toDate =to_date,
+        messageBody.noOfDays =no_of_days,
+        messageBody.appliedOn =applied_on,
+        messageBody.reason =reason,
+        messageBody.messageFromAdmin =messagetouser
 
-  console.log("end of function",122332)
+    // $slackMessageStatus = self::sendNotification( "update_leave_status", $userid, $messageBody);
+   let templatekey = false;
+   if(newstatus.toLowerCase() == 'rejected'){
+    templatekey = "Leave rejected";
+    } else if(newstatus.toLowerCase() == 'approved'){
+    $templatekey = "Leave approval";
+    } else if(newstatus.toLowerCase()== 'pending'){
+    templatekey = "Leave pending";
+    }
+    let userInfo = await getEmployeeCompleteInformation(userid,req,db);
+    let templateData =messageBody.concat( userInfo);
+    let emailData = {}
+    emailData.sendEmail= {}
+    emailData.sendEmail.to =userInfo['work_email']
+    emailData.templatekey= templatekey;
+    emailData.templateSubject= "";
+    emailData.templateData= templateData;
+    // self::sendTemplateEmail(emailData);
+
+
+    r_message = "Leave status changes from $old_status to $newstatus";
+   console.log("end of function",122332)
+  }else{
+    r_message = "No such leave found";
+    r_error = 1;
   }
+  let Return = {}
+  let r_data = {}
+  Return.error= 0;
+  r_data.message = r_message;
+  Return.data = r_data;
+  console.log(Return)
+  return Return;
 };
+
+
 let insertUserInOutTimeOfDay=async(userid, date, inTime, outTime, reason,db, isadmin = true)=>{
  let extra_time = 0;
  let newdate=date;
@@ -1014,31 +1061,232 @@ let insertUserInOutTimeOfDay=async(userid, date, inTime, outTime, reason,db, isa
       let extra_time = row[0]['value'];
   }
   let row2= await db.sequelize.query(`select * from hr_data where user_id= ${userid} AND date = '${newdate}' `,{type:QueryTypes.SELECT});
+  // outTime=outTime.split(" ")[0]
+  // outHours=outTime.split(":")[0]
+  // outMins=outTime.split(":")[1]
+  // console.log(outHours,outMins,12)
+  // let exitTime=new Date().setHours(outHours)
+  // exitTime=new Date().setMinutes(outMins)
+  // console.log(exitTime,122112)
+  // // exitTime.setHours()
+  // console.log(new Date (exitTime),2322)
   // if (row2.length > 0) {
-    let time=(inTime.split(" ")[0]);
-    let hours=time.split(":")[0]
-    let mins=time.split(":")[1]
+    // let entryTime=(inTime.split(" ")[0]);
+    // let inHours=entryTime.split(":")[0]
+    // let inMins=entryTime.split(":")[1]
+    // console.log(mins,hours,122)
       if (!row2['entry_time']) {
-        date1 =new Date().setHours(hours)
-        date1 =new Date(date1).setMinutes(mins)
-        ab =new Date(date1).setSeconds(0)
-        ab=ab+extra_time*60;
-        ab=new Date(ab).getTime()
-        if(new Date(ab).getHours()>12){
-           inTime=(new Date(ab).getHours())/2+":"+'30'+' AM'
-        }else{
-           inTime=(new Date(ab).getHours())+":"+'30'+' AM'
-        } 
+       inTime=inTime.split(" ")[0]
+       let inHours=inTime.split(":")[0]
+       let inMins =inTime.split(":")[1]
+
       }
       if (!row2['exit_time']) {
-         let outTime = date("h:i A", strtotime($outTime) - ($extra_time * 60));
+        outTime=outTime.split(" ")[0]
+        let outHours=outTime.split(":")[0]
+        let outMins =outTime.split(":")[1]
       }
+      
   // } else {
-  //     let outTime = date("h:i A", strtotime($outTime) - ($extra_time * 60));
+    //    outTime1=outTime.split(" ")[0]
+        // let outHours=outTime1.split(":")[0]
+        // let outMins =outTime1.split(":")[1]
+  // //     let outTime = date("h:i A", strtotime($outTime) - ($extra_time * 60));
   // }
 // }
+        let previous_entry_time = "";
+        let previous_exit_time = "";
+        let existingDetails = await getUserDaySummary(userid,date,db);
+        if (existingDetails['data']) {
+            previous_entry_time = existingDetails['data']['entry_time'];
+            previous_exit_time = existingDetails['data']['exit_time'];
+        }
+        let r_error = 1;
+        let r_message = "";
+        let r_data = {};
+        if (inTime != '') {
+          inTime1 = date +' ' +inTime;
+          insertInTime = new Date(inTime1)
+        await insertUserPunchTime(userid, insertInTime, db);
+      }
+      if (outTime != '') {
+          outTime1 = date + ' ' +outTime;
+          insertOutTime = new Date(inTime1);
+          // $insertOutTime = date('m-d-Y h:i:sA', strtotime($outTime1));
+          await insertUserPunchTime(userid, insertOutTime,db);
+      }
+      let h=inTime.split(":")[0]
+      let m=inTime.split(":")[1]
+      inTime=new Date().setHours(h)
+      inTime=new Date().setMinutes(m)
+      if (inTime != '' && outTime != '') {
+        let h_date =new Date(date);
+        await insertUpdateHr_data(userid, h_date, inTime, outTime,db);
+        let punchInTimeMessage = "";
+        let punchOutTimeMessage = "";
+        if (previous_entry_time != '' && previous_entry_time != inTime) {
+            punchInTimeMessage = "Entry Time - From $previous_entry_time to ${inTime} \n ";
+        } else {
+            punchInTimeMessage = "Entry Time - ${inTime} \n ";
+        }
+        if (previous_exit_time != '' && previous_exit_time != outTime) {
+            punchOutTimeMessage = "Exit Time - From $previous_exit_time to ${outTime} \n ";
+        } else {
+            punchOutTimeMessage = "Exit Time - ${outTime} \n";
+        }
+        // $messageBody = array(
+        //     "date" => $h_date,
+        //     "punchInTime" => $punchInTimeMessage,
+        //     "punchOutTime" => $punchOutTimeMessage,
+        //     "reason" => $reason
+        // );
+        // $slackMessageStatus = self::sendNotification( "update_employee_punch_timings", $userid, $messageBody);
+    }
+    r_error = 0;
+    let Return ={};
+    Return.error = r_error;
+    r_data['message'] = r_message;
+    Return.data = r_data;
+
+    return Return;
+}
+let insertUpdateHr_data=async(userid, date, entry_time, exit_time,db)=>{
+
+  //d-m-Y
+  let rows =await db.sequelize.query(`SELECT * FROM hr_data WHERE user_id = '${userid}' AND date= '${date}'`,{type:QueryTypes.SELECT});
+
+  if (rows.length > 0) {
+      //update
+      let q = await db.sequelize.query(`UPDATE hr_data set entry_time='${entry_time}', exit_time='${exit_time}' WHERE user_id = '${userid}' AND date = '${date}' `,{type:QueryTypes.UPDATE});
+  } else {
+      //insert
+      userInfo = await getUserInfo(userid,db);
+      emailid = userInfo['work_email'];
+      q = await db.sequelize.query(`INSERT into hr_data ( user_id, email, entry_time, exit_time, date  ) VALUES ( '${userid}', '${emailid}', '${entry_time}', '${exit_time}', '${date}' )`,{type:QueryTypes.INSERT});
+  }
+  return true;
+}
+let insertUserPunchTime=async(user_id, timing)=>{
+  // $q = "INSERT into attendance ( user_id, timing ) VALUES ( $user_id, '$timing')";
+  // self::DBrunQuery($q);
+  // return true;
+  let q =await db.sequelize.query(`SELECT * FROM attendance WHERE user_id = '${user_id}' AND timing = '${timing}' `,{type:QueryTypes.SELECT});
+  if( q.length < 1 ){
+      q = await db.sequelize.query(`INSERT into attendance ( user_id, timing ) VALUES ( '${user_id}', '${timing}') `,{type:QueryTypes.INSERT});
+  }
+  return true;
 }
  
+let getUserDaySummary=async(userid, date,db)=>{
+  let userInfo =await getUserInfo(userid,db);
+  let r_error = 1;
+  let r_message = "";
+  let r_data = {};
+
+  let userDayPunchingDetails =await getUserDayPunchingDetails(userid, date,db);
+  r_data.name = userInfo.name;
+  // $r_data.profileImage =await _getEmployeeProfilePhoto(userInfo);
+  r_data.userid = userid;
+  r_data.year = userDayPunchingDetails.year;
+  r_data.month = userDayPunchingDetails.month;
+  r_data.monthName = userDayPunchingDetails.monthName;
+  r_data.day = userDayPunchingDetails.day;
+  r_data.entry_time = userDayPunchingDetails.in_time;
+  r_data.exit_time = userDayPunchingDetails.out_time;
+
+  r_data.total_working = '';
+
+  if (userDayPunchingDetails['total_time']) {
+      let aa = await _secondsToTime(userDayPunchingDetails['total_time'],db);
+      r_data['total_working'] = aa['h'] + 'h : ' + aa['m'] + 'm :' + aa['s'] + 's';
+  }
+
+  r_error = 0;
+  Return = {};
+  Return.error = r_error;
+  r_data['message'] = r_message;
+  Return.data = r_data;
+  return Return;
+};
+
+let  _secondsToTime=async(seconds,db)=>{
+  // $padHours == true will return with 0 , ie, if less then 10 then 0 will be attached
+  let status = "+";
+
+  if( seconds * 1 < 0 ){
+      seconds = seconds * -1;
+      status = "-";
+  }
+
+  // extract hours
+  let hours = Math.trunc(seconds / (60 * 60));
+
+  // extract minutes
+  let divisor_for_minutes = seconds % (60 * 60);
+  let minutes = Math.trunc(divisor_for_minutes / 60);
+
+  // extract the remaining seconds
+  let divisor_for_seconds = divisor_for_minutes % 60;
+   seconds = ceil(divisor_for_seconds);
+
+  // return the final array
+  let obj = {}
+      obj.h = hours;
+      obj.m = minutes;
+      obj.s = seconds;
+      obj.status=status;
+
+  let padData = {}
+  padData.h= hours;
+  padData.m = minutes;
+  padData.s= second;
+  if( hours < 10 ){
+      padData['h'] = '0'+hours;    
+  }
+  if( minutes < 10 ){
+      padData['m'] = '0'+minutes;    
+  }
+  if( seconds < 10 ){
+      padData['s'] = '0'+seconds;    
+  }
+      
+  obj["pad_hms"] = padData;
+  return obj;
+}
+
+let getUserDayPunchingDetails=async(userid, date,db)=>{
+ let requested_date =new Date(date).getDate()
+ let requested_month = new Date(date).getMonth()
+ let requested_year = new Date(date).getFullYear()
+ let requested_month_name =new Date(date).toLocaleString('default', { month: 'long' })
+ let requested_day =new Date(date).toLocaleString('default', { weekday: 'long' })
+  let userMonthPunching =await getUserMonthPunching(userid, requested_year, requested_month,db);
+  let r_in_time = r_out_time = r_total_time = '';
+  let r_extra_time_status = r_extra_time = '';
+
+  // if (requested_date in userMonthPunching) {
+  //     let dayPunchFound = userMonthPunching[requested_date];
+  //     r_in_time = dayPunchFound['in_time'];
+  //     r_out_time = dayPunchFound['out_time'];
+  //     r_total_time = dayPunchFound['total_time'];
+  //     r_extra_time_status = dayPunchFound['extra_time_status'];
+  //     r_extra_time = dayPunchFound['extra_time'];
+  // }
+
+  Return = {}
+  Return.year=requested_year;
+  Return.month=requested_month;
+  Return.monthName=requested_month_name;
+  Return.date=requested_date;
+  Return.day=requested_day;
+  Return.in_time=r_in_time;
+  Return.out_time=r_out_time;
+  Return.total_time=r_total_time;
+  Return.extra_time_status=r_extra_time_status;
+  Return.extra_time=r_extra_time;
+  return Return;
+}
+
 let deleteUserInOutTimeOfDay=async( userid, date, isadmin = true,db)=>
 {
     let newdate = JSON.stringify(date['full_date'])

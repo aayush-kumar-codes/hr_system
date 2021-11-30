@@ -1024,6 +1024,6 @@ let getEmployeeCompleteInformation=async(empid,req,models)=>{
     getAllUserDetail,
     UpdateUserBankInfo,
     getSalaryInfo,UpdateUserInfo,updatePassword,
-    updateEmployeePassword,deleteRole
+    updateEmployeePassword,deleteRole,getEmployeeCompleteInformation
 
   }

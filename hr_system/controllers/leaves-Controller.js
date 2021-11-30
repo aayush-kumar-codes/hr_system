@@ -183,7 +183,11 @@ exports.change_leave_status=async(req,res,next)=>{
         let leaveid = req.body['leaveid'];
         let newstatus = req.body['newstatus'];
         let messagetouser = req.body['messagetouser'];
-        let resp = await updateLeaveStatus(leaveid, newstatus, messagetouser,db);
+        let resp = await updateLeaveStatus(leaveid, newstatus, messagetouser,db,req);
+        res.status_code=200;
+        res.data=resp.data;
+        res.error=resp.error;
+        return next()
     }catch(error){
   console.log(error)
     }
