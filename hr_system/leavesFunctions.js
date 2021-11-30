@@ -16,12 +16,14 @@ const {
 // const{getUserMonthAttendaceComplete}=require("./attendaceFunctions")
 const { query } = require("express");
 
-let _getPreviousMonth = async (year,month) => {
-  let previousMonthDate = new Date(year+"-"+month+"-"+01)
-  previousMonth ={};
-  previousMonth['year'] = previousMonthDate.getFullYear()
-  previousMonth['month'] = previousMonthDate.getMonth()
-  previousMonth['monthName'] =previousMonthDate.toLocaleString('default', { month: 'long' });
+let _getPreviousMonth = async (year, month) => {
+  let previousMonthDate = new Date(year + "-" + month + "-" + 01);
+  previousMonth = {};
+  previousMonth["year"] = previousMonthDate.getFullYear();
+  previousMonth["month"] = previousMonthDate.getMonth();
+  previousMonth["monthName"] = previousMonthDate.toLocaleString("default", {
+    month: "long",
+  });
   return previousMonth;
 };
 
@@ -117,7 +119,7 @@ let getUserMonthAttendace = async (userid, year, month, db) => {
     }
   }
   let finalReturn = [];
-  for (let [k,r ]of Object.entries(Return)) {
+  for (let [k, r] of Object.entries(Return)) {
     finalReturn.push(r);
   }
   return finalReturn;
@@ -238,7 +240,7 @@ let _addRequiredKeysForADay = async (days) => {
 let getUserMangedHours = async (userid, db) => {
   let rows =
     (`SELECT * FROM user_working_hours WHERE user_Id = userid order by id DESC`,
-    { type: QueryTypes.SELECT });
+      { type: QueryTypes.SELECT });
   return rows;
 };
 let getHolidaysOfMonth = async (year, month, models) => {
@@ -1376,7 +1378,7 @@ let _secondsToTime = async (seconds, db) => {
 
   // extract the remaining seconds
   let divisor_for_seconds = divisor_for_minutes % 60;
-  seconds =  Math.ceil(divisor_for_seconds);
+  seconds = Math.ceil(divisor_for_seconds);
 
   // return the final array
   let obj = {};
@@ -1600,35 +1602,38 @@ let getAllUsersPendingLeavesSummary = async (year, month, db, req) => {
       month,
       db
     );
-    user_month_attendance=user_month_attendance['data']
+    user_month_attendance = user_month_attendance["data"];
 
-    let raw = user_month_attendance['attendance'];
+    let raw = user_month_attendance["attendance"];
     let finalAttendance = {};
 
-    for(let pp of raw) {
-        pp['display_date'] = pp['full_date'];
-        if (pp['day_type'] == 'WORKING_DAY') {
-            if (pp['in_time'] == '' || pp['out_time'] == '') {
-                finalAttendance.push(pp);
-            }
-        } else if (pp['day_type'] == 'LEAVE_DAY' || pp['day_type'] == 'HALF_DAY') {
-            finalAttendance.push(pp);
+    for (let pp of raw) {
+      pp["display_date"] = pp["full_date"];
+      if (pp["day_type"] == "WORKING_DAY") {
+        if (pp["in_time"] == "" || pp["out_time"] == "") {
+          finalAttendance.push(pp);
         }
+      } else if (
+        pp["day_type"] == "LEAVE_DAY" ||
+        pp["day_type"] == "HALF_DAY"
+      ) {
+        finalAttendance.push(pp);
+      }
     }
-    if (finalAttendance.length > 0) {     
+    if (finalAttendance.length > 0) {
       let u_data = {};
-      u_data['name'] = u['name'];
+      u_data["name"] = u["name"];
       // u_data['profileImage'] =await _getEmployeeProfilePhoto(u);
-      u_data['jobtitle'] = u['jobtitle'];
-      u_data['userid'] = userid;
-      u_data['year'] = user_month_attendance['year'];
-      u_data['month'] = user_month_attendance['month'];
-      u_data['monthName'] = user_month_attendance['monthName'];
-      u_data['monthSummary'] = user_month_attendance['monthSummary'];
-      u_data['nextMonth'] = user_month_attendance['nextMonth'];
-      u_data['previousMonth'] = user_month_attendance['previousMonth'];
-      u_data['attendance'] = finalAttendance;
-      usersAttendance=u_data;
+      u_data["jobtitle"] = u["jobtitle"];
+      u_data["userid"] = userid;
+      u_data["year"] = user_month_attendance["year"];
+      u_data["month"] = user_month_attendance["month"];
+      u_data["monthName"] = user_month_attendance["monthName"];
+      u_data["monthSummary"] = user_month_attendance["monthSummary"];
+      u_data["nextMonth"] = user_month_attendance["nextMonth"];
+      u_data["previousMonth"] = user_month_attendance["previousMonth"];
+      u_data["attendance"] = finalAttendance;
+      usersAttendance = u_data;
     }
   }
   let nextMonth = await _getNextMonth(year, month);
@@ -1636,23 +1641,21 @@ let getAllUsersPendingLeavesSummary = async (year, month, db, req) => {
   let currentMonth = await _getCurrentMonth(year, month);
   //----------
 
-  r_data['year'] = year;
-  r_data['month'] = month;
-  r_data['monthName'] = currentMonth['monthName'];
-  r_data['nextMonth'] = nextMonth;
-  r_data['previousMonth'] = previousMonth;
-  r_data['leavesSummary'] = usersAttendance;
+  r_data["year"] = year;
+  r_data["month"] = month;
+  r_data["monthName"] = currentMonth["monthName"];
+  r_data["nextMonth"] = nextMonth;
+  r_data["previousMonth"] = previousMonth;
+  r_data["leavesSummary"] = usersAttendance;
 
   r_error = 0;
   Return = {};
   Return.error = r_error;
   r_data.message = r_message;
-  Return.data= r_data;
+  Return.data = r_data;
 
   return Return;
-
-}
-
+};
 
 let getUserMonthAttendaceComplete = async (userid, year, month, db) => {
   let r_error = 1;
@@ -1674,7 +1677,7 @@ let getUserMonthAttendaceComplete = async (userid, year, month, db) => {
   let previousMonth = await _getPreviousMonth(year, month);
   let currentMonth = await _getCurrentMonth(year, month);
   //----user details -----
-  let userDetails = await getUserInfo(770,db);
+  let userDetails = await getUserInfo(770, db);
   dateofjoining = userDetails[0]["dateofjoining"];
   delete userDetails["password"];
 
@@ -1693,7 +1696,10 @@ let getUserMonthAttendaceComplete = async (userid, year, month, db) => {
   if (dateofjoining && beautyMonthAttendance.length > 0) {
     for (let [key, value] of Object.entries(beautyMonthAttendance)) {
       beautyMonthAttendance[key]["isDayBeforeJoining"] = false;
-      if (new Date(dateofjoining).getTime() > new Date(value["full_date"]).getTime()) {
+      if (
+        new Date(dateofjoining).getTime() >
+        new Date(value["full_date"]).getTime()
+      ) {
         beautyMonthAttendance[key]["isDayBeforeJoining"] = true;
       }
     }
@@ -1710,42 +1716,46 @@ let getUserMonthAttendaceComplete = async (userid, year, month, db) => {
   r_error = 0;
   let Return = {};
   Return.error = r_error;
-  Return.r_data={};
-  Return.r_data.message= r_message;
+  Return.r_data = {};
+  Return.r_data.message = r_message;
   Return["data"] = r_data;
   return Return;
 };
 
-let _getCurrentMonth=async(year,month)=>{
-  month=month+1
-  let currentMonthDate = new Date(year+"-"+month+"-"+01)
-  currentMonth ={};
-  currentMonth['year'] = currentMonthDate.getFullYear()
-  currentMonth['month'] = currentMonthDate.getMonth()
-  currentMonth['monthName'] =currentMonthDate.toLocaleString('default', { month: 'long' });
+let _getCurrentMonth = async (year, month) => {
+  month = month + 1;
+  let currentMonthDate = new Date(year + "-" + month + "-" + 01);
+  currentMonth = {};
+  currentMonth["year"] = currentMonthDate.getFullYear();
+  currentMonth["month"] = currentMonthDate.getMonth();
+  currentMonth["monthName"] = currentMonthDate.toLocaleString("default", {
+    month: "long",
+  });
   return currentMonth;
-}
+};
 
-let  _getNextMonth=async(year, month)=>{
-  month=month+2;
-  let nextMonthDate = new Date(year+"-"+month+"-"+01)
+let _getNextMonth = async (year, month) => {
+  month = month + 2;
+  let nextMonthDate = new Date(year + "-" + month + "-" + 01);
   let nextMonth = {};
-  nextMonth['year'] = nextMonthDate.getFullYear();
-  nextMonth['month'] = nextMonthDate.getMonth()
-  nextMonth['monthName'] = nextMonthDate.toLocaleString('default', { month: 'long' })
+  nextMonth["year"] = nextMonthDate.getFullYear();
+  nextMonth["month"] = nextMonthDate.getMonth();
+  nextMonth["monthName"] = nextMonthDate.toLocaleString("default", {
+    month: "long",
+  });
   return nextMonth;
-}
+};
 let _beautyMonthSummary = async (monthAttendace, db) => {
   let r_actual_working_hours =
     (r_completed_working_hours =
-    r_pending_working_hours =
+      r_pending_working_hours =
       0);
 
   let WORKING_DAYS = (NON_WORKING_DAYS = LEAVE_DAYS = HALF_DAYS = 0);
 
   let r_actual_working_seconds =
     (r_completed_working_seconds =
-    r_pending_working_seconds =
+      r_pending_working_seconds =
       0);
 
   for (let [k, pp] of Object.entries(monthAttendace)) {
@@ -1769,156 +1779,340 @@ let _beautyMonthSummary = async (monthAttendace, db) => {
   }
   // //-----------------------------
   // //r_actual_working_seconds = $WORKING_DAYS * 9 * 60 * 60;
-  r_pending_working_seconds = r_actual_working_seconds - r_completed_working_seconds;
+  r_pending_working_seconds =
+    r_actual_working_seconds - r_completed_working_seconds;
   // //-----------------------------
-  let a =await _secondsToTime(r_actual_working_seconds,db);
-  r_actual_working_hours = a.h+ ' Hrs ' + a['m'] + ' Mins';
+  let a = await _secondsToTime(r_actual_working_seconds, db);
+  r_actual_working_hours = a.h + " Hrs " + a["m"] + " Mins";
 
-  let b = await _secondsToTime(r_completed_working_seconds,db);
-  r_completed_working_hours = b['h'] + ' Hrs ' + b['m'] + ' Mins';
+  let b = await _secondsToTime(r_completed_working_seconds, db);
+  r_completed_working_hours = b["h"] + " Hrs " + b["m"] + " Mins";
 
   let c = await _secondsToTime(r_pending_working_seconds);
-  r_pending_working_hours = c['status']+' '+c['h'] + ' Hrs ' + c['m'] + ' Mins';
+  r_pending_working_hours =
+    c["status"] + " " + c["h"] + " Hrs " + c["m"] + " Mins";
 
+  let monthSummary = {};
+  monthSummary.actual_working_hours = r_actual_working_hours;
+  monthSummary.completed_working_hours = r_completed_working_hours;
+  monthSummary.pending_working_hours = r_pending_working_hours;
+  monthSummary.WORKING_DAY = WORKING_DAYS;
+  monthSummary.NON_WORKING_DAY = NON_WORKING_DAYS;
+  monthSummary.LEAVE_DAY = LEAVE_DAYS;
+  monthSummary.HALF_DAY = HALF_DAYS;
+  monthSummary.admin_alert = "";
+  monthSummary.admin_alert_message = "";
 
-    let monthSummary = {};
- monthSummary.actual_working_hours =r_actual_working_hours;
- monthSummary.completed_working_hours =r_completed_working_hours;
- monthSummary.pending_working_hours =r_pending_working_hours;
- monthSummary.WORKING_DAY =WORKING_DAYS;
- monthSummary.NON_WORKING_DAY =NON_WORKING_DAYS;
- monthSummary.LEAVE_DAY =LEAVE_DAYS;
- monthSummary.HALF_DAY =HALF_DAYS;
- monthSummary.admin_alert = '';
- monthSummary.admin_alert_message = '';
-
- monthSummary.seconds_actual_working_hours =r_actual_working_seconds;
- monthSummary.seconds_completed_working_hours =r_completed_working_seconds;
- monthSummary.seconds_pending_working_hours =r_pending_working_seconds;
+  monthSummary.seconds_actual_working_hours = r_actual_working_seconds;
+  monthSummary.seconds_completed_working_hours = r_completed_working_seconds;
+  monthSummary.seconds_pending_working_hours = r_pending_working_seconds;
   return monthSummary;
 };
 
-let _analyseCompensationTime=async(beautyAttendance)=>{
+let _analyseCompensationTime = async (beautyAttendance) => {
   let seconds_to_be_compensate = 0;
-  let seconds_for_compensation = 0;   
+  let seconds_for_compensation = 0;
   let compensation_break_up = [];
   let currentDate = new Date();
-  
-  for(let [k,day] of Object.entries(beautyAttendance)){
-      // don't include todays date
-      if( currentDate == day['full_date'] ){
-          continue;
+
+  for (let [k, day] of Object.entries(beautyAttendance)) {
+    // don't include todays date
+    if (currentDate == day["full_date"]) {
+      continue;
+    }
+    let breakUpText = "";
+    //       // print_r($day);
+    if (day["day_type"] === "WORKING_DAY" || day["day_type"] === "HALF_DAY") {
+      //           /* added on 7th oct 2019 by arun -  if in/out time is missing don't consider it as compensation time*/
+      if (!day["in_time"] && !day["out_time"]) {
+        continue;
       }
-      let breakUpText = "";
-        //       // print_r($day);
-      if( day['day_type'] === 'WORKING_DAY' || day['day_type'] === 'HALF_DAY' ){
-          //           /* added on 7th oct 2019 by arun -  if in/out time is missing don't consider it as compensation time*/
-          if(!day['in_time'] && !day['out_time'] ){
-              continue;
+      //           /* added on 7th oct 2019 by arun -  if in/out time is missing don't consider it as compensation time*/
+      let day_full_date = day["full_date"];
+      let day_orignal_total_time = day["orignal_total_time"];
+      let date_for_break_up = day["full_date"].getDate();
+
+      //           // if in out time is missing
+      if (day["total_time"].trim() == "" || day["total_time"].trim() == 0) {
+        seconds_to_be_compensate += day_orignal_total_time;
+        // storing per day working hours if in out time is missing ( 9 hrs )
+        seconds_for_compensation += day_orignal_total_time;
+        let hms = await _secondsToTime(day_orignal_total_time);
+        let hms_show =
+          hms["pad_hms"]["h"] +
+          "h:" +
+          hms["pad_hms"]["m"] +
+          "m:" +
+          hms["pad_hms"]["s"] +
+          "s";
+
+        breakUpText = `${date_for_break_up} Addition ${hms_show}`;
+      } else {
+        day_extra_time_status = day["extra_time_status"];
+        day_seconds_extra_time = day["seconds_extra_time"];
+        if (day_extra_time_status === "-") {
+          // echo "PLUS <br>";
+          seconds_to_be_compensate += day_seconds_extra_time;
+          // $breakUpText = "$date_for_break_up # Addition in compensation Time : $day_full_date : $day_seconds_extra_time";
+
+          let hms = await _secondsToTime(day_seconds_extra_time);
+          let hms_show =
+            hms["pad_hms"]["h"] +
+            "h:" +
+            hms["pad_hms"]["m"] +
+            "m:" +
+            hms["pad_hms"]["s"] +
+            "s";
+          // calculate per day compensaton time if less than 4hrs and add it to previous compensation time
+          if (day_seconds_extra_time < 14400) {
+            seconds_for_compensation += day_seconds_extra_time;
+            breakUpText = `${date_for_break_up} # Addition # ${hms_show}`;
           }
-           //           /* added on 7th oct 2019 by arun -  if in/out time is missing don't consider it as compensation time*/
-         let day_full_date =day['full_date'];                
-         let day_orignal_total_time =day['orignal_total_time'];
-         let date_for_break_up =day['full_date'].getDate();
-
-        //           // if in out time is missing
-          if(day['total_time'].trim() == "" || day['total_time'].trim() == 0 ){
-              seconds_to_be_compensate += day_orignal_total_time;
-              // storing per day working hours if in out time is missing ( 9 hrs ) 
-              seconds_for_compensation += day_orignal_total_time;
-              let hms = await _secondsToTime(day_orignal_total_time);
-              let hms_show = hms['pad_hms']['h']+"h:"+hms['pad_hms']['m']+"m:"+hms['pad_hms']['s']+'s';
-
-              breakUpText = `${date_for_break_up} Addition ${hms_show}`;
-          } else{
-             day_extra_time_status = day['extra_time_status'];
-              day_seconds_extra_time = day['seconds_extra_time'];
-              if( day_extra_time_status === '-'){
-                  // echo "PLUS <br>";
-                  seconds_to_be_compensate += day_seconds_extra_time;                        
-                  // $breakUpText = "$date_for_break_up # Addition in compensation Time : $day_full_date : $day_seconds_extra_time";
-
-                  let hms = await _secondsToTime(day_seconds_extra_time);
-                  let hms_show = hms['pad_hms']['h']+"h:"+hms['pad_hms']['m']+"m:"+hms['pad_hms']['s']+'s';
-                  // calculate per day compensaton time if less than 4hrs and add it to previous compensation time
-                  if( day_seconds_extra_time < 14400 ){
-                      seconds_for_compensation += day_seconds_extra_time;
-                      breakUpText = `${date_for_break_up} # Addition # ${hms_show}`                        
-                  }
-              }
-              if( day_extra_time_status === '+' && seconds_to_be_compensate > 0 ){
-                  // echo "MINUS <br>";
-                  seconds_to_be_compensate -= day_seconds_extra_time;
-                  let hms = await _secondsToTime(day_seconds_extra_time);
-                  let hms_show = hms['pad_hms']['h']+"h:"+hms['pad_hms']['m']+"m:"+hms['pad_hms']['s']+'s';
-                  // calculate per day compensaton time if less than 4hrs and subtract it from previous compensation time
-                  if( day_seconds_extra_time < 14400 ){
-                      seconds_for_compensation -= $day_seconds_extra_time;
-                      breakUpText = `${date_for_break_up} # Deduction # ${hms_show}`;
-                  }
-              }
+        }
+        if (day_extra_time_status === "+" && seconds_to_be_compensate > 0) {
+          // echo "MINUS <br>";
+          seconds_to_be_compensate -= day_seconds_extra_time;
+          let hms = await _secondsToTime(day_seconds_extra_time);
+          let hms_show =
+            hms["pad_hms"]["h"] +
+            "h:" +
+            hms["pad_hms"]["m"] +
+            "m:" +
+            hms["pad_hms"]["s"] +
+            "s";
+          // calculate per day compensaton time if less than 4hrs and subtract it from previous compensation time
+          if (day_seconds_extra_time < 14400) {
+            seconds_for_compensation -= $day_seconds_extra_time;
+            breakUpText = `${date_for_break_up} # Deduction # ${hms_show}`;
           }
+        }
       }
+    }
 
-      if( seconds_to_be_compensate < 0 ){
-          seconds_to_be_compensate = 0;
-      }
-      if( seconds_for_compensation < 0 ){
-          seconds_for_compensation = 0;
-      }
+    if (seconds_to_be_compensate < 0) {
+      seconds_to_be_compensate = 0;
+    }
+    if (seconds_for_compensation < 0) {
+      seconds_for_compensation = 0;
+    }
 
-      if( breakUpText != ''){
-          // hms = self::_secondsToTime(seconds_to_be_compensate);
-          // calculate pending compensation time and skipping 4hr or more compensation time 
-          hms = await _secondsToTime(seconds_for_compensation);
-          hms_show = hms['pad_hms']['h']+"h:"+hms['pad_hms']['m']+"m:"+hms['pad_hms']['s']+'s';                
-          breakUpText = breakUpText +`## Pending = ${hms_show}`;
-      }
-      
-      // echo "----------------- :: $seconds_to_be_compensate<br><br>";
+    if (breakUpText != "") {
+      // hms = self::_secondsToTime(seconds_to_be_compensate);
+      // calculate pending compensation time and skipping 4hr or more compensation time
+      hms = await _secondsToTime(seconds_for_compensation);
+      hms_show =
+        hms["pad_hms"]["h"] +
+        "h:" +
+        hms["pad_hms"]["m"] +
+        "m:" +
+        hms["pad_hms"]["s"] +
+        "s";
+      breakUpText = breakUpText + `## Pending = ${hms_show}`;
+    }
 
-      if(breakUpText != ''){
-          row = {}
-          row.text = breakUpText
-          compensation_break_up = row;
-      }
+    // echo "----------------- :: $seconds_to_be_compensate<br><br>";
 
+    if (breakUpText != "") {
+      row = {};
+      row.text = breakUpText;
+      compensation_break_up = row;
+    }
   }
 
   Return = {};
-  Return['seconds_to_be_compensate'] = seconds_to_be_compensate;
-  Return['time_to_be_compensate'] = "";
-  if( seconds_to_be_compensate > 0 ){
-      bb = await _secondsToTime(seconds_to_be_compensate);
-      Return['time_to_be_compensate'] = bb['h'] + 'h : ' + bb['m'] + 'm :' + bb['s'] + 's';
+  Return["seconds_to_be_compensate"] = seconds_to_be_compensate;
+  Return["time_to_be_compensate"] = "";
+  if (seconds_to_be_compensate > 0) {
+    bb = await _secondsToTime(seconds_to_be_compensate);
+    Return["time_to_be_compensate"] =
+      bb["h"] + "h : " + bb["m"] + "m :" + bb["s"] + "s";
   }
-  Return['compensation_break_up'] = compensation_break_up;
+  Return["compensation_break_up"] = compensation_break_up;
   return Return;
-}
-let _beautyMonthAttendance=async(monthAttendance)=>{
-  for(let [key, mp] of Object.entries(monthAttendance)){
-      //check for future working day
-      if (mp['day_type'] && mp['day_type'] == 'WORKING_DAY') {
-          let currentTimeStamp = new Date().getTime();
-          mp_timeStamp =mp['full_date'].getTime();
-          if (mp_timeStamp >currentTimeStamp) {
-
-              monthAttendance[key]['day_type'] = "FUTURE_WORKING_DAY";
-          }
+};
+let _beautyMonthAttendance = async (monthAttendance) => {
+  for (let [key, mp] of Object.entries(monthAttendance)) {
+    //check for future working day
+    if (mp["day_type"] && mp["day_type"] == "WORKING_DAY") {
+      let currentTimeStamp = new Date().getTime();
+      mp_timeStamp = mp["full_date"].getTime();
+      if (mp_timeStamp > currentTimeStamp) {
+        monthAttendance[key]["day_type"] = "FUTURE_WORKING_DAY";
       }
-      // // convert total working time to readable format
-      if (mp['total_time'] && mp['total_time']) {
-          let aa = await _secondsToTime(mp['total_time']);
-          monthAttendance[key]['total_time'] = aa['h'] + 'h : ' + aa['m'] + 'm :' + aa['s'] + 's';
-      }
-      // //convert extra time to readable format
-      if (mp['extra_time'] && mp['extra_time']) {
-
-          let bb = await _secondsToTime(mp['extra_time']);
-          monthAttendance[key]['extra_time'] = bb['h'] + 'h : ' + bb['m'] + 'm :' + bb['s'] + 's';
-      }
+    }
+    // // convert total working time to readable format
+    if (mp["total_time"] && mp["total_time"]) {
+      let aa = await _secondsToTime(mp["total_time"]);
+      monthAttendance[key]["total_time"] =
+        aa["h"] + "h : " + aa["m"] + "m :" + aa["s"] + "s";
+    }
+    // //convert extra time to readable format
+    if (mp["extra_time"] && mp["extra_time"]) {
+      let bb = await _secondsToTime(mp["extra_time"]);
+      monthAttendance[key]["extra_time"] =
+        bb["h"] + "h : " + bb["m"] + "m :" + bb["s"] + "s";
+    }
   }
   return monthAttendance;
+};
+let getAllLeaves = async (req,db) => {
+  let currentDate = new Date();
+  let month = currentDate.getMonth();
+  month = month + 1 - 6;
+  // console.log(month,223223)
+  let pastDate = new Date().setMonth(month);
+  pastDate = new Date(pastDate);
+  let currentYear = new Date().getFullYear();
+  let rh_list = await getMyRHLeaves(currentYear, db);
+  pastDate = JSON.stringify(pastDate).split("T")[0];
+  pastDate = pastDate.slice(1, 11);
+  currentDate = JSON.stringify(currentDate).split("T")[0];
+  currentDate = currentDate.slice(1, 11);
+  //   //$q = "SELECT users.*,user_profile.* FROM users LEFT JOIN user_profile ON users.id = user_profile.user_Id where users.status = 'Enabled' ";
+  let rows = await db.sequelize.query(
+    `SELECT users.*,leaves.* 
+        FROM leaves 
+        LEFT JOIN users ON users.id = leaves.user_Id 
+        where users.status = 'Enabled' 
+        AND applied_on BETWEEN '${pastDate}' AND '${currentDate}'
+        order by leaves.id DESC `,
+    { type: QueryTypes.SELECT }
+  );
+  let pendingLeaves = [];
+  if (rows.length > 0) {
+    for (let [k, p] of Object.entries(rows)) {
+      p_id = p["id"];
+      // let userInfo = await getUserInfo( p['user_Id'],db);
+      // rows[k]['user_complete_info'];
+      delete rows[k]["password"];
+
+      //           ///
+      if (p["status"].toLowerCase().trim() == "pending") {
+        let lastLeaves = await getUsersLeaves(p["user_Id"], db);
+        if (lastLeaves.length > 0) {
+          for (let [lk, lp] of Object.entries(lastLeaves)) {
+            if (lp["id"] == p_id) {
+              delete lastLeaves[lk];
+            }
+          }
+          if (lastLeaves.length > 0) {
+            for (let [kl, ll] of Object.entries(lastLeaves)) {
+              lastLeaves[kl]["from_date"] = ll["from_date"];
+              lastLeaves[kl]["to_date"] = ll["to_date"];
+              lastLeaves[kl]["applied_on"] = ll["applied_on"];
+            }
+          }
+          lastLeaves = lastLeaves.slice(0, 5);
+          p["last_applied_leaves"] = lastLeaves;
+        }
+
+        pendingLeaves.push(p)
+        delete rows[k];
+      } else {
+        rows[k]["last_applied_leaves"] = {};
+      }
+    }
+  }
+
+  let newRows = rows;
+  if (pendingLeaves.length > 0) {
+    newRows = pendingLeaves.concat(rows);
+  }
+  //   // date view change
+  if (newRows.length > 0) {
+    for (let [k, v] of Object.entries(newRows)) {
+      newRows[k]["from_date"] = v["from_date"];
+      newRows[k]["to_date"] = v["to_date"];
+      newRows[k]["applied_on"] = v["applied_on"]
+      /* get doc link */
+      newRows[k]["doc_link"] = await _getLeaveDocFullLink(v,db);
+    }
+  }
+
+  //   //----
+  if (newRows.length > 0) {
+    enabledUsersList = await getEnabledUsersList(req, db);
+    for (let [k, p] of Object.entries(newRows)) {
+      let p_userid = p['user_Id'];
+      for (let [kkk, ev] of Object.entries(enabledUsersList)) {
+        if (p_userid == ev['user_Id']) {
+          newRows[k]['user_profile_name'] = ev['name'];
+          newRows[k]['user_profile_jobtitle'] = ev['jobtitle'];
+          // newRows[k]['user_profile_image'] = await _getEmployeeProfilePhoto(ev);
+          break;
+        }
+      }
+
+      if (!p['rh_names']) {
+        let names = [];
+        if (p['leave_type'] == 'RH Compensation') {
+          if (p['rh_dates']) {
+            dates = JSON.parse(p['rh_dates']);
+            for (let date of dates) {
+              for (let rh of rh_list) {
+                if (rh['raw_date'] == date) {
+                  names = rh['name'].trim();
+                }
+              }
+            }
+          }
+        }
+        if (p['leave_type'] == 'Restricted') {
+          for (let rh of rh_list) {
+            if (rh['raw_date'] == p['from_date']) {
+              names = (rh['name']).trim();
+            }
+          }
+        }
+        newRows[k]['rh_names'] = JSON.stringify(names);
+      }
+    }
+  }
+  newRows = newRows.filter(item => item);
+// console.log(arr);
+//  console.log(newRows)
+  let Return = {};
+  let r_data = {}
+  Return['error'] = 0;
+  r_data['message'] = '';
+  r_data['leaves'] = newRows;
+  Return['data'] = r_data;
+
+  return Return;
+};
+
+
+
+let  getUsersLeaves=async(userid,db)=>{
+    let list = [];
+       let year = new Date().getFullYear();
+    let rows = await db.sequelize.query(`SELECT * FROM leaves Where user_Id = ${userid} order by id DESC`,{type:QueryTypes.SELECT})
+    let rh_list = await getMyRHLeaves(year,db);
+    for(let [key,row] of Object.entries(rows)){
+        let names = [];
+        if(row['leave_type'] == 'RH Compensation' ){
+            if(row['rh_dates']) {                                    
+                let dates = JSON.parse(row['rh_dates']);                       
+                for(let date of dates ){
+                    for(let rh of rh_list){
+                        if( rh['raw_date'] == date ){
+                            names= rh['name'].trim();
+                        }                            
+                    }                  
+                }                    
+            }
+        }
+        if( row['leave_type'] == 'Restricted' ){                
+            for(let rh of rh_list){
+                if( rh['raw_date'] == row['from_date'] ){
+                    names= rh['name'].trim();
+                }                            
+            }
+        }            
+        rows[key]['rh_names'] = JSON.stringify(names);
+    }
+
+    return rows;
 }
 
 module.exports = {
@@ -1937,4 +2131,5 @@ module.exports = {
   getDaysBetweenLeaves,
   getAllUsersPendingLeavesSummary,
   getUserMonthAttendace,
+  getAllLeaves,
 };

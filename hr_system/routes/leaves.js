@@ -72,4 +72,11 @@ router.post(
   leavesControllers.get_all_leaves_summary,
   handlers.responseForEmployee
 );
+router.post(
+  "/get_all_leaves",
+  middleware.AuthForHrAdmin,
+  leavesControllers.get_all_leaves,
+  handlers.responseForEmployee
+);
+
   module.exports = router;

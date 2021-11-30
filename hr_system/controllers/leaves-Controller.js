@@ -4,7 +4,7 @@ const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
 const{_getPreviousMonth,getEmployeeLastPresentDay,API_deleteHoliday,addHoliday,API_getHolidayTypesList,API_getYearHolidays,cancelAppliedLeave,applyLeave
-    ,API_getMyRHLeaves,leaveDocRequest,updateLeaveStatus,getDaysBetweenLeaves,getAllUsersPendingLeavesSummary}=require("../leavesFunctions")
+    ,API_getMyRHLeaves,leaveDocRequest,updateLeaveStatus,getDaysBetweenLeaves,getAllUsersPendingLeavesSummary,getAllLeaves}=require("../leavesFunctions")
 
 exports.adminUserApplyLeave=async(req,res,next)=>{
     try{
@@ -228,3 +228,17 @@ exports.get_all_leaves_summary=async(req,res,next)=>{
         return next();  
    } 
 }
+exports.get_all_leaves=async(req,res,next)=>{
+    try {
+        let resp = await getAllLeaves(req,db);
+        res.status_code=200;
+        res.data=resp.data
+        res.error=resp.error;
+        return next();
+    } catch (error) {
+        console.log(error)
+        res.status_code = 500;
+         res.message = error.message;
+         return next();  
+    } 
+ }
