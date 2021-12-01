@@ -68,7 +68,6 @@ let getRoleActions = async (roleid, models) => {
     where: { role_id: roleid },
   });
   if (rows.length > 0) {
-
     let data = await Promise.all(
       rows.map(async (doc) => {
         doc = JSON.parse(JSON.stringify(doc));

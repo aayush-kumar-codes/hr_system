@@ -34,7 +34,9 @@ exports.AuthForHrAdmin = async (req, res, next) => {
   let token = req.headers.authorization.split(" ");
   try {
     const checkJwt = await jwt.verify(token[1], secret.jwtSecret);
-    const user = await db.User.findOne({ where: { id: checkJwt.data.id } });
+    console.log(checkJwt.id);
+    // const user = await db.User.findOne({ where: { id: checkJwt.data.id } });
+    const user = await db.User.findOne({ where: { id: checkJwt.id } });
     if (user.type == "hr"||user.type =="admin") {
       req.userData = checkJwt;
       next();
@@ -42,6 +44,7 @@ exports.AuthForHrAdmin = async (req, res, next) => {
       res.send("you are not authorized");
     }
   } catch (error) {
+    console.log(error);
     return res.status(401).json({
       message: "Auth token invalid",
     });
