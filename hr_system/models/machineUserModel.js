@@ -38,46 +38,6 @@ function machineuser(database, type) {
     }
   };
 
-  // machines_user.AssignMachine = async (reqBody,db) => {
-  //   try {
-  //     const machineinfo=await db.MachineStatus.findOne({where:{id:reqBody.body.machine_id}});
-  //     if(machineinfo.status!="sold"){
-  //     let find_machine = await machines_user.findOne({
-  //       where: { machine_id: reqBody.body.machine_id },
-  //     });
-  //     if (!find_machine) {
-  //       const details = await machines_user.create({
-  //         machine_id: reqBody.body.machine_id,
-  //         user_Id: reqBody.body.user_id,
-  //         updated_by_userid: reqBody.userData.data.id,
-  //       });
-  //     } else {
-  //       const details = await machines_user.update(
-  //         {
-  //           machine_id: reqBody.body.machine_id,
-  //           user_Id: reqBody.body.user_id,
-  //           updated_by_userid: reqBody.userData.data.id,
-  //         },
-  //         {
-  //           where: {
-  //             id: find_machine.id,
-  //           },
-  //         }
-  //       );
-  //     }
-  //     let updatedMachine=await db.MachineList({is_unassign_request:0,ownership_change_req_by_user:0},
-  //       {where:{id:reqBody.body.machine_id}})
-  //     return "Done";
-  //   }
-  //   else{
-  //     return "error";
-  //   }
-  //   } catch (error) {
-  //     console.log(error, "error from assign machine");
-  //     throw new Error(error);
-  //   }
-  // };
-
   return machines_user;
 }
 

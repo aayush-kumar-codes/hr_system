@@ -924,6 +924,7 @@ let getEmployeeCompleteInformation=async(empid,req,models)=>{
   if(sal.length > 0 ){
     let latest_sal_id = sal[0]['id'];
     let q = (`SELECT * FROM salary_details WHERE salary_id= ${latest_sal_id} AND key = 'Misc_Deductions'`,{type:QueryTypes.SELECT})
+    console.log(q,2132342)
     if (sal.length >= 2) {
         previous_increment = (sal[0]['total_salary'] - sal[1]['total_salary']);
         salary_detail = sal[0]['total_salary'] + q['value'];
@@ -935,8 +936,8 @@ let getEmployeeCompleteInformation=async(empid,req,models)=>{
         next_increment_date = sal[0]['applicable_till'];
         start_increment_date = sal[0]['applicable_from'];
     }
-  }
-  let date1=10/12/2000;
+  }   
+  let date1=userInfo[0].dateofjoining;
   let date2=new Date();
   userInfo['slack_image'] = "";
   userInfo['user_slack_id'] = "";
@@ -946,7 +947,6 @@ let getEmployeeCompleteInformation=async(empid,req,models)=>{
   userInfo['start_increment_date'] = start_increment_date;
   userInfo['no_of_days_join'] = Math.trunc(await intervalfunction(date1,date2))
   userInfo['holdin_amt_detail'] = holding;
-  console.log(userInfo)
   return userInfo;
 }
 
@@ -1030,6 +1030,6 @@ let getEmployeeCompleteInformation=async(empid,req,models)=>{
     getAllUserDetail,
     UpdateUserBankInfo,
     getSalaryInfo,UpdateUserInfo,updatePassword,
-    updateEmployeePassword,deleteRole
+    updateEmployeePassword,deleteRole,getEmployeeCompleteInformation
 
   }
