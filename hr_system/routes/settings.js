@@ -16,7 +16,7 @@ router.post(
   "/update_config",
   middleware.AuthForHrAdmin,
   settignsController.update_config,
-  handlers.responseHandle
+  handlers.responseForAddMachine
 );
 
 module.exports = router;

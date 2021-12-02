@@ -36,8 +36,9 @@ exports.update_config = async (req, res, next) => {
       let type = req.body.type;
       let data = req.body.data;
       let result = await API_updateConfig(type, data, db);
+    //   console.log(result);
       res.status_code = 200;
-      res.data = result.data;
+      res.message = result.data.message;
       res.error = result.error;
       return next();
     }
