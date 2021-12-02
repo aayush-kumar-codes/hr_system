@@ -1,9 +1,13 @@
 function inventoryTempFiles(database, type) {
-  const InventoryTempFiles = database.define("inventory_temp_files", {
-    file_id: type.INTEGER,
-  },{
-    timestamps:false
-  });
+  const InventoryTempFiles = database.define(
+    "inventory_temp_files",
+    {
+      file_id: type.INTEGER,
+    },
+    {
+      timestamps: false,
+    }
+  );
   InventoryTempFiles.associate = (models) => {
     models.InventoryTempFiles.hasOne(models.FilesModel, {
       foreignKey: "file_id",

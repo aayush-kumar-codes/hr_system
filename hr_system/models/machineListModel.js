@@ -1,4 +1,3 @@
-const { MachineList } = require(".");
 const db = require("../db");
 const {
   getUserInventories,
@@ -9,36 +8,96 @@ const {
   refreshToken,
   getInventoryHistory,
   addInventoryComment,
-  assignUserMachine
+  assignUserMachine,
 } = require("../allFunctions");
-
+const { Op } = require("sequelize");
 function machinelist(database, type) {
-  const { Op } = require("sequelize");
   const MachineList = database.define(
-    "machinelist",
+    "machines_list",
     {
-      machine_type: type.STRING,
-      machine_name: type.STRING,
-      machine_price: type.STRING,
-      serial_number: type.STRING,
-      date_of_purchase: type.DATE,
-      mac_address: type.STRING,
-      operating_system: type.STRING,
-      status: type.STRING,
-      comments: type.STRING,
-      warranty_end_date: type.DATE,
-      bill_number: type.STRING,
-      warranty_comment: type.STRING,
-      repair_comment: type.STRING,
-      file_inventory_invoice: type.INTEGER,
-      file_inventory_warranty: type.INTEGER,
-      file_inventory_photo: type.INTEGER,
-      warranty_years: type.STRING,
-      approval_status: type.INTEGER,
-      is_unassign_request: type.INTEGER,
-      ownership_change_req_by_user: type.INTEGER,
+      machine_type: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      machine_name: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      machine_price: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      serial_number: {
+        type: type.STRING,
+        defaultValue: 0,
+      },
+      date_of_purchase: {
+        type: type.DATE,
+        defaultValue: null,
+      },
+      mac_address: {
+        type: type.STRING,
+        defaultValue: 0,
+      },
+      operating_system: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      status: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      comments: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      warranty_end_date: {
+        type: type.DATE,
+        defaultValue: null,
+      },
+      bill_number: {
+        type: type.STRING,
+        defaultValue: 0,
+      },
+      warranty_comment: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      repair_comment: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      file_inventory_invoice: {
+        type: type.INTEGER,
+        defaultValue: null,
+      },
+      file_inventory_warranty: {
+        type: type.INTEGER,
+        defaultValue: null,
+      },
+      file_inventory_photo: {
+        type: type.INTEGER,
+        defaultValue: null,
+      },
+      warranty_years: {
+        type: type.STRING,
+        defaultValue: null,
+      },
+      approval_status: {
+        type: type.INTEGER,
+        // defaultValue: null
+      },
+      is_unassign_request: {
+        type: type.INTEGER,
+        defaultValue: null,
+      },
+      ownership_change_req_by_user: {
+        type: type.INTEGER,
+        // defaultValue: null
+      },
     },
     {
+      timestamps: false,
       freezeTableName: true,
     }
   );
@@ -59,20 +118,8 @@ function machinelist(database, type) {
 
   MachineList.addOfficeMachine = async (req, db) => {
     try {
-      const loggeduserid = req.userData.data.id;
-      // console.log(req.mac_address)
-      // if (req.mac_address != null || req.body.serial_number != null) {
-      //   var Data = await MachineList.findAll({
-      //     where: {
-      //       [Op.or]: [
-      //         { mac_address: req.body.mac_address },
-      //         { serial_number: req.body.serial_number },
-      //       ],
-      //     },
-      //   });
-      // }
-      // console.log(Data)
-      // if (Data.length == 0) {
+      // const loggeduserid = req.userData.data.id;
+      const loggeduserid = req.userData.id;
       let creation = await MachineList.create({
         machine_type: req.body.machine_type,
         machine_name: req.body.machine_name,
@@ -109,17 +156,25 @@ function machinelist(database, type) {
             console.log("unassign comment is empty");
           }
         } else {
-          const assign = await assignUserMachine(machine_id,req.body.user_id, loggeduserid,req,db);
+          const assign = await assignUserMachine(
+            machine_id,
+            req.body.user_id,
+            loggeduserid,
+            req,
+            db
+          );
         }
-        console.log("---------------------------")
-        await updateInventoryWithTempFile(loggeduserid, machine_id, db, req,req.body.user_id);
+        await updateInventoryWithTempFile(
+          loggeduserid,
+          machine_id,
+          db,
+          req,
+          req.body.user_id
+        );
       } else {
         console.log("Error in adding new inventory");
       }
       return creation.id;
-      // } else {
-      //   console.log("mac_address or serial_no already exists");
-      // }
     } catch (error) {
       console.log(error);
       throw new Error(error);
@@ -134,105 +189,44 @@ function machinelist(database, type) {
       throw new Error("Unable to locate all users");
     }
   };
-  // MachineList.GetMachine = async (reqBody, models) => {
-  //   try {
-  //     const loggeduserid = reqBody.userData.data.id;
-  //     const loggeduser_role = reqBody.userData.data.role;
-  //     let res = await api_getMyInventories(
-  //       loggeduserid,
-  //       loggeduser_role,
-  //       models
-  //     );
-  //     if (
-  //       typeof reqBody.body.skip_inventory_audit != undefined &&
-  //       reqBody.body.skip_inventory_audit == 1
-  //     ) {
-  //       let lowerCaseLoggedUserRole = loggeduser_role.toLowerCase();
-  //       if (
-  //         lowerCaseLoggedUserRole == "hr" ||
-  //         lowerCaseLoggedUserRole == "inventory manager" ||
-  //         lowerCaseLoggedUserRole == "hr payroll manager" ||
-  //         lowerCaseLoggedUserRole == "admin"
-  //       ) {
-  //         let addOnsRefreshToken = [];
-  //         addOnsRefreshToken.skip_inventory_audit = true;
-  //         let newToken = await refreshToken(
-  //           reqBody.headers.authorization,
-  //           models,
-  //           addOnsRefreshToken
-  //         );
-  //         res.data.new_token = newToken;
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.log(error);
-  //     throw new Error("Unable to locate all users");
-  //   }
-  // };
+  MachineList.GetMachine = async (reqBody, models) => {
+    try {
+      const loggeduserid = reqBody.userData.id;
+      const loggeduser_role = reqBody.userData.role;
+      let res = await api_getMyInventories(
+        loggeduserid,
+        loggeduser_role,
+        models
+      );
+      if (
+        typeof reqBody.body.skip_inventory_audit != undefined &&
+        reqBody.body.skip_inventory_audit == 1
+      ) {
+        let lowerCaseLoggedUserRole = loggeduser_role.toLowerCase();
+        if (
+          lowerCaseLoggedUserRole == "hr" ||
+          lowerCaseLoggedUserRole == "inventory manager" ||
+          lowerCaseLoggedUserRole == "hr payroll manager" ||
+          lowerCaseLoggedUserRole == "admin"
+        ) {
+          let addOnsRefreshToken = [];
+          addOnsRefreshToken.skip_inventory_audit = true;
+          let newToken = await refreshToken(
+            reqBody.headers.authorization,
+            models,
+            addOnsRefreshToken
+          );
+          res.data.new_token = newToken;
+        }
+      }
+    } catch (error) {
+      console.log(error);
+      throw new Error("Unable to locate all users");
+    }
+  };
 
-  // MachineList.getMachineDetail = async (reqBody,models, res) => {
-  //   try {
-  //     let error = 0;
-  //     let row = {};
-  //     let query1 = await models.MachineList.findOne({ where: { id: reqBody.id } });
-  //     let query2 = await models.MachineUser.findOne(
-  //       { attributes: ["user_Id", "assign_date"] },
-  //       { where: { machine_id: query1.id } }
-  //     );
-  //     let query3 = await models.FilesModel.findOne({
-  //       where: { id: query1.file_inventory_invoice },
-  //     });
-  //     let query4 = await models.FilesModel.findOne({
-  //       where: { id: query1.file_inventory_warranty },
-  //     });
-  //     let query5 = await models.FilesModel.findOne({
-  //       where: { id: query1.file_inventory_photo },
-  //     });
-  //     row.machine_list = query1;
-  //     row.machine_user = query2;
-  //     row.file_inventory_invoice = query3;
-  //     row.file_inventory_warranty = query4;
-  //     row.file_inventory_photo = query5;
-  //     // let all_machine = await MachineList.findOne({
-  //     //   where: { id: reqBody.id },
-  //     //   include: [
-  //     //     {
-  //     //       model: db.FilesModel,
-  //     //       as: "file_inventory_invoice_id",
-  //     //     },
-  //     //     {
-  //     //       model: db.FilesModel,
-  //     //       as: "file_inventory_warranty_id",
-  //     //     },
-  //     //     {
-  //     //       model: db.FilesModel,
-  //     //       as: "file_inventory_photo_id",
-  //     //     },
-  //     //   ],
-  //     // });
-  //     // res.send(all_machine);
-
-  //     // let userProfiledata = await db.UserProfile.findAll({
-  //     //   where: { id: inventory_comments.assign_unassign_user_id },
-  //     // });
-  //     // return all_machine;
-  //     const inventoryHistory = await getInventoryHistory(reqBody.id, models);
-  //     row.history = inventoryHistory;
-  //     let Return = {};
-  //     Return.error=error;
-  //     Return.data = row;
-  //     return Return;
-  //   } catch (error) {
-  //     console.log(error);
-  //     throw new Error("Unable to locate all users");
-  //   }
-  // };
   MachineList.updateMachine = async (reqBody) => {
     try {
-      // let machine_to_update = await MachineList.findAll({
-      //   where: { id: reqBody.id },
-      // });
-      // if (machine_to_update) {
       let update = await MachineList.update(
         {
           machine_type: reqBody.machine_type,
@@ -259,21 +253,10 @@ function machinelist(database, type) {
         { where: { id: reqBody.id } }
       );
       return update;
-      // } else {
-      //   throw new Error("Unable to find machine with the given id");
-      // }
     } catch (error) {
       throw new Error(error);
     }
   };
-  // MachineList.getMachineCount = async () => {
-  //   try {
-  //     let machine_count = await MachineList.count();
-  //     return machine_count;
-  //   } catch (error) {
-  //     throw new Error("Unable to locate all machine count");
-  //   }
-  // };
 
   MachineList.removeMachine = async (reqBody) => {
     try {
@@ -311,52 +294,7 @@ function machinelist(database, type) {
       throw new Error("error in  getInventoryComments");
     }
   };
-  // let addInventoryComment = async (machine_id, loggeduserid, req, db) => {
-  //   const inventoryComment = await db.InventoryCommentsModel.create({
-  //     inventory_id: machine_id,
-  //     updated_by_user_id: loggeduserid,
-  //     comment_type: req.body.comment_type,
-  //     comment: req.body.unassign_comment,
-  //   });
-  //   if (req.body.assign_unassign_user_id != null) {
-  //     const inventoryComment = await db.InventoryCommentsModel.create({
-  //       inventory_id: machine_id,
-  //       updated_by_user_id: loggeduserid,
-  //       comment_type: req.body.comment_type,
-  //       comment: req.body.unassign_comment,
-  //       assign_unassign_user_id: req.body.assign_unassign_user_id,
-  //     });
-  //   }
-  //   return inventoryComment.id;
-  // };
-  // MachineList. assignUserMachine = async (machine_id, req, loggeduserid) => {
-  //   try{
-  //   let r_error=1;
-  //   let r_message="";
-  //   if (
-  //     req.body.userid == "" ||
-  //     req.body.userid == 0 ||
-  //     req.body.userid == null
-  //   ) {
-  //     await removeMachineAssignToUser(machine_id, loggeduserid, req);
-  //   } else {
-  //     const machine_info = await getMachineDetails(machine_id);
-  //     let checkpass = true;
-  //     if (typeof machine_info.status!="undefined" && machine_info.status == "sold") {
-  //       checkpass = false;
-  //       r_error=1;
-  //       message = "Sold status inventory cannnot be assign to any employee";
-  //     }
-  //     if(checkpass==true){
-  //       let date=new Date().toISOString().slice(0, 10)
 
-  //       console.log(today)
-  //     }
-  //   }
-  // }catch(error){
-  //   console.log(error)
-  // }
-  // };
   const updateInventoryWithTempFile = async (
     loggeduserid,
     machine_id,

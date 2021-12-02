@@ -11,20 +11,33 @@ const {
   getAllRole,
   assignAdminRoleToUserTypeAdminIfNoRoleAssigned,
 } = require("../allFunctions");
+const { QueryTypes } = require("sequelize");
 function roles(database, type) {
-  const roles = database.define("roles", {
-    name: type.STRING,
-    description: type.STRING,
-    last_update: type.DATE,
-  },{
-    timestamps:false
-  });
+  const roles = database.define(
+    "roles",
+    {
+      name: type.STRING,
+      description: type.STRING,
+      last_update: type.DATE,
+    },
+    {
+      timestamps: false,
+    }
+  );
 
-  roles.AddNewRole = async (name, description, base_role_id = false, res) => {
+  roles.AddNewRole = async (
+    name,
+    description,
+    base_role_id = false,
+    models
+  ) => {
     try {
       let error = 1;
       let message;
-      let q = await roles.findAll({ where: { name: name } });
+      let q = await models.sequelize.query(
+        `select * from roles where roles.name = '${name}'`,
+        { type: QueryTypes.SELECT }
+      );
       if (q.length == 0) {
         let creation = await roles.create({
           name: name,
@@ -33,7 +46,6 @@ function roles(database, type) {
         error = 0;
         message = "New role added";
         if (base_role_id != null) {
-          // q = await roles.findAll({where:{name: name}});
           for (let key in q) {
             if (q.length != null && typeof q[key].id != "undefined") {
               let qId = q[key].id;
@@ -51,7 +63,6 @@ function roles(database, type) {
       } else {
         error = 1;
         message = "Role name already exist";
-        // return "not updated";
       }
       let arr = {};
       arr.error = error;
@@ -67,7 +78,9 @@ function roles(database, type) {
     try {
       let result = {};
       let allpages = await getAllPages();
+
       let allactions = await getAllActions();
+
       // let allnotifications = await getAllNotifications();
       result.default_pages = allpages;
       result.default_actions = allactions;
@@ -77,18 +90,20 @@ function roles(database, type) {
       if (array.length > 0) {
         await assignAdminRoleToUserTypeAdminIfNoRoleAssigned(array, models);
         for (let val of array) {
-          let role_page = await getRolePages(val.dataValues.id, models);
-          let role_action = await getRoleActions(val.dataValues.id, models);
-          console.log(role_action)
+          let role_page = await getRolePages(val.id, models);   
+          let role_action = await getRoleActions(val.id, models);
           // let role_notify = await getRoleNotifications(array[key].id);
           for (let v1 of allpages) {
             let p = 0;
+            if(!role_page)
+            {}else{
             for (let u1 of role_page) {
               if (u1.page_id == v1.id) {
                 p = 1;
               }
             }
             v1["is_assigned"] = p;
+          }
             let updatedActionsList = [];
             if (typeof v1.actions_list != "undefined") {
               updatedActionsList = v1.actions_list;
@@ -138,10 +153,10 @@ function roles(database, type) {
         error: 0,
         data: result,
       };
-      console.log(Return)
+
       return Return;
     } catch (error) {
-      console.log(error);
+      console.log(error)
       throw new Error(error);
     }
   };
@@ -169,7 +184,6 @@ function roles(database, type) {
         return "not updated";
       }
     } catch (error) {
-      console.log(error);
       throw new Error(error);
     }
   };
@@ -178,21 +192,6 @@ function roles(database, type) {
     try {
       let list = await roles.findAll({});
       return list;
-    } catch (error) {
-      throw new Error(error);
-    }
-  };
-  roles.deleteRole = async (reqBody) => {
-    try {
-      let roletoDelete = await roles.destroy({
-        where: { id: reqBody.role_id },
-      });
-      console.log(roletoDelete);
-      if (roletoDelete == 1) {
-        return "deleted";
-      } else {
-        return "not deleted";
-      }
     } catch (error) {
       throw new Error(error);
     }

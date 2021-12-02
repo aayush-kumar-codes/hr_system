@@ -1,53 +1,55 @@
 const md5 = require("md5");
-const { randomString} = require("../allFunctions")
+const { randomString } = require("../allFunctions");
 const { Op, QueryTypes } = require("sequelize");
 const sendEmail = require("../util/sendEmail");
-const{assignUserRole}=require("../allFunctions")
+const { assignUserRole } = require("../allFunctions");
 function user_profile(database, type) {
-  const user_profile = database.define("user_profile", {
-    name: type.STRING,
-    jobtitle: type.STRING,
-    dateofjoining: type.DATE,
-    user_Id: type.INTEGER,
-    dob: type.DATE,
-    gender: type.STRING,
-    marital_status: type.STRING,
-    address1: type.STRING,
-    address2: type.STRING,
-    city: type.STRING,
-    state: type.STRING,
-    zip_postal: type.INTEGER,
-    country: type.STRING,
-    home_ph: type.STRING,
-    mobile_ph: type.STRING,
-    work_email: type.STRING,
-    other_email: type.STRING,
-    image: type.STRING,
-    bank_account_num: type.INTEGER,
-    special_instructions: type.STRING,
-    pan_card_num: type.STRING,
-    permanent_address: type.STRING,
-    current_address: type.STRING,
-    emergency_ph1: type.STRING,
-    emergency_ph2: type.STRING,
-    blood_group: type.STRING,
-    medical_condition: type.STRING,
-    updated_on: type.STRING,
-    slack_id: type.STRING,
-    policy_document: type.STRING,
-    team: type.STRING,
-    training_completion_date: type.DATE,
-    termination_date: type.DATE,
-    holding_comments: type.STRING,
-    training_month: type.INTEGER,
-    slack_msg: type.INTEGER,
-    signature: type.STRING,
-    meta_data: type.STRING,
-  },
-  {
-    freezeTableName:true,
-    timestamps:false,
-  }
+  const user_profile = database.define(
+    "user_profile",
+    {
+      name: type.STRING,
+      jobtitle: type.STRING,
+      dateofjoining: type.DATE,
+      user_Id: type.INTEGER,
+      dob: type.DATE,
+      gender: type.STRING,
+      marital_status: type.STRING,
+      address1: type.STRING,
+      address2: type.STRING,
+      city: type.STRING,
+      state: type.STRING,
+      zip_postal: type.INTEGER,
+      country: type.STRING,
+      home_ph: type.STRING,
+      mobile_ph: type.STRING,
+      work_email: type.STRING,
+      other_email: type.STRING,
+      image: type.STRING,
+      bank_account_num: type.INTEGER,
+      special_instructions: type.STRING,
+      pan_card_num: type.STRING,
+      permanent_address: type.STRING,
+      current_address: type.STRING,
+      emergency_ph1: type.STRING,
+      emergency_ph2: type.STRING,
+      blood_group: type.STRING,
+      medical_condition: type.STRING,
+      updated_on: type.STRING,
+      slack_id: type.STRING,
+      policy_document: type.STRING,
+      team: type.STRING,
+      training_completion_date: type.DATE,
+      termination_date: type.DATE,
+      holding_comments: type.STRING,
+      training_month: type.INTEGER,
+      slack_msg: type.INTEGER,
+      signature: type.STRING,
+      meta_data: type.STRING,
+    },
+    {
+      freezeTableName: true,
+      timestamps: false,
+    }
   );
 
   user_profile.addNewEmployee = async (reqBody, models) => {
@@ -55,7 +57,7 @@ function user_profile(database, type) {
       let error = 1;
       let message;
       let userId;
-      let password =  await randomString(5);
+      let password = await randomString(5);
       let username = await models.User.findAll({
         where: { username: reqBody.username },
       });
@@ -109,17 +111,18 @@ function user_profile(database, type) {
           } else {
             error = 0;
             message = "Employee added Successfully";
-            let allRoles = await models.Role.findAll({});        
+            let allRoles = await models.Role.findAll({});
             for (let roles in allRoles) {
               if (allRoles[roles].name == reqBody.type) {
                 let defaultRoleId = allRoles[roles].id;
                 if (userId && defaultRoleId !== "") {
                   let roleToAssign = await assignUserRole(
                     userId,
-                    defaultRoleId,models
+                    defaultRoleId,
+                    models
                   );
-                  error=0;
-                  message="registeration sucessfull"
+                  error = 0;
+                  message = "registeration sucessfull";
                 } else {
                   error = 1;
                   message = "role not assigned";
@@ -142,8 +145,6 @@ function user_profile(database, type) {
     }
   };
 
-
-
   user_profile.getUserProfileDetailsById = async (reqBody) => {
     try {
       let userProfileById = await user_profile.findAll({
@@ -155,29 +156,14 @@ function user_profile(database, type) {
     }
   };
 
-  // user_profile.addNewEmployee = async (reqBody, models) => {
-  //   try {
-  //     let error =1;
-  //     let message = "";
-  //     let data = [];
-  //     let q =  await models.sequelize.query(
-  //       `select * from users where username='${reqBody.username}' `,
-  //       { type: QueryTypes.SELECT }
-  //     );
-  //   } catch (error) {
-  //     throw new Error (error);
-  //   }
-  // }
-
-  user_profile.updateUserPolicyDocument = async (req) => {
+  user_profile.updateUserPolicyDocument = async (req,user_id) => {
     try {
       let userPolicyDocument = await user_profile.update(
         { policy_document: req.body.policy_document },
-        { where: { user_Id: user_id } }
+        { where: { user_Id:user_id } }
       );
       return userPolicyDocument;
     } catch (error) {
-      // console.log(error);
       throw new Error(error);
     }
   };
@@ -225,14 +211,12 @@ function user_profile(database, type) {
         },
         { where: { user_Id: reqBody.user_id } }
       );
-      // console.log(userToUpdate[0] !== 0);
       if (userToUpdate[0] !== 0) {
         return "updated";
       } else {
         return "not updated";
       }
     } catch (error) {
-      // console.log(error);
       throw new Error(error);
     }
   };
