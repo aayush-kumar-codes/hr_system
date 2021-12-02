@@ -156,11 +156,11 @@ function user_profile(database, type) {
     }
   };
 
-  user_profile.updateUserPolicyDocument = async (req) => {
+  user_profile.updateUserPolicyDocument = async (req,user_id) => {
     try {
       let userPolicyDocument = await user_profile.update(
         { policy_document: req.body.policy_document },
-        { where: { user_Id: user_id } }
+        { where: { user_Id:user_id } }
       );
       return userPolicyDocument;
     } catch (error) {

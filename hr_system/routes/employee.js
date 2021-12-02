@@ -17,7 +17,7 @@ const upload = multer({ storage: storage });
 
 router.get(
   "/get_user_profile_detail",
-  middleware.AuthForHr,
+  middleware.AuthForHrEmployee,
   employeeController.getUserProfileController,
   handlers.responseForEmployee
 ); //done
@@ -140,6 +140,6 @@ router.post(
   validators.updateEmployeePassValidators,
   employeeController.updateEmployeePassControllers,
   handlers.responseForEmployee
-);
+);//need to work on val part else completed
 
 module.exports = router;

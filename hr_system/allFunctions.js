@@ -14,6 +14,7 @@ const db = require("./db");
 const { sequelize } = require("./db");
 const { MachineStatusDeleteValidator } = require("./validators/req-validators");
 const user = require("./models/userModel");
+const { Query } = require("pg");
 
 let getPageById = async (id) => {
   let data;
@@ -75,6 +76,37 @@ let getRoleActions = async (roleid, models) => {
   return rows;
 };
 
+let getUserDetailInfo =async(userid,req,models)=>{
+  let r_error=1;
+  let r_message = "";
+  user_bank_detail = await getUserBankDetail(userid,req,models);
+  user_profile_detail =await getUserprofileDetail(userid,req,models);
+  user_assign_machine = await getUserAssignMachines(userid,req,models);
+  let Return ={};
+  Return.error=r_error;
+  Return.data.user_profile_detail;
+  Return.data.user_bank_detail;
+  Return.data.user_assign_machine;
+  return Return;
+}
+
+let getUserBankDetail=async(userid,req,models)=>{
+  let query=await models.sequelize.query(`SELECT * FROM user_bank_details WHERE "user_Id" = ${userid}`,{type:QueryTypes.SELECT})
+  let arr="";
+  arr=query;
+  return arr;
+}
+let getUserprofileDetail=async(userid,req,models)=>{
+  let query=await models.sequelize.query(`SELECT users.status, users.username, users.type, user_profile.* 
+  FROM users 
+  LEFT JOIN user_profile ON users.id = user_profile."user_Id" 
+  where 
+  users.status = 'Enabled' AND users.id = ${userid}`,{type:QueryTypes.SELECT})
+  if(query[0].type==Admin){
+    delete query[0].holding_comments;
+  }
+  return query;
+}
 // let registerRole=async(user)=>{
 // let allRoles=await db.Role.findOne({where:{name:user.type}});
 // await db.UserRole.create(user.id,allRoles.id);
@@ -309,7 +341,9 @@ let getUserInventories = async (userid, models, userRole = false) => {
   let roleName;
   if (userRole == false) {
     let roleDetails = await getUserRole(userid, models);
-    if (roleDetails.name) {
+// console.log(23432);
+//     console.log(roleDetails.name);
+    if (typeof roleDetails.name!="undefined") {
       roleName = roleDetails.name;
     }
   } else {
@@ -325,12 +359,12 @@ let getUserInventories = async (userid, models, userRole = false) => {
     query = query.concat(unassignRequestInventories);
     if (query.length > 1) {
       let tempExists = [];
-      query.forEach((key) => {
-        if (tempExists.includes(key.machine_id)) {
+     for(let [key,inv] of Object.entries(query)){
+        if (tempExists.includes(inv.machine_id)) {
           delete key;
         }
-        tempExists.push(key.machine_id);
-      });
+        tempExists.push(inv.machine_id)
+    }
     }
   }
   if (
@@ -342,12 +376,12 @@ let getUserInventories = async (userid, models, userRole = false) => {
     query = query.concat(ownershipChangeRequestInventories);
     if (query.length > 1) {
       let tempExists = [];
-      query.forEach((key) => {
-        if (tempExists.includes(key.machine_id)) {
+      for(let[key,inv] of Object.entries(query)){
+        if (tempExists.includes(inv.machine_id)) {
           delete key;
         }
-        tempExists.push(key.machine_id);
-      });
+        tempExists.push(inv.machine_id);
+      }
     }
   }
   if (query.length == 0) {
@@ -1465,7 +1499,7 @@ let isOnlyOneAdminRoleChanging = async (userid, models) => {
   }
   return false;
 };
-let getInventoriesAuditStatusForYearMonth= async(month, year,req,models)=>{
+let   getInventoriesAuditStatusForYearMonth= async(month, year,req,models)=>{
   try{
     let Return;
     let data;
@@ -1501,7 +1535,7 @@ let getInventoriesAuditStatusForYearMonth= async(month, year,req,models)=>{
     left join machines_user on machines_list.id = machines_user.machine_id
     left join user_profile as up_assign on machines_user.user_Id = up_assign.user_Id
     ORDER BY audit_id DESC`,{type:QueryTypes.SELECT})
-
+    JSON.parse(JSON.stringify(q))
     let inventoriesCount =q.length;
     let auditDoneCount                   = 0;
     let auditPendingCount                = 0;
@@ -1550,6 +1584,7 @@ let getInventoriesAuditStatusForYearMonth= async(month, year,req,models)=>{
     }
     message="Inventory Audit List";
     data={};
+    data.audit_list_employee_wise= await inventoriesAuditEmployeeWise(q)
     data.stats={};
     data.stats.total_inventories=inventoriesCount,
     data.stats.audit_done=auditDoneCount,
@@ -1559,8 +1594,7 @@ let getInventoriesAuditStatusForYearMonth= async(month, year,req,models)=>{
     data.stats.audit_issue=count_issue_inventories,
     data.stats.audit_critical_issue=count_critical_issue_inventories
     data.audit_list=q;
-    data.audit_list_employee_wise=await inventoriesAuditEmployeeWise(q)
-  }
+  } 
   Return={
     error: error,
     message: message,
@@ -1577,7 +1611,8 @@ let getInventoriesAuditStatusForYearMonth= async(month, year,req,models)=>{
 let inventoriesAuditEmployeeWise=async(data,req,models)=>{
   let employeeWiseData={};
   for([key,inventory] of Object.entries(data)){
-    if(typeof inventory.assigned_user_id!="undefined" && inventory.assigned_user_id!=null ){
+    if(typeof inventory.assigned_user_id!="undefined" && inventory.assigned_user_id!=null )
+    {
      let  assigned_user_id = inventory.assigned_user_id;
      if(typeof employeeWiseData.assigned_user_id=="undefined"){
       employeeWiseData.assigned_user_id={};
@@ -1619,12 +1654,15 @@ let inventoriesAuditEmployeeWise=async(data,req,models)=>{
     }
   }
 }
+
 if(employeeWiseData!==null){
  let  sort_audit_critical_issue=employeeWiseData.audit_critical_issue;
  let sort_audit_issue = employeeWiseData.audit_issue;
 }
   return employeeWiseData;
 }
+
+
 
 let assignUserRole = async (userid, roleid, models) => {
   let error = 1;
@@ -1745,6 +1783,7 @@ let getEnabledUsersList = async (sorted_by=false, models) => {
     // }
     return newRows;
   } catch (error) {
+    console.log(error)
     throw new Error(error);
   }
 };
@@ -2168,5 +2207,6 @@ module.exports = {
   assignUserMachine,
   getMachineTypeList,
   addPagesActions,
-  removePageActions
+  removePageActions,
+  DBupdateBySingleWhere
 }
