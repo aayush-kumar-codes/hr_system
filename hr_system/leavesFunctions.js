@@ -711,15 +711,15 @@ let applyLeave = async (
   let leave_dates = await _getDatesBetweenTwoDates(from_date, to_date);
 
   // Check for RH Quarterwise
-  if (leave_type.toLowerCase() == "restricted") {
-    let rh_check = await checkRHQuarterWise(userid, from_date);
+  // if (leave_type.toLowerCase() == "restricted") {
+    let rh_check = await checkRHQuarterWise(userid, from_date,db);
     if (rh_check["check"]) {
       Return.error = 1;
       Return.data = {};
       Return.data.message = rh_check["message"];
       return Return;
     }
-  }
+  // }
 
   // Check for RH Compensation
   if (leave_type.toLowerCase() == "rh compensation") {
@@ -843,24 +843,25 @@ let applyLeave = async (
   }
 };
 // let checkLeavesClashOfSameTeamMember=async()
-let checkRHQuarterWise = async () => {
+let checkRHQuarterWise = async (userid, from_date,db) => {
   let check = false;
   let Return = {};
-  let rh_config = await getConfigByType("rh_config");
-  let no_of_quaters = (await getAllQuarters()).length;
+  let rh_config = await getConfigByType("rh_config",db);
+  console.log(234)
+  let no_of_quaters =(await getAllQuarters());
+  no_of_quaters=(Object.keys(no_of_quaters).length)
   let rh_extra = rh_config["rh_extra"];
   let rh_can_be_taken_per_quarter = rh_config["rh_per_quater"];
   let rh_can_be_taken = no_of_quaters * rh_can_be_taken_per_quarter;
   let max_rh_can_be_taken_per_quarter = rh_can_be_taken_per_quarter;
-  let user = await getUserInfo(userid);
+  let user = await getUserInfo(userid,db);
+  // if( user[0]['training_completion_date'] != null && user[0]['training_completion_date'] != '0000-00-00' && user[0]['training_completion_date'] != '1970-01-01' && new Date(user[0]['training_completion_date']) < new Date() ) {
 
-  // if( $user['training_completion_date'] != null && $user['training_completion_date'] != '0000-00-00' && $user['training_completion_date'] != '1970-01-01' && strtotime($user['training_completion_date']) < time() ) {
-
-  //     $from_date_year = date('Y', strtotime($from_date));
-  //     $from_date_month = date('m', strtotime($from_date));
-  //     $current_date = date('Y-m-d');
-  //     $current_year = date('Y');
-  //     $current_month = date('m');
+      from_date_year =new Date (from_date).getFullYear();
+      from_date_month = new Date(from_date).getMonth()+1;
+      current_date = new Date();;
+      current_year = new Date().getFullYear()
+      current_month = 23
   //     $current_quarter = self::getQuarterByMonth();
   //     $confirm_year = date('Y', strtotime($user['training_completion_date']));
   //     $confirm_month = date('m', strtotime($user['training_completion_date']));
@@ -961,6 +962,97 @@ let checkRHQuarterWise = async () => {
 
   // return $return;
 };
+
+let getAllQuarters=async()=>{
+  let quarters = {};
+
+     quarters["1"]=[ 1, 2, 3 ]
+     quarters["2"] = [ 4, 5, 6 ]
+     quarters["3"] = [ 7, 8, 9 ]
+     quarters["4"] = [ 10, 11, 12]
+  return quarters;
+}
+let  getConfigByType=async( type,db)=>{
+  let row =await db.sequelize.query (`select * from config where type='${type}' `,{type:QueryTypes.SELECT});
+  if( row.length == 0 ){
+      await insertDefaultConfigByType(type,db);
+      return await getConfigByType(type,db);
+  } else {
+      return JSON.parse(row[0]['value']);
+  }
+};
+
+let insertDefaultConfigByType= async(type,db)=>{
+  let defaultConfigValue = "";
+  switch (type) {
+      case ('attendance_csv'):
+          defaultConfigValue = JSON.stringify({
+              "user_id" : {},
+              "time" :{},
+          });
+          break;
+      case 'reset_password':
+          defaultConfigValue = JSON.stringify({
+              "days" : "",
+              "status" : 0,
+              "last_updated" : new Date()
+          });
+          break;
+
+      case 'web_show_salary':
+          defaultConfigValue = "0";
+          break;
+
+      case 'login_types':
+          defaultConfigValue = JSON.stringify({
+              "normal_login" : true,
+              "google_login" : false,
+              "google_auth_client_id" : ""
+          });
+          break;
+
+      case 'alternate_saturday':
+          arr = {}
+          defaultConfigValue = JSON.stringify(arr);
+          break;
+
+      case 'page_headings':
+          arr = {};
+          // // format
+          // // $arr 
+          // //   arr .reference = "",
+          // //    arr .value= ""
+          //  // );
+          defaultConfigValue = JSON.stringify(arr);
+          break;
+
+      case 'inventory_audit_comments':
+          defaultConfigValue = JSON.stringify({
+              "all_good" : "Nothing To Report (all good)",
+              "issue" : "Issue To Report",
+              "critical_issue" : "Critical Issue To Report"
+          });
+          break;
+
+      case 'attendance_late_days':
+          defaultConfigValue = "0";
+          break;
+
+      case 'rh_config':
+          defaultConfigValue = JSON.stringify({                   
+              'rh_per_quater' : 1,
+              'rh_extra' : 1,
+              'rh_rejection_setting' : false,
+          });
+          break;
+
+      default:  
+          break;
+      }
+  if(defaultConfigValue != "" ){
+    let q =await db.sequelize.query(` INSERT INTO config( type, value ) VALUES( '${type}', '${defaultConfigValue}'`,{type:QueryTypes.INSERT});
+  }
+}
 
 let leaveDocRequest = async (leaveid, doc_request, comment, db) => {
   let leaveDetails = await getLeaveDetails(leaveid, db);
@@ -2069,8 +2161,7 @@ let getAllLeaves = async (req,db) => {
     }
   }
   newRows = newRows.filter(item => item);
-// console.log(arr);
-//  console.log(newRows)
+
   let Return = {};
   let r_data = {}
   Return['error'] = 0;
@@ -2114,6 +2205,14 @@ let  getUsersLeaves=async(userid,db)=>{
 
     return rows;
 }
+let API_getEmployeeRHStats=async(userid,year,db)=>{
+  year = year ? year :new Date().getFullYear();
+  let error = 0;
+  let stats =await getEmployeeRHStats(userid, year,db);
+  Return['error'] = error;
+  Return['data'] = stats;
+  return Return;
+}
 
 module.exports = {
   _getPreviousMonth,
@@ -2131,5 +2230,5 @@ module.exports = {
   getDaysBetweenLeaves,
   getAllUsersPendingLeavesSummary,
   getUserMonthAttendace,
-  getAllLeaves,
+  getAllLeaves,API_getEmployeeRHStats
 };

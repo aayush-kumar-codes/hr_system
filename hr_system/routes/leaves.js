@@ -78,5 +78,10 @@ router.post(
   leavesControllers.get_all_leaves,
   handlers.responseForEmployee
 );
-
+router.post(
+  "/get_user_rh_stats",
+  middleware.AuthForHrAdmin,
+  leavesControllers.get_user_rh_stats,
+  handlers.responseForEmployee
+);
   module.exports = router;
