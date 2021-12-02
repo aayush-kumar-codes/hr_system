@@ -4,7 +4,6 @@ const validators = require("../validators/req-validators");
 const inventoryControllers = require("../controllers/inventory-controller");
 const handlers = require("../util/responseHandlers");
 const middleware = require("../middleware/Auth");
-const cors = require("cors");
 
 router.post(
   "/add_office_machine",

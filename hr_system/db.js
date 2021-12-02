@@ -6,7 +6,7 @@ const db = {};
 
 // const sequelize = new Sequelize(databaseUri.psql_url,{logging: false});
 
-const sequelize = new Sequelize('excellen_hr_test', 'sammy', 'password', {
+const sequelize = new Sequelize('excellen_hr_test', 'aditya', '<Mosadk21>', {
   host: 'localhost',
   dialect: 'mysql',
 },{logging: false});

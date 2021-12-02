@@ -1,4 +1,3 @@
-const { Op, QueryTypes } = require("sequelize");
 const Sequelize = require("sequelize");
 function LifeCycle(database, type) {
   const lifeCycle = database.define(
@@ -17,7 +16,6 @@ function LifeCycle(database, type) {
       timestamps: false,
     }
   );
-
   return lifeCycle;
 }
 

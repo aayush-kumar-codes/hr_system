@@ -19,9 +19,11 @@ const Document = require("./documentModel");
 const BankDetails = require("./bankDetailsModel");
 const UserDocumentDetails = require("./userDocumentDetail");
 const ElcStage = require("./elc_stage");
-let ElcStagesSteps = require("./elc_stages_stepModel");
+const ElcStagesSteps = require("./elc_stages_stepModel");
+const LoginToken = require("./loginToken");
 
 module.exports = {
+  LoginToken,
   User,
   MachineList,
   MachineUser,

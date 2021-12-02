@@ -593,6 +593,7 @@ let getUserPolicyDocument = async (userid, models) => {
   let arr = [];
   if (ar0 == null) {
     for (let v2 in ar1) {
+      console.log(v2)
       ar1[v2].read = 0;
       let mandatory = 1;
       if (typeof ar1[v2].mandatory !== "undefined") {
@@ -965,7 +966,7 @@ let assignUserMachine = async (machine_id, userid, loggeduserid,req,models) => {
     return Return;
 };
 
-let getMachineStatusList=async(req,models)=>{
+let getMachineStatusList=async(models)=>{
   let r_error=1;
   let r_message="";
   let r_data=[];
@@ -2097,8 +2098,137 @@ let getSystemDefaultRoles = async() => {
   return array;
 }
 
+let insertDefaultConfigByType = async(type) => {
+  try {
+    let d = new Date();
+    let date = `${d.getDate()}-${d.getMonth() +1}-${d.getFullYear()}`;
+    let defaultConfigValue;
+    let arr;
+    switch(type){
+      case "attendance_csv":
+        defaultConfigValue = JSON.stringify({
+          "user_id": [],
+          "time": [],
+        })
+        break;
+      case 'reset_password':
+        defaultConfigValue =  JSON.stringify({
+            "days": "",
+            "status": 0,
+            "last_updated": date
+        });
+        break;
+      case 'web_show_salary':
+        defaultConfigValue = "0";
+        break;
+      case 'login_types':
+        defaultConfigValue =  JSON.stringify({
+            "normal_login": true,
+            "google_login": false,
+            "google_auth_client_id": ""
+        });
+        break;
+      case 'alternate_saturday':
+        arr = [];
+        defaultConfigValue = JSON.stringify(arr);
+        break;
+      case 'page_headings':
+        arr = [];
+        defaultConfigValue = JSON.stringify(arr);
+        break;
+      case 'inventory_audit_comments':
+        defaultConfigValue = JSON.stringify({
+          "all_good": "Nothing To Report (all good)",
+          "issue": "Issue To Report",
+          "critical_issue": "Critical Issue To Report"
+        });
+        break;
+      case 'attendance_late_days':
+        defaultConfigValue = "0";
+        break;
+      case 'rh_config':
+        defaultConfigValue = JSON.stringify({                    
+          'rh_per_quater': 1,
+          'rh_extra': 1,
+          'rh_rejection_setting': false
+        });
+        break;
+      default:
+      break;
+    }
+  if( defaultConfigValue !== "" ){
+    let q =await models.sequelize.query(`INSERT INTO config( type, value ) VALUES( '${type}', '${defaultConfigValue}' )`,{type: QueryTypes.INSERT});
+  }
+  } catch (error) {
+    throw new Error(error);
+  }
+}
+
+let getConfigByType = async(type, models) =>{
+  try {
+
+    let q =await models.sequelize.query(`select * from config where type='${type}'`,{type:QueryTypes.SELECT});
+    let result;
+    if(q.length == 0){
+      await insertDefaultConfigByType(type);
+      result = await getConfigByType(type, models);
+      return result;
+    }else{
+      result = JSON.parse(q[0].value);
+      return result;
+    }
+  } catch (error) {
+    console.log(error);
+    throw new Error(error);
+  }
+}
+
+let Inventory_insertDefaultStatuses = async(models) =>{
+  try {
+    let checkExists = await getMachineStatusList(models);
+    if(typeof checkExists.data !== "undefined" && checkExists.data.length > 0){
+    }else{
+      let defaultInventoryStatuses = [
+        {
+          "status": "Working",
+          "color" : "#008b02",
+        },
+        {
+            "status": "Not working",
+            "color" : "#db3e00",
+        },
+        {
+            "status": "Old",
+            "color" : "#fef3bd",
+        },
+        {
+            "status": "Repair",
+            "color" : "#006b76",
+        },
+        {
+            "status": "Need To Sell",
+            "color" : "#1273de",
+        },
+        {
+            "status": "Sold",
+            "color" : "#fccb00",
+        },
+      ]
+      for(let [key, status] of Object.entries(defaultInventoryStatuses)){
+        let s = status.status;
+        let c = status.color;
+        let q = models.sequelize.query(`INSERT into machine_status (status, color, is_default) VALUES ('${s}', '${c}', 1 )`,{type: QueryTypes.INSERT});
+      }
+    }
+  } catch (error) {
+    throw new Error(error);
+  }
+}
+
 module.exports = {
+  Inventory_insertDefaultStatuses,
   // registerRole,
+  getConfigByType,
   API_getTempUploadedInventoryFiles,
   getEnabledUsersListWithoutPass,
   validateSecretKey,

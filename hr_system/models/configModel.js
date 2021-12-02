@@ -16,31 +16,7 @@ function config(database, type) {
       freezeTableName: true,
     }
   );
-
-  // config.addTeam = async (reqBody) => {
-  //   try {
-  //     let teamToAdd = await config.create({
-  //       type: reqBody.type,
-  //       value: reqBody.value,
-  //     });
-  //     return teamToAdd;
-  //   } catch (error) {
-  //     throw new Error(error);
-  //   }
-  // };
-
-  // config.findTeam = async () => {
-  //   try {
-  //     let foundTeam = await config.findAll({where: {type: "team_list"}});
-  //     if (foundTeam) {
-  //       return foundTeam;
-  //     } else {
-  //       return "team not found";
-  //     }
-  //   } catch (error) {
-  //     throw new Error(error);
-  //   }
-  // };
+  
   return config;
 }
 
