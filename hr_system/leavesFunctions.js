@@ -968,7 +968,6 @@ let checkRHQuarterWise = async (userid, from_date,db) => {
   // return $return;
 };
 let  getEmployeeRHStats=async(userid,year,db)=>{
-  console.log(12112)
       let Return = {};
       let rh_can_be_taken = 0;
       let rh_config_default =await getConfigByType('rh_config',db);                
@@ -992,7 +991,7 @@ let  getEmployeeRHStats=async(userid,year,db)=>{
        let confirm_quarter =await getQuarterByMonth(confirm_month,db);
       //  console.log(confirm_quarter,12121)
        let current_quarter =await getQuarterByMonth();
-       let slice_quarter = 0;
+       let slice_quarter = 1;
       
        if(confirm_year == year ){
  
@@ -1015,15 +1014,53 @@ let  getEmployeeRHStats=async(userid,year,db)=>{
   } else {
       rh_can_be_taken = rh_per_year;
   }
-  quarters_available = quarters.slice(slice_quarter);
-  let rh_data_quaterly =await getPreviousTakenRHQuaterly(userid, year);                        
-  let rh_leaves =await getUserRHLeaves( userid, year );
-  let rh_compensation_leaves =await getUserApprovedRHCompensationLeaves( userid, year );
-  let rh_approved_leaves =await getUserApprovedRHLeaves( userid, year );
-  let rh_list =await getMyRHLeaves(year);
+  // console.log(quarters.slice(4),121212)
+  // quarters_available = quarters.slice(slice_quarter);
+  let rh_data_quaterly =await getPreviousTakenRHQuaterly(userid, year,db);                        
+  let rh_leaves =await getUserRHLeaves( userid, year ,db);
+  let rh_compensation_leaves =await getUserApprovedRHCompensationLeaves( userid, year,db);
+  let rh_approved_leaves =await getUserApprovedRHLeaves( userid, year,db);
+  let rh_list =await getMyRHLeaves(year,db);
+          // RH Approved Name
+          rh_approved_dates = (rh_approved_leaves.map(function(iter){ return iter['from_date']; }));
+          console.log(rh_approved_dates,21112)
+          // for( let date of rh_approved_dates){
+          // names = array_values(array_filter(array_map(function(iter) use (date) {
+          // return date == iter['raw_date'] ? iter['name'] : false;
+          // }, rh_list)));
+          // rh_approved_names =rh_approved_names.concat(names);
+          // }
+          // rh_approved = count(rh_approved_names);
+}
+let getPreviousTakenRHQuaterly=async(userid, year,db)=>
+{
+    let rh_data_quaterly = rh_dates = [];        
+    let rh_approved=await getUserApprovedRHLeaves(userid,year,db);
+    let rh_compensation_approved =await getUserApprovedRHCompensationLeaves( userid, year ,db);
+    let total_rh =(rh_approved.concat(rh_compensation_approved));
+    for( let rh of total_rh ){
+        let all_dates_btw_dates = await getDaysBetweenLeaves(rh['from_date'], $rh['to_date']);            
+        for(let day of  all_dates_btw_dates['data']['days']){
+            if( day['type'] == 'working' ){
+                rh_dates= day['full_date'];
+            }
+        }
+    }        
+    for(let date of rh_dates){
+        month = new Date(date);
+        let quarter =await getQuarterByMonth(month,db);            
+        if( array_key_exists(quarter['quarter'], rh_data_quaterly) ){
+            rh_data_quaterly[quarter['quarter']] += 1;
+        } else {
+            rh_data_quaterly[quarter['quarter']] = 1;
+        }
+    }
+    
+    return rh_data_quaterly;
 }
 
-let getUserApprovedRHLeaves=async( userid, year,db)=>{        
+
+let getUserApprovedRHLeaves=async( userid, year,db)=>{   
   let q = await db.sequelize.query(`SELECT * FROM leaves WHERE leave_type = 'Restricted' AND user_Id = '${userid}' AND status = 'Approved' AND from_date LIKE '${year}%'`,{type:QueryTypes.SELECT});
   return q;
 };
@@ -1047,7 +1084,7 @@ let getQuarterByMonth=async( month = false,db)=>{
   return current_quarter;
 }
 let getAllQuarters=async()=>{
-  let quarters = {};
+  let quarters = [];
 
      quarters["1"]=[ 1, 2, 3 ]
      quarters["2"] = [ 4, 5, 6 ]
@@ -2289,6 +2326,7 @@ let  getUsersLeaves=async(userid,db)=>{
     return rows;
 }
 let API_getEmployeeRHStats=async(userid,year,db)=>{
+  let Return={};
   year = year ? year :new Date().getFullYear();
   let error = 0;
   let stats =await getEmployeeRHStats(userid, year,db);
