@@ -4,6 +4,7 @@ const {
   Inventory_insertDefaultStatuses,
   _getDateTimeData,
 } = require("./allFunctions");
+const { getEnabledUsersList } = require("./employeeFunction");
 
 const { getDaysOfMonth } = require("./leavesFunctions");
 
@@ -615,9 +616,42 @@ let API_updateConfig = async (type, data, models) => {
     };
     return ret;
   } catch (error) {
-    //   console.log(error);
     throw new Error(error);
   }
 };
 
-module.exports = { API_getGenericConfiguration, API_updateConfig };
+let api_getAverageWorkingHours = async (startDate, endDate, models) => {
+  try {
+    if (startDate == "" || endDate == "") {
+      let d = await _getDateTimeData();
+      endDate =
+        d.current_year_number +
+        "-" +
+        d.current_month_number +
+        "-" +
+        d.current_date_number;
+      let newd = new Date(endDate);
+      let sevenDaysBefore = newd.setDate(newd.getDate() - 6);
+      let dateNow = new Date(sevenDaysBefore);
+      startDate = `${dateNow.getFullYear()}-${
+        dateNow.getMonth() + 1
+      }-${dateNow.getDate()}`;
+
+    }
+    let Date = [];
+    let dates = await _getDatesBetweenTwoDates(startDate, endDate, models);
+    console.log(dates);
+    let enabledUsersList = await getEnabledUsersList(sortedby=false, models);
+    console.log(enabledUsersList);
+    let hideUsersArray = ['302','300','415','420'];
+  } catch (error) {
+    console.log(error);
+    throw new Error(error);
+  }
+};
+
+module.exports = {
+  API_getGenericConfiguration,
+  API_updateConfig,
+  api_getAverageWorkingHours,
+};
