@@ -85,7 +85,12 @@ exports.addUserRole = async (req, res, next) => {
     }
     let name = req.body.name;
     let description = req.body.description;
-    let role_create = await db.Role.AddNewRole(name, description, base_role_id, db);
+    let role_create = await db.Role.AddNewRole(
+      name,
+      description,
+      base_role_id,
+      db
+    );
     res.status_code = 201;
     res.error = role_create.error;
     res.message = role_create.message;
@@ -104,7 +109,7 @@ exports.getUserRole = async (req, res, next) => {
     res.data = machine_count;
     return next();
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status_code = 500;
     res.message = error.message;
     return next();
@@ -142,7 +147,7 @@ exports.getEnableUser = async (req, res, next) => {
     } else {
       let token = req.headers.authorization.split(" ");
       let loggedUserInfo = jwt.verify(token[1], secret.jwtSecret);
-      role = loggedUserInfo.data.role;
+      role = loggedUserInfo.role;
     }
     let sorted_by =
       typeof req.body.sorted_by != "undefined" ? req.body.sorted_by : false;
@@ -175,10 +180,10 @@ exports.updateRoleController = async (req, res, next) => {
 exports.listAllRolesController = async (req, res, next) => {
   try {
     let listofRoles = await db.Role.getListOfRoles();
-    console.log(listofRoles);
+    // console.log(listofRoles);
     res.status_code = 200;
     res.data = listofRoles;
-    res.message = listofRoles.error
+    res.message = listofRoles.error;
     return next();
   } catch (error) {
     res.status_code = 500;

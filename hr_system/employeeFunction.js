@@ -15,7 +15,6 @@ const {
   const { MachineStatusDeleteValidator } = require("./validators/req-validators");
 const { getUserInfo,DBupdateBySingleWhere,copyExistingRoleRightsToNewRole,getAllRole,assignUserRole } = require("./allFunctions");
 const elc_stages_step = require("./models/elc_stages_stepModel");
-const { object } = require("webidl-conversions");
 
   
   let getUserDetailInfo = async (userid,req,models) => {
@@ -273,10 +272,13 @@ let getUserPolicyDocument=async(userid,req,models)=>{
     Return.message="there is no config file having type:policy Document"
     return Return;
   }
-  let ar1=JSON.parse(q2[0].value)
+  // let ar1=JSON.parse(q2[0].value)
+  let ar1=q2[0]
   let arr=[];
+  console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++")
   if (ar0==null){
     for(let v2 of Object.entries(ar1)){
+      console.log(v2)
       v2.read=0;
       let mandatory = 1;
       if(typeof (v2.mandatory)!=="undefined"){
@@ -288,16 +290,20 @@ let getUserPolicyDocument=async(userid,req,models)=>{
   }
 }  
  if (ar0!==null){
+  //  console.log(ar1,Object.entries(ar1))
   for(let v3 of Object.entries(ar1)){
     if(ar0.includes(v3.name)){
        v3.read=1;
        arr.push(v3);
+      //  console.log(arr)
     }else{
+      console.log(v3)
        v3.read=0;
        arr.push(v3)
     }
 }
 }
+console.log(arr)
 r_error=0;
 r_data=arr;
 Return.error=r_error;

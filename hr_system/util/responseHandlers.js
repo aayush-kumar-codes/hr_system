@@ -10,39 +10,39 @@ let responseHandle = async (req, res) => {
 };
 
 let responseForData = async (req, res) => {
-	res.status(res.status_code).json({
-	  error: res.error,
-		message: res.message,
-		data:{ 
-      inventory_id:res.inventory_id
-	  },
-	});
-  };
-
-  let responseForInventory = async (req, res) => {
-    res.status(res.status_code).json({
-      error: res.error,
-      message: res.message,
-       data: res.data,
-    });
-  };
-  let responseForEmployee = async (req, res) => {
-    res.status(res.status_code).json({
-      error: res.error,
-      message: res.message,
-      Data: {
-       data: res.data,
-      },
-    });
-  };
-let responseForAddMachine=async(req,res)=>{
   res.status(res.status_code).json({
-    error:res.error,
-    Data:{
-    message:res.message,
-    }
-  })
-}
+    error: res.error,
+    message: res.message,
+    data: {
+      inventory_id: res.inventory_id,
+    },
+  });
+};
+
+let responseForInventory = async (req, res) => {
+  res.status(res.status_code).json({
+    error: res.error,
+    message: res.message,
+    data: res.data,
+  });
+};
+let responseForEmployee = async (req, res) => {
+  res.status(res.status_code).json({
+    error: res.error,
+    message: res.message,
+    Data: {
+      data: res.data,
+    },
+  });
+};
+let responseForAddMachine = async (req, res) => {
+  res.status(res.status_code).json({
+    error: res.error,
+    Data: {
+      message: res.message,
+    },
+  });
+};
 let newResponse = async (req, res) => {
   res.status(res.status_code).json({
     error: res.error,
@@ -50,9 +50,9 @@ let newResponse = async (req, res) => {
   });
 };
 
-let resForList = async(req,res) =>{
+let resForList = async (req, res) => {
   res.status(res.status_code).json(res.data);
-}
+};
 
 let addNewEmployeeResponseHandle = async (req, res) => {
   res.status(res.status_code).json({
@@ -61,15 +61,15 @@ let addNewEmployeeResponseHandle = async (req, res) => {
     data: res.data,
   });
 };
-let responseForLeaveApis=async(req,res)=>{
+let responseForLeaveApis = async (req, res) => {
   res.status(res.status_code).json({
     error: res.error,
     message: res.message,
     data: res.data,
   });
-}
-module.exports = { 
-  responseHandle ,
+};
+module.exports = {
+  responseHandle,
   responseForData,
   responseForInventory,
   responseForEmployee,
@@ -77,5 +77,5 @@ module.exports = {
   responseForAddMachine,
   newResponse,
   resForList,
-  responseForLeaveApis
+  responseForLeaveApis,
 };

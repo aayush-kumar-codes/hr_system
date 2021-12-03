@@ -5,7 +5,7 @@ const db = require("./db");
 const { sequelize } = require("./db");
 const user = require("./models/userModel");
 const { Query } = require("pg");
-const { object } = require("webidl-conversions");
+// const { object } = require("webidl-conversions");
 // const leapYear = require('leap-year');
 const e = require("express");
 const { getUserInfo } = require("./allFunctions");
@@ -2299,6 +2299,7 @@ let API_getEmployeeRHStats=async(userid,year,db)=>{
 }
 
 module.exports = {
+  getDaysOfMonth,
   _getPreviousMonth,
   leaveDocRequest,
   getEmployeeLastPresentDay,

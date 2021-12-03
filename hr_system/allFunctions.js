@@ -56,6 +56,8 @@ let getActionById = async (id) => {
 };
 
 let getRoleActions = async (roleid, models) => {
+  // let rows = await models.sequelize.query(`Select * from roles_actions where roles_actions.role_id='${roleid}'`, 
+  // {type:QueryTypes.SELECT})
   let rows = await models.RolesAction.findAll({
     where: { role_id: roleid },
   });
@@ -273,8 +275,6 @@ let getUserRole = async (userId, models) => {
     );
     data = roleCompleteDetails;
   }
-  // console.log("+++++");
-  // console.log(data);
   return data;
 };
 
@@ -966,7 +966,7 @@ let assignUserMachine = async (machine_id, userid, loggeduserid,req,models) => {
     return Return;
 };
 
-let getMachineStatusList=async(req,models)=>{
+let getMachineStatusList=async(models)=>{
   let r_error=1;
   let r_message="";
   let r_data=[];
@@ -1046,21 +1046,18 @@ let getMachineCount=async(req,models)=>{
 let addInventoryComment = async (machine_id, loggeduserid,models,req,comment,oldUserId) => {
   let inventoryComment;
     if(comment){
-      inventoryComment = await models.InventoryCommentsModel.create({
-      inventory_id: machine_id,
-      updated_by_user_id: loggeduserid,
-      comment_type: req.body.comment_type,
-      comment:comment,
-       });
-          }
+      inventoryComment = await models.sequelize.query(`insert into inventory_comments 
+      (inventory_id, updated_by_user_id, comment_type, comment) values 
+      ('${machine_id}', '${loggeduserid}','${req.body.comment_type}', '${comment}')`, {type: QueryTypes.INSERT});
+    }
     if(!comment && !oldUserId){
-     inventoryComment = await models.InventoryCommentsModel.create({
-     inventory_id: machine_id,
-     updated_by_user_id: loggeduserid,
-     comment_type: req.body.comment_type,
-     comment: req.body.unassign_comment,
-        });
-        }
+    inventoryComment = await models.InventoryCommentsModel.create({
+    inventory_id: machine_id,
+    updated_by_user_id: loggeduserid,
+    comment_type: req.body.comment_type,
+    comment: req.body.unassign_comment,
+    });
+   }
   if (oldUserId != null&&typeof req.body.assign_unassign_user_id !=="undefined") {
     inventoryComment = await models.InventoryCommentsModel.create({
       inventory_id: machine_id,
@@ -1070,8 +1067,8 @@ let addInventoryComment = async (machine_id, loggeduserid,models,req,comment,old
       assign_unassign_user_id: req.body.assign_unassign_user_id,
     });
   }
-  // JSON.parse(JSON.stringify(inventoryComment))
-  return inventoryComment.dataValues.id;
+
+  return inventoryComment.id;
 };
 
 let addMachineType=async(req,models)=>{
@@ -1189,7 +1186,8 @@ const getAllMachinesDetail =async(req,models,sort=null,status_sort=null)=>{
     Return.data=q;
     return Return;
   }catch(error){
-console.log(error)
+console.log(error);
+throw new Error(error);
   }
 }
 const addInventoryStatusType = async(req,models)=>{
@@ -1469,7 +1467,7 @@ let getAllRole = async (models) => {
 let manageUserTypeOnRoleChange = async (userid, models) => {
   let roleDetails = await getUserRole(userid, models);
   let currentRoleName = roleDetails.name;
-  let q = await models.User.findOne({ where: { id: userid } });
+  let q = await models.sequelize.query(`select * from users where users.id = '${userid}'`, {plain: true,type:QueryTypes.SELECT})
   let userType = q.type;
   if (
     currentRoleName.toLowerCase() == "admin" &&
@@ -2098,59 +2096,246 @@ let getSystemDefaultRoles = async() => {
   return array;
 }
 
-module.exports = {
-  // registerRole,
-  API_getTempUploadedInventoryFiles,
-  getEnabledUsersListWithoutPass,
-  validateSecretKey,
-  assignUserRole,
-  getAllRole,
-  getRolePagesForSuperAdmin,
-  getGenericPagesForAllRoles,
-  getRolePages,
-  getRolesForPage,
-  getRoleActions,
-  //   getRoleNotifications,
-  randomString,
-  //   _getEmployeeProfilePhoto
-  getUserInventories,
-  getUserInfo,
-  getUserInfoByWorkEmail,
-  getUserRole,
-  getRolePagesForApiToken,
-  checkifPageEnabled,
-  getInventoryHistory,
-  getInventoryFullDetails,
-  isInventoryAuditPending,
-  isUnassignInventoriesRequestPending,
-  is_policy_documents_read_by_user,
-  isOwnershipChangeInventoriesRequestPending,
-  generateUserToken,
-  refreshToken,
-  isValidTokenAgainstTime,
-  api_addInventoryAudit,
-  addInventoryAudit,
-  addInventoryComment ,
-  getMachineDetail,
-  AddMachineStatus,
-  addMachineType,
-  addInventoryStatusType,
-  getMachineStatusList,
-  getMachineCount,
-  getAllMachinesDetail,
-  UpdateOfficeMachine,
-  copyExistingRoleRightsToNewRole,
-  assignDefaultValuesToRole,
-  assignAdminRoleToUserTypeAdminIfNoRoleAssigned,
-  getSystemDefaultRoles,
-  api_getMyInventories,
-  api_getUnapprovedInventories,
-  api_getUnassignedInventories,
-  _getDateTimeData,
-  getInventoriesAuditStatusForYearMonth,
-  API_deleteTempUploadedInventoryFile,
-  removeMachineDetails,inventoryUnassignRequest,
-  inventoryOwnershipChangeRequest,
-  assignUserMachine,
-  getMachineTypeList,DBupdateBySingleWhere
+
+let addRoleAction = async(roleid, actionid, models) => {
+  let q = await models.sequelize.query(`SELECT * FROM roles_actions WHERE role_id = ${roleid} AND action_id = ${actionid}`, {type:QueryTypes.SELECT});
+  if(q.length == 0){
+    let newQ = await models.sequelize.query(`insert into roles_actions (role_id, action_id) values (${roleid}, ${actionid})`, {type: QueryTypes.INSERT});
+  }
 }
+
+let addPagesActions = async(roleid,pageid, models) => {
+  try {
+  let allPages = await getAllPages();
+  let selectedPage = false;
+  for(let page of allPages){
+    if(page.id == pageid){
+      selectedPage = page;
+      break;
+    }
+  }
+  if(selectedPage != false && typeof selectedPage[actions_list] !== "undefined"){
+    actionsToAdd = selectedPage[actions_list];
+      for(let ac of actionsToAdd){
+        await addRoleAction(roleid, ac[id], models)
+      }
+    } 
+  }catch(error){
+    throw new Error(error);
+  }
+}
+  let insertDefaultConfigByType = async(type) => {
+    try {
+      let d = new Date();
+      let date = `${d.getDate()}-${d.getMonth() +1}-${d.getFullYear()}`;
+      let defaultConfigValue;
+      let arr;
+      switch(type){
+        case "attendance_csv":
+          defaultConfigValue = JSON.stringify({
+            "user_id": [],
+            "time": [],
+          })
+          break;
+        case 'reset_password':
+          defaultConfigValue =  JSON.stringify({
+              "days": "",
+              "status": 0,
+              "last_updated": date
+          });
+          break;
+        case 'web_show_salary':
+          defaultConfigValue = "0";
+          break;
+        case 'login_types':
+          defaultConfigValue =  JSON.stringify({
+              "normal_login": true,
+              "google_login": false,
+              "google_auth_client_id": ""
+          });
+          break;
+        case 'alternate_saturday':
+          arr = [];
+          defaultConfigValue = JSON.stringify(arr);
+          break;
+        case 'page_headings':
+          arr = [];
+          defaultConfigValue = JSON.stringify(arr);
+          break;
+        case 'inventory_audit_comments':
+          defaultConfigValue = JSON.stringify({
+            "all_good": "Nothing To Report (all good)",
+            "issue": "Issue To Report",
+            "critical_issue": "Critical Issue To Report"
+          });
+          break;
+        case 'attendance_late_days':
+          defaultConfigValue = "0";
+          break;
+        case 'rh_config':
+          defaultConfigValue = JSON.stringify({                    
+            'rh_per_quater': 1,
+            'rh_extra': 1,
+            'rh_rejection_setting': false
+          });
+          break;
+        default:
+        break;
+      }
+    if( defaultConfigValue !== "" ){
+      let q =await models.sequelize.query(`INSERT INTO config( type, value ) VALUES( '${type}', '${defaultConfigValue}' )`,{type: QueryTypes.INSERT});
+    }
+    } catch (error) {
+      throw new Error(error);
+    }
+  }
+
+  let removeRoleAction = async(roleid, actionid, models) =>{
+    let q = models.sequelize.query(`DELETE FROM roles_actions 
+    WHERE role_id = ${roleid} AND action_id = ${actionid}`,
+    {type:QueryTypes.DELETE});
+  }
+
+  let removePageActions = async(roleid, pageid) => {
+    try {
+      let allPages = await getAllPages();
+      let selectedPage = false;
+      for(let page of allPages){
+      if(page.id == pageid){
+        selectedPage = page;
+        break;
+      }
+    }
+    if(selectedPage != false && typeof selectedPage[actions_list] !== "undefined"){
+      actionsToRemove = selectedPage[actions_list];
+        for(let ac of actionsToRemove){
+          await removeRoleAction(roleid, ac[id], models)
+        }
+      }  
+    } catch (error) {
+      console.log(error);
+      throw new Error(error);
+    }
+  }
+
+  let getConfigByType = async(type, models) =>{
+    try {
+      let q =await models.sequelize.query(`select * from config where type='${type}'`,{type:QueryTypes.SELECT});
+      let result;
+      if(q.length == 0){
+        await insertDefaultConfigByType(type);
+        result = await getConfigByType(type, models);
+        return result;
+      }else{
+        result = JSON.parse(q[0].value);
+        return result;
+      }
+    } catch (error) {
+      console.log(error);
+      throw new Error(error);
+    }
+  }
+
+  let Inventory_insertDefaultStatuses = async(models) =>{
+    try {
+      let checkExists = await getMachineStatusList(models);
+      if(typeof checkExists.data !== "undefined" && checkExists.data.length > 0){
+      }else{
+        let defaultInventoryStatuses = [
+          {
+            "status": "Working",
+            "color" : "#008b02",
+          },
+          {
+              "status": "Not working",
+              "color" : "#db3e00",
+          },
+          {
+              "status": "Old",
+              "color" : "#fef3bd",
+          },
+          {
+              "status": "Repair",
+              "color" : "#006b76",
+          },
+          {
+              "status": "Need To Sell",
+              "color" : "#1273de",
+          },
+          {
+              "status": "Sold",
+              "color" : "#fccb00",
+          },
+        ]
+        for(let [key, status] of Object.entries(defaultInventoryStatuses)){
+          let s = status.status;
+          let c = status.color;
+          let q = models.sequelize.query(`INSERT into machine_status (status, color, is_default) VALUES ('${s}', '${c}', 1 )`,{type: QueryTypes.INSERT});
+        }
+      }
+    } catch (error) {
+      throw new Error(error);
+    }
+  }
+
+  module.exports = {
+    Inventory_insertDefaultStatuses,
+    // registerRole,
+    getConfigByType,
+    API_getTempUploadedInventoryFiles,
+    getEnabledUsersListWithoutPass,
+    validateSecretKey,
+    assignUserRole,
+    getAllRole,
+    getRolePagesForSuperAdmin,
+    getGenericPagesForAllRoles,
+    getRolePages,
+    getRolesForPage,
+    getRoleActions,
+    //   getRoleNotifications,
+    randomString,
+    //   _getEmployeeProfilePhoto
+    getUserInventories,
+    getUserInfo,
+    getUserInfoByWorkEmail,
+    getUserRole,
+    getRolePagesForApiToken,
+    checkifPageEnabled,
+    getInventoryHistory,
+    getInventoryFullDetails,
+    isInventoryAuditPending,
+    isUnassignInventoriesRequestPending,
+    is_policy_documents_read_by_user,
+    isOwnershipChangeInventoriesRequestPending,
+    generateUserToken,
+    refreshToken,
+    isValidTokenAgainstTime,
+    api_addInventoryAudit,
+    addInventoryAudit,
+    addInventoryComment ,
+    getMachineDetail,
+    AddMachineStatus,
+    addMachineType,
+    addInventoryStatusType,
+    getMachineStatusList,
+    getMachineCount,
+    getAllMachinesDetail,
+    UpdateOfficeMachine,
+    copyExistingRoleRightsToNewRole,
+    assignDefaultValuesToRole,
+    assignAdminRoleToUserTypeAdminIfNoRoleAssigned,
+    getSystemDefaultRoles,
+    api_getMyInventories,
+    api_getUnapprovedInventories,
+    api_getUnassignedInventories,
+    _getDateTimeData,
+    getInventoriesAuditStatusForYearMonth,
+    API_deleteTempUploadedInventoryFile,
+    removeMachineDetails,inventoryUnassignRequest,
+    inventoryOwnershipChangeRequest,
+    assignUserMachine,
+    getMachineTypeList,
+    addPagesActions,
+    removePageActions,
+    DBupdateBySingleWhere
+  }

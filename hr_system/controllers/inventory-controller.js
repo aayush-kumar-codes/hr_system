@@ -250,7 +250,7 @@ exports.addMachineStatusController = async (req, res, next) => {
 
 exports.getMachineStatusController = async (req, res, next) => {
   try {
-    let machine_list = await getMachineStatusList(req, db);
+    let machine_list = await getMachineStatusList(db);
     // console.log(machine_list.data)
     res.status_code = 200;
     res.error = machine_list.error;
@@ -433,7 +433,7 @@ exports.inventoryUnassignRequestController = async (req, res, next) => {
 exports.getTempFilesController = async (req, res, next) => {
   try {
     let tempFiles = await API_getTempUploadedInventoryFiles(req, db);
-    console.log(tempFiles,"++++++++++++++++++++++++++++++++++++++++++++++")
+    console.log(tempFiles, "++++++++++++++++++++++++++++++++++++++++++++++");
     res.status_code = 200;
     res.message = tempFiles.message;
     res.error = tempFiles.error;

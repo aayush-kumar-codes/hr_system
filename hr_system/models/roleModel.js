@@ -3,6 +3,8 @@ const {
   assignDefaultValuesToRole,
   getEnabledUsersListWithoutPass,
   getSystemDefaultRoles,
+  addPagesActions,
+  removePageActions
 } = require("../allFunctions");
 const { getAllPages, getAllActions, getAllNotifications } = require("../roles");
 const {
@@ -90,20 +92,20 @@ function roles(database, type) {
       if (array.length > 0) {
         await assignAdminRoleToUserTypeAdminIfNoRoleAssigned(array, models);
         for (let val of array) {
-          let role_page = await getRolePages(val.id, models);   
+          let role_page = await getRolePages(val.id, models);
           let role_action = await getRoleActions(val.id, models);
           // let role_notify = await getRoleNotifications(array[key].id);
           for (let v1 of allpages) {
             let p = 0;
-            if(!role_page)
-            {}else{
-            for (let u1 of role_page) {
-              if (u1.page_id == v1.id) {
-                p = 1;
+            if (!role_page) {
+            } else {
+              for (let u1 of role_page) {
+                if (u1.page_id == v1.id) {
+                  p = 1;
+                }
               }
+              v1["is_assigned"] = p;
             }
-            v1["is_assigned"] = p;
-          }
             let updatedActionsList = [];
             if (typeof v1.actions_list != "undefined") {
               updatedActionsList = v1.actions_list;
@@ -163,27 +165,66 @@ function roles(database, type) {
 
   roles.updateRole = async (reqBody, models) => {
     try {
-      let updated_Role = await roles.findOne({
-        where: { id: reqBody.role_id },
-      });
-      if (updated_Role) {
-        let roleAction = await models.RolesAction.create({
-          role_id: reqBody.role_id,
-          action_id: reqBody.action_id,
-        });
-        let rolePage = await models.RolesPage.create({
-          role_id: reqBody.role_id,
-          page_id: reqBody.page_id,
-        });
-        let roleNotification = await models.RolesNotification.create({
-          role_id: reqBody.role_id,
-          notification_id: reqBody.notification_id,
-        });
-        return "updated";
-      } else {
-        return "not updated";
+      let error = 1;
+      let message;
+      let table;
+      let search;
+      let role = reqBody.role_id;
+      let q;
+      if (typeof reqBody.page_id !== "undefined" && reqBody.page_id !== "") {
+        table = "roles_pages";
+        search = "page_id";
+        pid = reqBody.page_id;
       }
+      if (
+        typeof reqBody.action_id !== "undefined" &&
+        reqBody.action_id !== ""
+      ) {
+        table = "roles_actions";
+        search = "action_id";
+        pid = reqBody.action_id;
+      }
+      // if (typeof reqBody.notification_id !== "undefined" && reqBody.notification_id !== "") {
+      //   table = "roles_notifications";
+      //   search = "notification_id";
+      //   pid = reqBody[notification_id];
+      // }
+      if (table !== null) {
+        q = models.sequelize.query(
+          `SELECT * FROM ${table} WHERE role_id = ${role} AND ${search} = ${pid}`,
+          { type: QueryTypes.SELECT }
+        );
+        if (q.length == 0) {
+          let newQuery = models.sequelize.query(
+            `insert into ${table} (role_id, ${search}) values (${role}, ${pid})`,
+            { type: QueryTypes.INSERT }
+          );
+          if (table == "roles_pages") {
+            await addPagesActions(role, pid, models);
+          }
+          error = 0;
+          message = "Role updated!";
+        } else {
+          q = models.sequelize.query(
+            `DELETE FROM ${table} WHERE role_id = ${role} AND ${search} = ${pid}`,
+            { type: QueryTypes.DELETE }
+          );
+          if (table == "roles_pages") {
+            await removePageActions(role, pid, models);
+          }
+          error = 0;
+          message = "Role updated!";
+        }
+      } else {
+        message = "Empty Data passed";
+      }
+      let result = {
+        error: error,
+        message: message,
+      };
+      return result;
     } catch (error) {
+      console.log(error);
       throw new Error(error);
     }
   };
