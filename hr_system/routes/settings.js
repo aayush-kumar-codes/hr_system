@@ -16,7 +16,15 @@ router.post(
   "/update_config",
   middleware.AuthForHrAdmin,
   settignsController.update_config,
-  handlers.responseHandle
+  handlers.responseForAddMachine
 );
+
+router.post(
+  "/get_average_working_hours",
+  middleware.AuthForHrAdmin,
+  settignsController.get_average_working_hours,
+  handlers.responseForAddMachine
+);
+
 
 module.exports = router;
