@@ -53,10 +53,10 @@ exports.get_average_working_hours = async (req, res, next) => {
   try {
     let start_date = req.body.start_date;
     let end_date = req.body.end_date;
-    console.log(req.body.start_date == null);
     let result = await api_getAverageWorkingHours(start_date,end_date, db);
     res.status_code = 200;
-    res.message = result.data.message;
+    res.message = result.message;
+    res.data=result.data;
     res.error = result.error;
     return next();
   } catch (error) {

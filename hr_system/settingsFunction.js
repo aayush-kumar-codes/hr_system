@@ -4,9 +4,10 @@ const {
   Inventory_insertDefaultStatuses,
   _getDateTimeData,
 } = require("./allFunctions");
+const db = require("./db");
 const { getEnabledUsersList } = require("./employeeFunction");
 
-const { getDaysOfMonth } = require("./leavesFunctions");
+const { getDaysOfMonth, _getDatesBetweenTwoDates, _secondsToTime } = require("./leavesFunctions");
 
 let API_getGenericConfiguration = async (showSecure = false, models) => {
   try {
@@ -633,22 +634,122 @@ let api_getAverageWorkingHours = async (startDate, endDate, models) => {
       let newd = new Date(endDate);
       let sevenDaysBefore = newd.setDate(newd.getDate() - 6);
       let dateNow = new Date(sevenDaysBefore);
-      startDate = `${dateNow.getFullYear()}-${
-        dateNow.getMonth() + 1
-      }-${dateNow.getDate()}`;
-
+      startDate = `${dateNow.getFullYear()}-${dateNow.getMonth() + 1
+        }-${dateNow.getDate()}`;
     }
-    let Date = [];
+    let DATA = {};
     let dates = await _getDatesBetweenTwoDates(startDate, endDate, models);
-    console.log(dates);
-    let enabledUsersList = await getEnabledUsersList(sortedby=false, models);
-    console.log(enabledUsersList);
-    let hideUsersArray = ['302','300','415','420'];
+    let enabledUsersList = await getEnabledUsersList(sortedby = false, models);
+    let hideUsersArray = ['302', '300', '415', '420'];
+    let NewData=await Promise.all(
+    enabledUsersList.map(async(u)=> {
+      let userid = u['user_Id'];
+      // hide details of specific users
+      if (await inArray(userid, hideUsersArray)) {
+        // continue;
+      }
+      let timings = {};
+      for (let d of dates) {
+        m = new Date(d).getMonth() + 1
+        y = new Date(d).getFullYear();
+        d = new Date(d).getDate();
+
+        if (d < 10) {
+          d = ("0" + d);
+        }
+        nd = y + "-" + m + "-" + d;
+        rows = await db.sequelize.query(`select * from attendance where user_id=${userid} AND timing like '%${nd}%'`, { type: QueryTypes.SELECT });
+        allMonthAttendance = [];
+        for (let [key, d] of Object.entries(rows)) {
+
+          d_timing = d['timing'];
+          d_timing = d_timing.replace("-", "/")
+          d_timing = d_timing.replace("-", "/")
+          // check if date and time are not there in string
+          if (d_timing.length < 10) {
+          } else {
+            d_full_date = new Date(d_timing);
+            d_timestamp = new Date(d_timing).getTime();
+            d_month = new Date(d_timestamp).getMonth() + 1;
+            d_year = new Date(d_timestamp).getFullYear();
+            d_date = new Date(d_timestamp).getDate();
+            d['timestamp'] = d_timestamp;
+            timings[nd]={};
+            timings[nd]=(d);
+          }
+        }
+      }
+      if (Object.keys(timings).length> 0) {      
+        let totalPresentDays = 1;
+        let totalInsideTimeInSeconds = 0;
+        for (let [k,pp] of Object.entries(timings)) {
+          let aa = await getInsideOfficeTime(pp);
+          // console.log(aa['inside_time_seconds'],12,1211)
+          if (aa['inside_time_seconds'] > 0) {
+            totalPresentDays++;
+            totalInsideTimeInSeconds += aa['inside_time_seconds'];
+          }
+        }
+        let average_seconds = totalInsideTimeInSeconds / totalPresentDays;
+        if (isNaN(average_seconds)) {
+        } else {
+          DATA[userid] = {}
+          DATA[userid]['name'] = u['name'];
+          DATA[userid]['jobtitle'] = u['jobtitle'];
+          DATA[userid]['totalPresentDays'] = totalPresentDays;
+          DATA[userid]['totalInsideTimeInSeconds'] = totalInsideTimeInSeconds;
+          DATA[userid]['average_inside_seconds'] = average_seconds;
+          let aaa = await _secondsToTime(average_seconds);
+          average_inside_hours = aaa['h'] + ' Hrs ' + aaa['m'] + ' Mins';
+          DATA[userid]['average_inside_hours'] = average_inside_hours;
+        }
+      }
+      return DATA;
+    }))
+    let sort_average_inside_seconds = await arrayColumn(Object.keys(DATA), 'average_inside_seconds');
+    // array_multisort($sort_average_inside_seconds, SORT_ASC, $DATA);
+
+    let error = 0;
+    let Return = {}
+    Return.error = error;
+    Return.message = "Average working hours are";
+    Return.data = DATA;
+    return Return;
   } catch (error) {
     console.log(error);
     throw new Error(error);
   }
 };
+let arrayColumn = async (array, columnName) => {
+  return array.map(function (value, index) {
+    return value[columnName];
+  })
+}
+let splitArrayIntoChunksOfLen = async (arr, len) => {
+  var chunks = [], i = 0, n = arr.length;
+  while (i < n) {
+    chunks.push(arr.slice(i, i += len));
+  }
+  return chunks;
+}
+let getInsideOfficeTime = async (dayPunches) => {
+  let totalInsideTime = 0;
+  if (dayPunches.length > 1) {
+    let b = await splitArrayIntoChunksOfLen(dayPunches, 2);
+    for (let break1 of b) {
+      if ((break1.length) == 2) {
+        startInside = break1[0]['timestamp'];
+        endInside = break1[1]['timestamp'];
+        timeInside = endInside - startInside;
+        totalInsideTime += timeInside;
+      }
+    }
+
+  }
+  let Return = {};
+  Return['inside_time_seconds'] = totalInsideTime;
+  return Return;
+}
 
 module.exports = {
   API_getGenericConfiguration,

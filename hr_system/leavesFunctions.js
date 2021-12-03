@@ -433,24 +433,21 @@ let getUserMonthLeaves = async (userid, year, month, db) => {
   }
   return list;
 };
+// var daylist = getDaysArray(new Date("2018-05-01"),new Date("2018-07-01"));
+// daylist.map((v)=>v.toISOString().slice(0,10)).join("")
+// console.log(daylist)
+
 let _getDatesBetweenTwoDates = async (startDate, endDate) => {
-  startDate = new Date(startDate);
-  Return = [];
-  Return.push(startDate);
-  let start = startDate;
-  let i = 1;
-  if (startDate.getTime() < new Date(endDate).getTime()) {
-    while (start.getTime() < new Date(endDate).getTime()) {
-      // console.log(start,endDate)
-      let date = startDate.getDate();
-      date = date + i;
-      start = startDate.setDate(date);
-      start = new Date(start);
-      Return.push(start);
-      i++;
+  let currentDate=new Date(startDate).getDate()+1
+  startDate=new Date(startDate).setDate(currentDate)
+  let getDaysArray = function(startDate, endDate) {
+    for(var arr=[],dt=new Date(startDate); dt<=endDate; dt.setDate(dt.getDate()+1)){
+        arr.push(new Date(dt));
     }
-  }
-  // console.log(Return)
+    return arr;
+  };
+  let Return = getDaysArray(new Date(startDate),new Date(endDate));
+  Return.map((v)=>v.toISOString().slice(0,10)).join("")
   return Return;
 };
 let API_deleteHoliday = async (holiday_id, db) => {
@@ -2360,6 +2357,7 @@ let  getMyLeaves=async(userid,db)=>{
 }
 
 module.exports = {
+  _secondsToTime,
   getDaysOfMonth,
   _getPreviousMonth,
   leaveDocRequest,
@@ -2377,5 +2375,5 @@ module.exports = {
   getAllUsersPendingLeavesSummary,
   getUserMonthAttendace,
   getAllLeaves,API_getEmployeeRHStats,
-  getMyLeaves
+  getMyLeaves,_getDatesBetweenTwoDates
 };

@@ -40,6 +40,7 @@ let responseForAddMachine = async (req, res) => {
     error: res.error,
     Data: {
       message: res.message,
+      data:res.data
     },
   });
 };
