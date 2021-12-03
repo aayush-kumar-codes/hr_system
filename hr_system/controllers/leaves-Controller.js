@@ -4,7 +4,7 @@ const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
 const{_getPreviousMonth,getEmployeeLastPresentDay,API_deleteHoliday,addHoliday,API_getHolidayTypesList,API_getYearHolidays,cancelAppliedLeave,applyLeave
-    ,API_getMyRHLeaves,leaveDocRequest,updateLeaveStatus,getDaysBetweenLeaves,getAllUsersPendingLeavesSummary,getAllLeaves,API_getEmployeeRHStats}=require("../leavesFunctions")
+    ,API_getMyRHLeaves,leaveDocRequest,updateLeaveStatus,getDaysBetweenLeaves,getAllUsersPendingLeavesSummary,getAllLeaves,API_getEmployeeRHStats,getMyLeaves}=require("../leavesFunctions")
 
 exports.adminUserApplyLeave = async (req, res, next) => {
   try {
@@ -274,4 +274,28 @@ exports.get_user_rh_stats=async(req,res,next)=>{
       return next()
   }
 }
-
+exports.get_my_leaves=async(req,res,next)=>{
+  try{
+    let resp={};
+//   if (slack_id != "") {
+//     let loggedUserInfo =await getUserInfofromSlack(slack_id);
+// }
+let loggedUserInfo=req.userData;
+if (loggedUserInfo['id']) {
+    let userid = loggedUserInfo['id'];
+    resp =await getMyLeaves(userid,db);
+} else {
+    resp['error'] = 1;
+    // resp['data']['message'] = "userid not found";
+}
+res.status_code=200;
+res.data=resp.data
+res.error=resp.error;
+return next();
+}catch(error){
+  console.log(error)
+  res.status_code = 500;
+  res.message = error.message;
+  return next();
+}
+}

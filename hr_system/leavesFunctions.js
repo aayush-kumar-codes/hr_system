@@ -1015,7 +1015,6 @@ let  getEmployeeRHStats=async(userid,year,db)=>{
   } else {
       rh_can_be_taken = rh_per_year;
   }
-  console.log(slice_quarter,quarters)
   quarters_available = quarters.slice(slice_quarter);
   let rh_data_quaterly =await getPreviousTakenRHQuaterly(userid, year);                        
   let rh_leaves =await getUserRHLeaves( userid, year );
@@ -2297,6 +2296,30 @@ let API_getEmployeeRHStats=async(userid,year,db)=>{
   Return['data'] = stats;
   return Return;
 }
+let  getMyLeaves=async(userid,db)=>{ 
+  let msg;
+  let userLeaves =await getUsersLeaves(userid,db);
+  if (userLeaves.length > 0) {
+      for(let [k,v] of Object.entries(userLeaves)) {
+          userLeaves[k]['from_date'] = new Date(v['from_date']);
+          userLeaves[k]['to_date'] = new Date(v['to_date']);
+          userLeaves[k]['applied_on'] = new Date(v['applied_on']);
+          userLeaves[k]['doc_link'] =await _getLeaveDocFullLink(v,db);
+      }
+      msg="";
+  }else{
+  msg="no leave found"
+  }
+
+  let Return = {};
+  let r_data = {};
+  Return.error = 0;
+  r_data.message= msg;
+  r_data.leaves = userLeaves;
+  Return.data = r_data;
+
+  return Return;
+}
 
 module.exports = {
   getDaysOfMonth,
@@ -2315,5 +2338,6 @@ module.exports = {
   getDaysBetweenLeaves,
   getAllUsersPendingLeavesSummary,
   getUserMonthAttendace,
-  getAllLeaves,API_getEmployeeRHStats
+  getAllLeaves,API_getEmployeeRHStats,
+  getMyLeaves
 };
