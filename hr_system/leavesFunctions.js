@@ -847,37 +847,42 @@ let checkRHQuarterWise = async (userid, from_date,db) => {
   let check = false;
   let Return = {};
   let rh_config = await getConfigByType("rh_config",db);
-  console.log(234)
-  let no_of_quaters =(await getAllQuarters());
-  no_of_quaters=(Object.keys(no_of_quaters).length)
+  let no_of_quaters =(Object.keys(await getAllQuarters()))
+  no_of_quaters=(no_of_quaters.length)
   let rh_extra = rh_config["rh_extra"];
   let rh_can_be_taken_per_quarter = rh_config["rh_per_quater"];
   let rh_can_be_taken = no_of_quaters * rh_can_be_taken_per_quarter;
   let max_rh_can_be_taken_per_quarter = rh_can_be_taken_per_quarter;
   let user = await getUserInfo(userid,db);
+  user=user[0];
   // if( user[0]['training_completion_date'] != null && user[0]['training_completion_date'] != '0000-00-00' && user[0]['training_completion_date'] != '1970-01-01' && new Date(user[0]['training_completion_date']) < new Date() ) {
 
-      from_date_year =new Date (from_date).getFullYear();
-      from_date_month = new Date(from_date).getMonth()+1;
-      current_date = new Date();;
-      current_year = new Date().getFullYear()
-      current_month = 23
-  //     $current_quarter = self::getQuarterByMonth();
-  //     $confirm_year = date('Y', strtotime($user['training_completion_date']));
-  //     $confirm_month = date('m', strtotime($user['training_completion_date']));
-  //     $confirm_quarter = self::getQuarterByMonth($confirm_month);
-  //     $from_date_quarter = self::getQuarterByMonth( $from_date_month );
-  //     $rh_leaves_all = self::getUserRHLeaves($userid, $current_year);
-  //     $rh_list = array_map( function($iter){ return $iter['raw_date']; }, self::getMyRHLeaves($current_year) );
-  //     $rh_leaves = array_map( function($iter){ return $iter['from_date']; }, $rh_leaves_all );
-  //     $rh_approved = array_map( function($iter){ return $iter['from_date']; }, self::getUserApprovedRHLeaves($userid, $current_year) );
-  //     $rh_approved_dates = array_map(function($iter){ return $iter['from_date']; }, self::getUserApprovedRHLeaves($userid, $current_year));
-  //     $rh_approved_count = array_sum(array_map( function($iter){ return $iter['no_of_days']; }, self::getUserApprovedRHLeaves($userid, $current_year) ));
-  //     $rh_compensated = array_sum(array_map( function($iter){ return $iter['no_of_days']; }, self::getUserApprovedRHCompensationLeaves($userid, $current_year) ));
-
-  //     $rh_stats = self::getEmployeeRHStats($userid, $current_year);
-  //     $max_rh_can_be_taken_per_quarter = $rh_stats['rh_can_be_taken_this_quarter'];
-
+  
+    let from_date_year =new Date (from_date).getFullYear();
+    let from_date_month = new Date(from_date).getMonth()+1;
+    let current_date = new Date();
+    let current_year = new Date().getFullYear()
+    let current_month=new Date().getMonth();
+    let current_quarter = await getQuarterByMonth();
+    let confirm_year = new Date(user['training_completion_date']).getFullYear();
+    let confirm_month =new Date(user['training_completion_date']).getMonth();
+    let confirm_quarter = await getQuarterByMonth(confirm_month,db);
+    let from_date_quarter =await getQuarterByMonth(from_date_month,db);
+    let rh_leaves_all =await getUserRHLeaves(userid,current_year,db);
+    let rh_list =(await getMyRHLeaves(current_year,db)).map( function(iter)
+    {
+      return iter['raw_date']; 
+    })
+    let rh_leaves = rh_leaves_all.map( function(iter){ return iter['from_date']; });
+    let rh_approved = (await getUserApprovedRHLeaves(userid, current_year,db)).map( function(iter){ return iter['from_date']; });
+    let rh_approved_dates = (await getUserApprovedRHLeaves(userid, current_year,db)).map(function(iter){ return iter['from_date']; },)
+    let rh_approved_count =((await getUserApprovedRHLeaves(userid, current_year,db)).map( function(iter){ return iter['no_of_days']; },)).reduce((a, b) => a + b, 0);
+    let rh_compensated = ((await getUserApprovedRHCompensationLeaves(userid,current_year,db)).map( function(iter){
+       return iter['no_of_days']; 
+      })).reduce((a,b)=>a+b,0);
+    let rh_stats =await getEmployeeRHStats(userid,current_year,db);
+    max_rh_can_be_taken_per_quarter = rh_stats['rh_can_be_taken_this_quarter'];
+    console.log(231221213)
   //     if( $confirm_year == $current_year ){
 
   //         $remaining_quarters = $no_of_quaters - $confirm_quarter['quarter'];
@@ -962,7 +967,86 @@ let checkRHQuarterWise = async (userid, from_date,db) => {
 
   // return $return;
 };
+let  getEmployeeRHStats=async(userid,year,db)=>{
+  console.log(12112)
+      let Return = {};
+      let rh_can_be_taken = 0;
+      let rh_config_default =await getConfigByType('rh_config',db);                
+      let rh_per_quater = rh_config_default['rh_per_quater'];
+      let rh_extra = rh_config_default['rh_extra'];
+      let quarters =await getAllQuarters();
+      let no_of_quaters = quarters.length;
+      let rh_per_year = (no_of_quaters * rh_per_quater ) + rh_extra;
+      let max_rh_can_be_taken_per_quarter = rh_per_quater;
+      let rh_approved =rh_rejected =rh_left =rh_compensation_used =rh_compensation_pending =rh_can_be_taken_this_quarter = 0;
+      let rh_approved_names = {};let rh_rejected_names={} ;let rh_compensation_used_names ={};
+      let quarters_available ={};
+      let user =await getUserInfo(userid,db);
+      user=user[0];
+      // if(user['training_completion_date'] != null && user['training_completion_date'] != '0000-00-00' && user['training_completion_date'] != '1970-01-01' && new Date(user['training_completion_date']).getTime() < new Date().getTime() ) {
 
+       let current_year = new Date().getFullYear();
+       let confirm_date =user['training_completion_date'];
+       let confirm_year = new Date(confirm_date).getFullYear();
+       let confirm_month = new Date(user['training_completion_date']).getMonth()+1;
+       let confirm_quarter =await getQuarterByMonth(confirm_month,db);
+      //  console.log(confirm_quarter,12121)
+       let current_quarter =await getQuarterByMonth();
+       let slice_quarter = 0;
+      
+       if(confirm_year == year ){
+ 
+        let remaining_quarters = no_of_quaters - confirm_quarter['quarter'];
+        let slice_quarter = confirm_quarter['quarter'];
+        let eligible_for_confirm_quarter_rh = false;
+        if( confirm_quarter['months'][0] == confirm_month ){
+            eligible_for_confirm_quarter_rh = true;
+        }
+        if( eligible_for_confirm_quarter_rh ){
+            rh_can_be_taken = (remaining_quarters + 1) * rh_per_quater;
+            slice_quarter = slice_quarter - 1;
+        } else {
+            rh_can_be_taken = remaining_quarters * rh_per_quater;
+        }    
+
+    } else if( confirm_year > year ) {
+      rh_can_be_taken = 0;
+
+  } else {
+      rh_can_be_taken = rh_per_year;
+  }
+  console.log(slice_quarter,quarters)
+  quarters_available = quarters.slice(slice_quarter);
+  let rh_data_quaterly =await getPreviousTakenRHQuaterly(userid, year);                        
+  let rh_leaves =await getUserRHLeaves( userid, year );
+  let rh_compensation_leaves =await getUserApprovedRHCompensationLeaves( userid, year );
+  let rh_approved_leaves =await getUserApprovedRHLeaves( userid, year );
+  let rh_list =await getMyRHLeaves(year);
+}
+
+let getUserApprovedRHLeaves=async( userid, year,db)=>{        
+  let q = await db.sequelize.query(`SELECT * FROM leaves WHERE leave_type = 'Restricted' AND user_Id = '${userid}' AND status = 'Approved' AND from_date LIKE '${year}%'`,{type:QueryTypes.SELECT});
+  return q;
+};
+let getUserApprovedRHCompensationLeaves=async(userid, year,db)=>{
+  let q =await db.sequelize.query(`SELECT * FROM leaves WHERE leave_type = 'RH Compensation' AND user_Id = '${userid}' AND status = 'Approved' AND from_date LIKE '${year}%'`,{type:QueryTypes.SELECT});
+  return q;
+}
+
+let getQuarterByMonth=async( month = false,db)=>{
+  month = month ? month :new Date().getMonth();
+  let  current_quarter = false;
+  let quarters =await getAllQuarters();
+  for(let[key,quarter] of Object.entries(quarters)){
+      if( quarter.includes(month) ) {
+        current_quarter={};
+        current_quarter["quarter"]=key
+        current_quarter["months"] = quarter;
+        break;
+      }
+  }
+  return current_quarter;
+}
 let getAllQuarters=async()=>{
   let quarters = {};
 

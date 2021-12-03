@@ -23,6 +23,7 @@
     "nodemailer-sendgrid": "^1.0.3",
     "nodemon": "^2.0.14",
     "pg": "^8.7.1",
-    "sequelize": "^6.11.0"
+    "sequelize": "^6.11.0",
+    "webidl-conversions": "^7.0.0"
   }
 }
