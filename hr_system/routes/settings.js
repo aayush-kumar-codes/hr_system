@@ -31,5 +31,16 @@ router.post(
   settignsController.save_policy_document,
   handlers.responseForAddMachine
 );
-
+router.post(
+  "/get_all_secret_keys",
+  middleware.AuthForHrAdmin,
+  settignsController.get_all_secret_keys,
+  handlers.responseForAddMachine
+);
+router.post(
+  "/generate_secret_key",
+  middleware.AuthForHrAdmin,
+  settignsController.generate_secret_key,
+  handlers.responseForAddMachine
+);
 module.exports = router;

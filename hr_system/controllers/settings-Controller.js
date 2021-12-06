@@ -2,7 +2,7 @@ const db = require("../db");
 const {
   API_getGenericConfiguration,
   API_updateConfig,
-  api_getAverageWorkingHours,savePolicyDocument
+  api_getAverageWorkingHours,savePolicyDocument,API_generateSecretKey,API_getAllSecretKeys
 } = require("../settingsFunction");
 
 exports.get_generic_configuration = async (req, res, next) => {
@@ -70,6 +70,39 @@ exports.save_policy_document=async(req,res,next)=>{
     let resp =await savePolicyDocument(req,db);
     res.status_code=200;
     res.message=resp.data.message;
+    res.error=resp.error;
+    return next();
+  }catch(error){
+    console.log(error)
+    res.status_code=500;
+    res.message=resp.error;
+    res.error=resp.error;
+    return next();
+  }
+};
+exports.get_all_secret_keys=async(req,res,next)=>{
+  try{
+    let resp =await API_getAllSecretKeys(db);
+    res.status_code=200;
+    res.message=resp.data;
+    res.error=resp.error;
+    return next();
+  }catch(error){
+    console.log(error)
+    res.status_code=500;
+    res.message=resp.error;
+    res.error=resp.error;
+    return next();
+  }
+};
+exports.generate_secret_key=async(req,res,next)=>{
+  try{
+    app_name = req.body['app_name'];
+    user_id = req.userData['id'];   
+    console.log(app_name,user_id)
+    let resp =await API_generateSecretKey( app_name, user_id,db );
+    res.status_code=200;
+    res.message=resp.data;
     res.error=resp.error;
     return next();
   }catch(error){

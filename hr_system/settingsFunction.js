@@ -1,4 +1,5 @@
 const { QueryTypes } = require("sequelize");
+const md5=require("md5")
 const {
   getConfigByType,
   Inventory_insertDefaultStatuses,
@@ -792,16 +793,90 @@ let savePolicyDocument=async(req,db)=>
         value = new Date();
         q = await db.sequelize.query(`UPDATE config set value='${value}' WHERE type ='{policy_document_update}'`,{type:QueryTypes.UPDATE});
     }
-
     let Return          ={};
     Return['error'] = r_error;
     Return['data']  = r_data;
     return Return;
 }
+ let API_getAllSecretKeys=async(db)=>{
+  let r_error = 0;
+  let r_data ={};
+  let Return ={};
+  let q =await db.sequelize.query(`SELECT * FROM secret_tokens`,{type:QueryTypes.SELECT});
+  if( q.length > 0 ){
+      r_data['app_info'] = q;
+  } else {
+      r_error = 1;
+      r_data['message'] = 'No Records Found';
+  }
+   Return = {
+      'error':r_error,
+      'data' :r_data
+   }
+  return Return;
+}
+ let  API_generateSecretKey=async(app_name,user_id,db)=>{
+  let r_error = 0;
+  let r_data = {};
+  let Return = {};
 
-
+  if( app_name && app_name != "" ){
+      let app_exist =await checkIfAppNameExist(app_name,db);
+      if( app_exist ) {
+          r_error = 1;
+          r_data['message'] = "App already exist";           
+      } else {
+          secret_key =await generateSecretKey(app_name,db);
+         let app_info = {
+              'app_name' : app_name,
+              'secret_key': secret_key,
+              'added_by_userid' : user_id
+         }
+          let generate_secret_key = await db.sequelize.query(`INSERT INTO secret_tokens (app_name,secret_key,added_by_userid) VALUES ('${app_info.app_name}','${app_info.secret_key}','${app_info.added_by_userid}')`,{type:QueryTypes.INSERT});
+          if( generate_secret_key ){
+              r_data['message'] = 'Secret key generated successfully.';
+          } else {
+              r_error = 1;
+              r_data['message'] = 'Unable to generate secret key.';
+          }
+      }
+      
+  } else {
+      r_error = 1;
+      r_data['message'] = 'Please provide App name';
+  }                
+  Return = {
+      'error':r_error,
+      'data' :r_data
+  }
+  console.log(Return)
+  return Return;
+}
+let checkIfAppNameExist=async(app_name,db)=>{
+  let Return = false;
+  let rows =await db.sequelize.query(` SELECT * FROM secret_tokens WHERE app_name = '${app_name}'`,{type:QueryTypes.SELECT});      
+  if(rows.length > 0 ){
+      Return = true;
+  }
+  return Return;
+}
+let generateSecretKey=async(app_name)=>{        
+  let characters = app_name+new Date().getTime();
+  let secretKey = md5(characters);
+  return secretKey;
+}
 module.exports = {
   API_getGenericConfiguration,
   API_updateConfig,
-  api_getAverageWorkingHours,savePolicyDocument
+  api_getAverageWorkingHours,savePolicyDocument,API_generateSecretKey,API_getAllSecretKeys
 };
+// public static function checkIfAppNameExist($app_name){
+//   $return = false;
+//   $q = " SELECT * FROM secret_tokens WHERE app_name = '$app_name' ";       
+//   $runQuery = self::DBrunQuery($q);
+//   $rows = self::DBfetchRows($runQuery);
+//   if( sizeof($rows) > 0 ){
+//       $return = true;
+//   }
+//   return $return;
+// }
