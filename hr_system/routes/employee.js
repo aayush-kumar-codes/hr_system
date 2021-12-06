@@ -15,7 +15,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-router.get(
+router.post(
   "/get_user_profile_detail",
   middleware.AuthForHrEmployee,
   employeeController.getUserProfileController,

@@ -1,5 +1,6 @@
 const { QueryTypes } = require("sequelize");
 const md5=require("md5")
+const {getAllPages}=require("./roles")
 const {
   getConfigByType,
   Inventory_insertDefaultStatuses,
@@ -7,6 +8,7 @@ const {
 } = require("./allFunctions");
 const db = require("./db");
 const { getEnabledUsersList } = require("./employeeFunction");
+const{checkifPageEnabled}=require("./allFunctions")
 
 const { getDaysOfMonth, _getDatesBetweenTwoDates, _secondsToTime } = require("./leavesFunctions");
 
@@ -849,7 +851,6 @@ let savePolicyDocument=async(req,db)=>
       'error':r_error,
       'data' :r_data
   }
-  console.log(Return)
   return Return;
 }
 let checkIfAppNameExist=async(app_name,db)=>{
@@ -865,18 +866,79 @@ let generateSecretKey=async(app_name)=>{
   let secretKey = md5(characters);
   return secretKey;
 }
+let API_regenerateSecretKey=async(app_id,db)=>{    
+  let r_error = 0;
+  let r_data = {};
+  let Return = {};  
+  let q =await db.sequelize.query(`SELECT * from secret_tokens WHERE id = ${app_id}`,{type:QueryTypes.SELECT});
+  if(q.length > 0 ){
+      let secret_key =await generateSecretKey(q[0]['app_name']);
+      q =await db.sequelize.query(`UPDATE secret_tokens SET secret_key = '${secret_key}', added_on = CURRENT_TIMESTAMP WHERE id = ${app_id}`,{type:QueryTypes.UPDATE});
+      if(q[1]==1){
+          r_data['message'] = 'Secret key regenerated successfully';
+      } else {
+          r_error = 1;
+          r_data['message'] = 'Secret key regeneration failed';
+      }
+  } else {
+      r_error = 1;
+      r_data['message'] = 'No Records Found';
+  }
+    Return = {
+      'error' : r_error,
+      'data' :r_data
+  }
+  return Return;
+}
+let API_deleteSecretKey=async(app_id,db)=>{
+  let r_error = 0;
+  let r_data = {};
+  let Return = {};
+  let rows =await db.sequelize.query(` SELECT * FROM secret_tokens WHERE id = '${app_id}'`,{type:QueryTypes.SELECT});
+  if( rows.length > 0 ){
+      let q =await db.sequelize.query(` DELETE FROM secret_tokens WHERE id = '${app_id}'`,{type:QueryTypes.DELETE});
+      if(q[1]==1) {
+          r_data['message'] = 'Secret key deleted successfully';    
+      } else {
+          r_error = 1;
+          r_data['message'] = 'Secret key deletion failed';    
+      }            
+  } else {
+      r_error = 1;
+      r_data['message'] = 'No Records Found';
+  }
+  Return = {
+      'error' :r_error,
+      'data' : r_data
+  }
+  return Return;        
+}
+
+let getAllPagesWithStatus =async(db)=>{
+ let r_error = 0;
+ let r_message = "";
+ let Return = {};
+ let pages = {};
+ let allPages =await getAllPages();
+  
+  for(let [key,page] of Object.entries(allPages)){
+      is_enabled =await checkifPageEnabled(page['id'],db) ? await checkifPageEnabled(page['id'],db) : false;
+      pages[key] = {
+          'page_id' : page['id'],
+          'name' : page['name'],
+          'is_enabled' : is_enabled
+      }
+  }
+  
+  Return['error'] = r_error;
+  Return['data'] = pages;
+
+  return Return;
+}
 module.exports = {
   API_getGenericConfiguration,
   API_updateConfig,
-  api_getAverageWorkingHours,savePolicyDocument,API_generateSecretKey,API_getAllSecretKeys
+  api_getAverageWorkingHours,savePolicyDocument,API_deleteSecretKey,
+  API_generateSecretKey,API_getAllSecretKeys,API_regenerateSecretKey,
+  getAllPagesWithStatus
 };
-// public static function checkIfAppNameExist($app_name){
-//   $return = false;
-//   $q = " SELECT * FROM secret_tokens WHERE app_name = '$app_name' ";       
-//   $runQuery = self::DBrunQuery($q);
-//   $rows = self::DBfetchRows($runQuery);
-//   if( sizeof($rows) > 0 ){
-//       $return = true;
-//   }
-//   return $return;
-// }

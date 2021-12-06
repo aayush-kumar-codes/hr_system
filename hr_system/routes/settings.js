@@ -43,4 +43,22 @@ router.post(
   settignsController.generate_secret_key,
   handlers.responseForAddMachine
 );
+router.post(
+  "/regenerate_secret_key",
+  middleware.AuthForHrAdmin,
+  settignsController.regenerate_secret_key,
+  handlers.responseForAddMachine
+);
+router.post(
+  "/delete_secret_key",
+  middleware.AuthForHrAdmin,
+  settignsController.delete_secret_key,
+  handlers.responseForAddMachine
+);
+router.post(
+  "/get_all_pages",
+  middleware.AuthForHrAdmin,
+  settignsController.get_all_pages,
+  handlers.responseForAddMachine
+);
 module.exports = router;

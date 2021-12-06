@@ -2,8 +2,11 @@ const db = require("../db");
 const {
   API_getGenericConfiguration,
   API_updateConfig,
-  api_getAverageWorkingHours,savePolicyDocument,API_generateSecretKey,API_getAllSecretKeys
+  api_getAverageWorkingHours,savePolicyDocument,API_generateSecretKey,
+  API_getAllSecretKeys,API_regenerateSecretKey,API_deleteSecretKey,
+  getAllPagesWithStatus
 } = require("../settingsFunction");
+const{getAllPages}=require("../roles")
 
 exports.get_generic_configuration = async (req, res, next) => {
   try {
@@ -101,6 +104,61 @@ exports.generate_secret_key=async(req,res,next)=>{
     user_id = req.userData['id'];   
     console.log(app_name,user_id)
     let resp =await API_generateSecretKey( app_name, user_id,db );
+    res.status_code=200;
+    res.message=resp.data;
+    res.error=resp.error;
+    return next();
+  }catch(error){
+    console.log(error)
+    res.status_code=500;
+    res.message=resp.error;
+    res.error=resp.error;
+    return next();
+  }
+};
+exports.regenerate_secret_key=async(req,res,next)=>{
+  try{
+    let app_id = req.body['app_id'];
+    let resp = await API_regenerateSecretKey( app_id,db);
+    res.status_code=200;
+    res.message=resp.data;
+    res.error=resp.error;
+    return next();
+  }catch(error){
+    console.log(error)
+    res.status_code=500;
+    res.message=resp.error;
+    res.error=resp.error;
+    return next();
+  }
+};
+
+exports.delete_secret_key=async(req,res,next)=>{
+  try{
+    let app_id = req.body['app_id'];
+    let resp = await API_deleteSecretKey( app_id,db);
+    res.status_code=200;
+    res.message=resp.data;
+    res.error=resp.error;
+    return next();
+  }catch(error){
+    console.log(error)
+    res.status_code=500;
+    res.message=resp.error;
+    res.error=resp.error;
+    return next();
+  }
+};
+
+exports.get_all_pages=async(req,res,next)=>{
+  try{
+    let loggedUserInfo=req.userData;
+    let resp;
+    if((loggedUserInfo['role'].toLowerCase()) == 'admin' ){
+      resp =await getAllPagesWithStatus(db);
+  } else {
+      resp['data']['message'] = 'You are not authorised. Contact Admin !';
+  }
     res.status_code=200;
     res.message=resp.data;
     res.error=resp.error;
