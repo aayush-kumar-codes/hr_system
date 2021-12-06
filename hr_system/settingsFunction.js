@@ -10,7 +10,7 @@ const db = require("./db");
 const { getEnabledUsersList } = require("./employeeFunction");
 const{checkifPageEnabled}=require("./allFunctions")
 
-const { getDaysOfMonth, _getDatesBetweenTwoDates, _secondsToTime } = require("./leavesFunctions");
+const { getDaysOfMonth, _getDatesBetweenTwoDates, _secondsToTime,getGenericMonthSummary,getDaysBetweenLeaves} = require("./leavesFunctions");
 
 let API_getGenericConfiguration = async (showSecure = false, models) => {
   try {
@@ -935,10 +935,139 @@ let getAllPagesWithStatus =async(db)=>{
 
   return Return;
 }
+let API_deleteAttendanceStatsSummary=async(year,db)=>{
+
+  let r_error = 0;
+  let r_data = {};
+  let Return = {};
+  let current_year = new Date().getFullYear();
+  let previous_year = current_year - 1;
+  
+  if (year && year != "" ) {
+
+      if ( year == current_year || year == previous_year ) {
+          r_error = 1;
+          r_data['message'] = "Can't delete current or previous year attendance.";
+
+      } else {
+
+         let q =await db.sequelize.query(`SELECT * from attendance where timing like '%${year}%'`,{type:QueryTypes.SELECT});    
+          if( q.length > 0 ){
+              
+              q = await db.sequelize.query(`DELETE FROM attendance WHERE timing like '%${year}%'`,{type:QueryTypes.DELETE});
+              r_data['message'] = `Records deleted for ${year}`;
+
+          } else {
+              r_error = 1;
+              r_data['message'] = `Records not found for " . ${year};`
+          }
+
+      }
+
+  } else {
+      q = await db.sequelize.query(`SELECT * from attendance where timing like '__:%'`,{type:QueryTypes.DELETE});
+      if (q.length > 1 ) {
+          q =await db.sequelize.query(`DELETE FROM attendance WHERE timing like '__:%'`,{type:QueryTypes.DELETE});
+          r_data['message'] = "Junk Records deleted";
+
+      } else {
+          r_error = 1;
+          r_data['message'] = "No Junk Records Found";
+      }
+  }
+
+  
+  Return = {
+      'error' :r_error,
+      'data' :r_data
+  };
+
+  return Return;        
+}
+let API_getEmployeesLeavesStats=async(year,month,req,db)=>{
+ let r_error = 0;
+ let r_data = {};
+ let stats = [];
+ let Return = {};
+ let enableEmployees = await getEnabledUsersList(req,db);
+ let totalEmployees = (enableEmployees.length);
+ let monthly_leaves = await getLeavesForYearMonth( year, month,db );
+ let days = await getGenericMonthSummary( year, month,userid=false,db );
+ let removableKeys = ['day_text', 'in_time', 'out_time', 'total_time', 'extra_time', 'text', 'admin_alert', 'admin_alert_message', 'orignal_total_time'];
+ for(let leave of monthly_leaves){ 
+  let days_between_leaves = await getDaysBetweenLeaves( leave['from_date'], leave['to_date'],db); 
+  for(let[key,day] of Object.entries(days)){   
+      days[key]['total_employees'] = totalEmployees;
+      days[key]['day'] = (day['day'].split(0,3));
+      for( let removableKey of removableKeys){
+          delete(days[key][removableKey]);
+      }
+      for(let day_between_leave of days_between_leaves['data']['days']){
+          if((day_between_leave['type']).toLowerCase()== 'working' ){
+              if(day_between_leave['full_date'] == day['full_date']){
+                  if(leave['status'] == 'Approved'){
+                      days[key]['approved']++;
+                  }
+                  if(leave['status'] == 'Pending'){
+                      days[key]['pending']++;
+                  }
+                  if(leave['status'] == 'Rejected'){
+                      days[key]['rejected']++;
+                  }
+                  if(leave['status'] == 'Cancelled'){
+                      days[key]['cancelled']++;
+                  }
+                  if(leave['status'] == 'Cancelled Request'){
+                      days[key]['cancelled_request']++;
+                  }                            
+              } 
+          }
+      } 
+  }            
+} 
+ for( let[key,day] of Object.entries(days )){
+  if( !(day['approved']) ) {
+      days[key]['approved'] = 0;
+  }
+  if(!(day['pending']) ){
+      days[key]['pending'] = 0;
+  }
+  if( !(day['rejected']) ){
+      days[key]['rejected'] = 0;
+  }
+  if( (day['cancelled']) ){
+      days[key]['cancelled'] = 0;
+  }
+  if((day['cancelled_request']) ){
+      days[key]['cancelled_request'] = 0;
+  }
+  stats.push(days[key]);
+}        
+r_data = {
+  'stats' :stats
+}
+Return = {
+  'error' :r_error,
+  'data' :r_data
+};     
+return Return;   
+}
+let getAllUsers=async(db)=>{
+  let q = await db.sequelize.query(`SELECT users.*, user_profile.* FROM users left join user_profile on users.id = user_profile.user_Id `,{type:QueryTypes.SELECT});
+  return q;
+}
+
+let getLeavesForYearMonth=async(year, month,db)=>{
+  let year_month = year+ "-" + month;
+  let q =await db.sequelize.query(` SELECT * FROM leaves WHERE from_date LIKE '${year_month}%'`,{type:QueryTypes.SELECT});
+  return q;
+}
+let getEmployeesHistoryStats=async(db)=>{}
 module.exports = {
   API_getGenericConfiguration,
   API_updateConfig,
   api_getAverageWorkingHours,savePolicyDocument,API_deleteSecretKey,
   API_generateSecretKey,API_getAllSecretKeys,API_regenerateSecretKey,
-  getAllPagesWithStatus
+  getAllPagesWithStatus,API_deleteAttendanceStatsSummary,API_getEmployeesLeavesStats,
+  getEmployeesHistoryStats
 };

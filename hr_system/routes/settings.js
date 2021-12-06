@@ -61,4 +61,22 @@ router.post(
   settignsController.get_all_pages,
   handlers.responseForAddMachine
 );
+router.post(
+  "/delete_attendance_stats_summary",
+  middleware.AuthForHrAdmin,
+  settignsController.delete_attendance_stats_summary,
+  handlers.responseForAddMachine
+);
+router.post(
+  "/get_employees_leaves_stats",
+  middleware.AuthForHrAdmin,
+  settignsController.get_employees_leaves_stats,
+  handlers.responseForAddMachine
+);
+router.post(
+  "/get_employees_history_stats",
+  middleware.AuthForHrAdmin,
+  settignsController.get_employees_history_stats,
+  handlers.responseForAddMachine
+);
 module.exports = router;

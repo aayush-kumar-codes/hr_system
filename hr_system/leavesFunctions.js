@@ -2390,7 +2390,7 @@ let  getMyLeaves=async(userid,db)=>{
 }
 
 module.exports = {
-  _secondsToTime,
+  _secondsToTime,getGenericMonthSummary,
   getDaysOfMonth,
   _getPreviousMonth,
   leaveDocRequest,
