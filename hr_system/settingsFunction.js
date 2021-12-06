@@ -749,10 +749,59 @@ let getInsideOfficeTime = async (dayPunches) => {
   let Return = {};
   Return['inside_time_seconds'] = totalInsideTime;
   return Return;
+};
+
+let savePolicyDocument=async(req,db)=>
+{
+
+    let r_error   = 1;
+    let r_message = "";
+    let r_data    = {};
+    let ins       = {
+        type  :req.body['type'],
+        value : req.body['value'],
+    }
+    let q1 =await db.sequelize.query(`select * from config where type ='${req.body ['type']}'`,{type:QueryTypes.SELECT});
+    if (q1.length== 0) {
+        // let res               = self::DBinsertQuery('config', $ins);
+       r_error           = 0;
+       r_message         = "Variable Successfully Inserted";
+       r_data['message'] =r_message;
+    }if (q1.length != 0) {
+       value =req.body['value'];
+        let q     = await db.sequelize.query(`UPDATE config set value='${value}' WHERE type ='${req.body['type']}`,{type:QueryTypes.UPDATE});
+        // self::DBrunQuery($q);
+
+       r_error           = 0;
+       r_message         = "Variable updated successfully";
+       r_data['message'] =r_message;
+    }
+    console.log('policy_document_update',12112)
+    q2 = await db.sequelize.query(`select * from config where type ='policy_document_update'`,{type:QueryTypes.SELECT});
+    let dateToInsert=new Date();
+    dateToInsert= JSON.stringify(dateToInsert);
+    dateToInsert=(dateToInsert.split("T")[0])
+    dateToInsert=(dateToInsert.slice(1));
+    ins2 = {
+        'type'  : "policy_document_update",
+        'value' : dateToInsert
+    }
+    if (q2.length == 0) {
+        res = await db.sequelize.query(`INSERT INTO config (type,value) VALUES ('${ins2.type}','${ins2.value}')`,{type:QueryTypes.INSERT});
+    }if (q2.length != 0) {
+        value = new Date();
+        q = await db.sequelize.query(`UPDATE config set value='${value}' WHERE type ='{policy_document_update}'`,{type:QueryTypes.UPDATE});
+    }
+
+    let Return          ={};
+    Return['error'] = r_error;
+    Return['data']  = r_data;
+    return Return;
 }
+
 
 module.exports = {
   API_getGenericConfiguration,
   API_updateConfig,
-  api_getAverageWorkingHours,
+  api_getAverageWorkingHours,savePolicyDocument
 };

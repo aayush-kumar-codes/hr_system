@@ -2,7 +2,7 @@ const db = require("../db");
 const {
   API_getGenericConfiguration,
   API_updateConfig,
-  api_getAverageWorkingHours,
+  api_getAverageWorkingHours,savePolicyDocument
 } = require("../settingsFunction");
 
 exports.get_generic_configuration = async (req, res, next) => {
@@ -62,6 +62,21 @@ exports.get_average_working_hours = async (req, res, next) => {
   } catch (error) {
     res.status_code = 500;
     res.message = error.message;
+    return next();
+  }
+};
+exports.save_policy_document=async(req,res,next)=>{
+  try{
+    let resp =await savePolicyDocument(req,db);
+    res.status_code=200;
+    res.message=resp.data.message;
+    res.error=resp.error;
+    return next();
+  }catch(error){
+    console.log(error)
+    res.status_code=500;
+    res.message=resp.error;
+    res.error=resp.error;
     return next();
   }
 };

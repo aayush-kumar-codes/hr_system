@@ -25,6 +25,11 @@ router.post(
   settignsController.get_average_working_hours,
   handlers.responseForAddMachine
 );
-
+router.post(
+  "/save_policy_document",
+  middleware.AuthForHrAdmin,
+  settignsController.save_policy_document,
+  handlers.responseForAddMachine
+);
 
 module.exports = router;
