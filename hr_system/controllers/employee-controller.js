@@ -344,7 +344,8 @@ exports.updateNewPassController = async (req, res, next) => {
     let userData = req.userData;
     let updatedPassword = await updatePassword(req, userData, db);
     res.status_code = 200;
-    res.message = updatedPassword;
+    res.error=updatedPassword.error;
+    res.data = updatedPassword.data;
     return next();
   } catch (error) {
     res.status_code = 500;

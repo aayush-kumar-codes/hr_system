@@ -1062,7 +1062,65 @@ let getLeavesForYearMonth=async(year, month,db)=>{
   let q =await db.sequelize.query(` SELECT * FROM leaves WHERE from_date LIKE '${year_month}%'`,{type:QueryTypes.SELECT});
   return q;
 }
-let getEmployeesHistoryStats=async(db)=>{}
+let getEmployeesHistoryStats=async(db)=>{
+  let r_error = 0;
+  let r_data ={};
+  let Return ={};
+  let stats ={};
+  stats.total_employees=0;
+  stats.enabled_employees=0;
+  let jt_stats ={};     
+  let all_employees_list = await getAllUsers(db);
+  for(let [key,employee] of Object.entries(all_employees_list)){        
+    let join_year = new Date(employee['dateofjoining']).getFullYear();
+    stats['total_employees']++;
+    if(employee['status'] == 'Enabled') {
+        stats['enabled_employees']++;
+    }
+    if(employee['status'] == 'Disabled') {
+        stats['disabled_employees']++;
+    }
+
+    if( join_year > 0 ){
+
+        if(jt_stats.join_year){
+            jt_stats.join_year.joining++;
+        } else { 
+          jt_stats.join_year={};
+          jt_stats.join_year.joining=1;
+        }
+
+        if(!jt_stats.join_year.termination){
+            jt_stats.join_year.termination = 0;
+        }
+    }
+    if( employee['termination_date'] != null && employee['termination_date'] != '0000-00-00' ){
+      terminate_year =new Date(employee['termination_date']).getFullYear();
+      if( terminate_year > 0 ){
+          if(jt_stats.terminate_year ){
+              jt_stats.terminate_year.termination++;
+          } else {
+            jt_stats.terminate_year={};
+              jt_stats.terminate_year.termination= 1;
+          }
+          if( !jt_stats.terminate_year.joining) {
+              jt_stats.terminate_year.joining = 0;
+          }
+      }
+  }
+  
+}
+stats['joining_termination_stats'] = jt_stats;
+        r_data = {
+            'stats':stats
+        }
+        Return = {
+            'error':r_error,
+            'data':r_data
+        }
+
+        return Return;
+}
 module.exports = {
   API_getGenericConfiguration,
   API_updateConfig,
