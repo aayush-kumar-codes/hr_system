@@ -1121,11 +1121,50 @@ stats['joining_termination_stats'] = jt_stats;
 
         return Return;
 }
+let API_getStatsAttendanceSummary=async(db)=>{
+ let r_error = 0;
+ let r_data = {};
+ let Return = {};
+ let attendance_rows = [];
+
+ let q =await db.sequelize.query(`SELECT * from attendance ORDER BY timing ASC`,{type:QueryTypes.SELECT});
+ for(let [key,date] of Object.entries(q)){
+  full_date = date['timing'];
+  explode_full_date =  full_date.split("-");
+  year = explode_full_date[0];
+
+  let flag = false;
+  if(attendance_rows.length){
+      for(let [key,attendance] of Object.entries(attendance_rows)){
+          if(attendance['year'] == year){
+              attendance_rows[key]['count']++;
+              flag = true;
+              break;
+          } 
+      }
+  }
+  if(flag == false){
+    attendance_rows.push( {
+        'year':year,
+        'count' :1
+    })
+}
+}
+r_data.message = '';
+r_data['attendance_rows'] = attendance_rows;
+        
+        Return = {
+            'error' :r_error,
+            'data' :r_data
+        };
+
+        return Return;
+}
 module.exports = {
   API_getGenericConfiguration,
   API_updateConfig,
   api_getAverageWorkingHours,savePolicyDocument,API_deleteSecretKey,
   API_generateSecretKey,API_getAllSecretKeys,API_regenerateSecretKey,
   getAllPagesWithStatus,API_deleteAttendanceStatsSummary,API_getEmployeesLeavesStats,
-  getEmployeesHistoryStats
+  getEmployeesHistoryStats,API_getStatsAttendanceSummary
 };

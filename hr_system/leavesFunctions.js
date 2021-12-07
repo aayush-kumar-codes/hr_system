@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const _=require("lodash")
 const secret = require("./config.json");
 const { Op, QueryTypes, json } = require("sequelize");
 const db = require("./db");
@@ -975,7 +976,7 @@ let  getEmployeeRHStats=async(userid,year,db)=>{
       let rh_per_year = (no_of_quaters * rh_per_quater ) + rh_extra;
       let max_rh_can_be_taken_per_quarter = rh_per_quater;
       let rh_approved =rh_rejected =rh_left =rh_compensation_used =rh_compensation_pending =rh_can_be_taken_this_quarter = 0;
-      let rh_approved_names = {};let rh_rejected_names={} ;let rh_compensation_used_names ={};
+      let rh_approved_names = {};let rh_rejected_names=[] ;let rh_compensation_used_names ={};
       let quarters_available ={};
       let user =await getUserInfo(userid,db);
       user=user[0];
@@ -1012,7 +1013,7 @@ let  getEmployeeRHStats=async(userid,year,db)=>{
   }
   // console.log(quarters.slice(4),121212)
   // quarters_available = quarters.slice(slice_quarter);
-  let rh_data_quaterly =await getPreviousTakenRHQuaterly(userid, year,db);                        
+  let rh_data_quaterly =await getPreviousTakenRHQuaterly(userid, year,db);                    
   let rh_leaves =await getUserRHLeaves( userid, year ,db);
   let rh_compensation_leaves =await getUserApprovedRHCompensationLeaves( userid, year,db);
   let rh_approved_leaves =await getUserApprovedRHLeaves( userid, year,db);
@@ -1028,13 +1029,14 @@ let  getEmployeeRHStats=async(userid,year,db)=>{
           }
           rh_approved =rh_approved_names.length;
            // RH Rejected Leaves
-          rh_rejected_leaves = array_values(aFilter(rh_leaves, function(iter){
+          rh_rejected_leaves =await (aFilter(rh_leaves, function(iter){
             return iter['status'] == 'Rejected';
-        }));
+        }
+        )); console.log(rh_list);
                 // RH Rejected Names
-                rh_rejected_dates = array_values(rh_rejected_leaves.map(function(iter){ return iter['from_date']; }));
+                rh_rejected_dates =await  array_values(rh_rejected_leaves.map(function(iter){ return iter['from_date']; }));
                 for(let date of  rh_rejected_dates){
-                    names = array_values(aFilter(rh_list.map(function(iter){
+                    names = await array_values(aFilter(rh_list.map(function(iter){
                         return date == iter['raw_date'] ? iter['name'] : false;
                     })));
                     rh_rejected_names =rh_rejected_names.concat( names);
@@ -1042,12 +1044,15 @@ let  getEmployeeRHStats=async(userid,year,db)=>{
                 rh_rejected = rh_rejected_names.length;
                 // get all approved compensation dates
 
-                rh_compensation_used_dates = await onlyUnique(await array_merge( array_filter(rh_compensation_leaves.map(function($iter){
+                rh_compensation_used_dates = await onlyUnique(await  _.merge( aFilter(rh_compensation_leaves.map(function(iter){
                   return iter['rh_dates'] ? JSON.parse(iter['rh_dates']) : null;         
               }))));
+              console.log(rh_compensation_used_dates)
+
 };
 
 let  onlyUnique=async(value, index, self)=>{
+  console.log(index)
   return self.indexOf(value) === index;
 }
 
@@ -1365,8 +1370,7 @@ let updateLeaveStatus = async (leaveid, newstatus, messagetouser, db, req) => {
     if (messagetouser == "") {
       messagetouser = "N/A";
     }
-    console.log(leaveDetails, 3323223323223);
-    let userid = leaveDetails[0].id;
+    let userid = leaveDetails[0].user_Id;
     messageBody = [];
     (messageBody.newStatus = newstatus),
       (messageBody.fromDate = from_date),
@@ -1395,7 +1399,7 @@ let updateLeaveStatus = async (leaveid, newstatus, messagetouser, db, req) => {
     emailData.templateData = templateData;
     // self::sendTemplateEmail(emailData);
 
-    r_message = "Leave status changes from $old_status to $newstatus";
+    r_message = `Leave status changes from ${old_status} to ${newstatus};`
     console.log("end of function", 122332);
   } else {
     r_message = "No such leave found";

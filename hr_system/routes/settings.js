@@ -79,4 +79,10 @@ router.post(
   settignsController.get_employees_history_stats,
   handlers.responseForAddMachine
 );
+router.post(
+  "/get_stats_attendance_summary",
+  middleware.AuthForHrAdmin,
+  settignsController.get_stats_attendance_summary,
+  handlers.responseForAddMachine
+);
 module.exports = router;

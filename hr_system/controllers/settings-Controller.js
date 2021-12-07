@@ -5,7 +5,7 @@ const {
   api_getAverageWorkingHours,savePolicyDocument,API_generateSecretKey,
   API_getAllSecretKeys,API_regenerateSecretKey,API_deleteSecretKey,
   getAllPagesWithStatus,API_deleteAttendanceStatsSummary,API_getEmployeesLeavesStats,
-  getEmployeesHistoryStats
+  getEmployeesHistoryStats,API_getStatsAttendanceSummary
 } = require("../settingsFunction");
 const{getAllPages}=require("../roles")
 
@@ -208,6 +208,21 @@ exports.get_employees_leaves_stats=async(req,res,next)=>{
 exports.get_employees_history_stats=async(req,res,next)=>{
   try{
     let resp = await getEmployeesHistoryStats(db);
+    res.status_code=200;
+    res.message=resp.data;
+    res.error=resp.error;
+    return next();
+  }catch(error){
+    console.log(error)
+    res.status_code=500;
+    res.message=resp.error;
+    res.error=resp.error;
+    return next();
+  }
+};
+exports.get_stats_attendance_summary=async(req,res,next)=>{
+  try{
+    let resp = await API_getStatsAttendanceSummary(db);
     res.status_code=200;
     res.message=resp.data;
     res.error=resp.error;
