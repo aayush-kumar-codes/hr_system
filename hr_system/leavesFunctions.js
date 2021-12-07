@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const _=require("lodash")
+const _ = require("lodash");
 const secret = require("./config.json");
 const { Op, QueryTypes, json } = require("sequelize");
 const db = require("./db");
@@ -61,6 +61,8 @@ let getUserMonthAttendace = async (userid, year, month, db) => {
 
   let Return = [];
   for (let [k, v] of Object.entries(genericMonthDays)) {
+    // console.log("<<<<<<<<<<<<<<<>>>>>>>>>>>>>");
+    // console.log(v);
     if (k in userMonthPunching) {
       v["in_time"] = userMonthPunching[k]["in_time"];
       v["out_time"] = userMonthPunching[k]["out_time"];
@@ -81,7 +83,8 @@ let getUserMonthAttendace = async (userid, year, month, db) => {
       Return[k] = v;
     }
   }
-
+  // console.log("::::::::::::::");
+  // console.log(Return);
   for (let [k, v] of Object.entries(Return)) {
     if (k in userMonthLeaves) {
       leave_number_of_days = userMonthLeaves[k]["no_of_days"];
@@ -121,6 +124,8 @@ let getUserMonthAttendace = async (userid, year, month, db) => {
   }
   let finalReturn = [];
   for (let [k, r] of Object.entries(Return)) {
+    // console.log("::::::::::::::::::;");
+    // console.log(r);
     finalReturn.push(r);
   }
   return finalReturn;
@@ -130,6 +135,8 @@ let getGenericMonthSummary = async (year, month, userid = false, db) => {
   // DEFAULT_WORKING_HOURS = $_ENV['DEFAULT_WORKING_HOURS'] ? $_ENV['DEFAULT_WORKING_HOURS'] : "09:00";
   let DEFAULT_WORKING_HOURS = "9:00";
   let daysOfMonth = await getDaysOfMonth(year, month, db);
+  // console.log("?????????????????");
+  // console.log(daysOfMonth);
   for (let [kk, pp] of Object.entries(daysOfMonth)) {
     daysOfMonth[kk]["office_working_hours"] = DEFAULT_WORKING_HOURS;
   }
@@ -182,6 +189,7 @@ let getGenericMonthSummary = async (year, month, userid = false, db) => {
       daysOfMonth[key]["orignal_total_time"] = orignal_total_time;
     }
   }
+  // console.log(daysOfMonth, "???????????????");
   return daysOfMonth;
 };
 let getNonworkingdayAsWorking = async (year, month, db) => {
@@ -194,6 +202,9 @@ let getDaysOfMonth = async (year, month) => {
   let list = [];
   for (d = 1; d <= 31; d++) {
     let date = new Date();
+    let newd = `${date.getFullYear()}-${
+      date.getMonth() + 1
+    }-${date.getDate()}`;
     date.setHours(12);
     date.setMinutes(0);
     date.setSeconds(0);
@@ -201,7 +212,7 @@ let getDaysOfMonth = async (year, month) => {
     date.setDate(d);
     date.setFullYear(year);
     if (date.getMonth() == month) {
-      let c_full_date = date;
+      let c_full_date = newd;
       let c_date = date.getDate();
       let days = [
         "Sunday",
@@ -239,9 +250,10 @@ let _addRequiredKeysForADay = async (days) => {
   return Return;
 };
 let getUserMangedHours = async (userid, db) => {
-  let rows =
-    (`SELECT * FROM user_working_hours WHERE user_Id = userid order by id DESC`,
-      { type: QueryTypes.SELECT });
+  let rows = await db.sequelize.query(
+    `SELECT * FROM user_working_hours WHERE user_Id = ${userid} order by id DESC`,
+    { type: QueryTypes.SELECT }
+  );
   return rows;
 };
 let getHolidaysOfMonth = async (year, month, models) => {
@@ -439,17 +451,28 @@ let getUserMonthLeaves = async (userid, year, month, db) => {
 // console.log(daylist)
 
 let _getDatesBetweenTwoDates = async (startDate, endDate) => {
-  let currentDate=new Date(startDate).getDate()+1
-  startDate=new Date(startDate).setDate(currentDate)
-  let getDaysArray = function(startDate, endDate) {
-    for(var arr=[],dt=new Date(startDate); dt<=endDate; dt.setDate(dt.getDate()+1)){
-        arr.push(new Date(dt));
-    }
-    return arr;
-  };
-  let Return = getDaysArray(new Date(startDate),new Date(endDate));
-  Return.map((v)=>v.toISOString().slice(0,10)).join("")
-  return Return;
+  try {
+    let currentDate = new Date(startDate).getDate() + 1;
+    startDate = new Date(startDate).setDate(currentDate);
+    let getDaysArray = function (startDate, endDate) {
+      for (
+        var arr = [], dt = new Date(startDate);
+        dt <= endDate;
+        dt.setDate(dt.getDate() + 1)
+      ) {
+        let d = new Date(dt);
+        let date = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+        arr.push(date);
+      }
+      return arr;
+    };
+    let Return = getDaysArray(new Date(startDate), new Date(endDate));
+    // Return.map((v) => v.toISOString().slice(0, 10)).join("");
+    return Return;
+  } catch (error) {
+    console.log(error);
+    throw new Error(error);
+  }
 };
 let API_deleteHoliday = async (holiday_id, db) => {
   let r_error = 0;
@@ -710,13 +733,13 @@ let applyLeave = async (
 
   // Check for RH Quarterwise
   // if (leave_type.toLowerCase() == "restricted") {
-    let rh_check = await checkRHQuarterWise(userid, from_date,db);
-    if (rh_check["check"]) {
-      Return.error = 1;
-      Return.data = {};
-      Return.data.message = rh_check["message"];
-      return Return;
-    }
+  let rh_check = await checkRHQuarterWise(userid, from_date, db);
+  if (rh_check["check"]) {
+    Return.error = 1;
+    Return.data = {};
+    Return.data.message = rh_check["message"];
+    return Return;
+  }
   // }
 
   // Check for RH Compensation
@@ -841,46 +864,64 @@ let applyLeave = async (
   }
 };
 // let checkLeavesClashOfSameTeamMember=async()
-let checkRHQuarterWise = async (userid, from_date,db) => {
+let checkRHQuarterWise = async (userid, from_date, db) => {
   let check = false;
   let Return = {};
-  let rh_config = await getConfigByType("rh_config",db);
-  let no_of_quaters =(Object.keys(await getAllQuarters()))
-  no_of_quaters=(no_of_quaters.length)
+  let rh_config = await getConfigByType("rh_config", db);
+  let no_of_quaters = Object.keys(await getAllQuarters());
+  no_of_quaters = no_of_quaters.length;
   let rh_extra = rh_config["rh_extra"];
   let rh_can_be_taken_per_quarter = rh_config["rh_per_quater"];
   let rh_can_be_taken = no_of_quaters * rh_can_be_taken_per_quarter;
   let max_rh_can_be_taken_per_quarter = rh_can_be_taken_per_quarter;
-  let user = await getUserInfo(userid,db);
-  user=user[0];
+  let user = await getUserInfo(userid, db);
+  user = user[0];
   // if( user[0]['training_completion_date'] != null && user[0]['training_completion_date'] != '0000-00-00' && user[0]['training_completion_date'] != '1970-01-01' && new Date(user[0]['training_completion_date']) < new Date() ) {
 
-  
-    let from_date_year =new Date (from_date).getFullYear();
-    let from_date_month = new Date(from_date).getMonth()+1;
-    let current_date = new Date();
-    let current_year = new Date().getFullYear()
-    let current_month=new Date().getMonth();
-    let current_quarter = await getQuarterByMonth();
-    let confirm_year = new Date(user['training_completion_date']).getFullYear();
-    let confirm_month =new Date(user['training_completion_date']).getMonth();
-    let confirm_quarter = await getQuarterByMonth(confirm_month,db);
-    let from_date_quarter =await getQuarterByMonth(from_date_month,db);
-    let rh_leaves_all =await getUserRHLeaves(userid,current_year,db);
-    let rh_list =(await getMyRHLeaves(current_year,db)).map( function(iter)
-    {
-      return iter['raw_date']; 
+  let from_date_year = new Date(from_date).getFullYear();
+  let from_date_month = new Date(from_date).getMonth() + 1;
+  let current_date = new Date();
+  let current_year = new Date().getFullYear();
+  let current_month = new Date().getMonth();
+  let current_quarter = await getQuarterByMonth();
+  let confirm_year = new Date(user["training_completion_date"]).getFullYear();
+  let confirm_month = new Date(user["training_completion_date"]).getMonth();
+  let confirm_quarter = await getQuarterByMonth(confirm_month, db);
+  let from_date_quarter = await getQuarterByMonth(from_date_month, db);
+  let rh_leaves_all = await getUserRHLeaves(userid, current_year, db);
+  let rh_list = (await getMyRHLeaves(current_year, db)).map(function (iter) {
+    return iter["raw_date"];
+  });
+  let rh_leaves = rh_leaves_all.map(function (iter) {
+    return iter["from_date"];
+  });
+  let rh_approved = (
+    await getUserApprovedRHLeaves(userid, current_year, db)
+  ).map(function (iter) {
+    return iter["from_date"];
+  });
+  let rh_approved_dates = (
+    await getUserApprovedRHLeaves(userid, current_year, db)
+  ).map(function (iter) {
+    return iter["from_date"];
+  });
+  let rh_approved_count = (
+    await getUserApprovedRHLeaves(userid, current_year, db)
+  )
+    .map(function (iter) {
+      return iter["no_of_days"];
     })
-    let rh_leaves = rh_leaves_all.map( function(iter){ return iter['from_date']; });
-    let rh_approved = (await getUserApprovedRHLeaves(userid, current_year,db)).map( function(iter){ return iter['from_date']; });
-    let rh_approved_dates = (await getUserApprovedRHLeaves(userid, current_year,db)).map(function(iter){ return iter['from_date']; },)
-    let rh_approved_count =((await getUserApprovedRHLeaves(userid, current_year,db)).map( function(iter){ return iter['no_of_days']; },)).reduce((a, b) => a + b, 0);
-    let rh_compensated = ((await getUserApprovedRHCompensationLeaves(userid,current_year,db)).map( function(iter){
-       return iter['no_of_days']; 
-      })).reduce((a,b)=>a+b,0);
-    let rh_stats =await getEmployeeRHStats(userid,current_year,db);
-    max_rh_can_be_taken_per_quarter = rh_stats['rh_can_be_taken_this_quarter'];
-    console.log(231221213)
+    .reduce((a, b) => a + b, 0);
+  let rh_compensated = (
+    await getUserApprovedRHCompensationLeaves(userid, current_year, db)
+  )
+    .map(function (iter) {
+      return iter["no_of_days"];
+    })
+    .reduce((a, b) => a + b, 0);
+  let rh_stats = await getEmployeeRHStats(userid, current_year, db);
+  max_rh_can_be_taken_per_quarter = rh_stats["rh_can_be_taken_this_quarter"];
+  console.log(231221213);
   //     if( $confirm_year == $current_year ){
 
   //         $remaining_quarters = $no_of_quaters - $confirm_quarter['quarter'];
@@ -965,249 +1006,296 @@ let checkRHQuarterWise = async (userid, from_date,db) => {
 
   // return $return;
 };
-let  getEmployeeRHStats=async(userid,year,db)=>{
-      let Return = {};
-      let rh_can_be_taken = 0;
-      let rh_config_default =await getConfigByType('rh_config',db);                
-      let rh_per_quater = rh_config_default['rh_per_quater'];
-      let rh_extra = rh_config_default['rh_extra'];
-      let quarters =await getAllQuarters();
-      let no_of_quaters = quarters.length;
-      let rh_per_year = (no_of_quaters * rh_per_quater ) + rh_extra;
-      let max_rh_can_be_taken_per_quarter = rh_per_quater;
-      let rh_approved =rh_rejected =rh_left =rh_compensation_used =rh_compensation_pending =rh_can_be_taken_this_quarter = 0;
-      let rh_approved_names = {};let rh_rejected_names=[] ;let rh_compensation_used_names ={};
-      let quarters_available ={};
-      let user =await getUserInfo(userid,db);
-      user=user[0];
-      // if(user['training_completion_date'] != null && user['training_completion_date'] != '0000-00-00' && user['training_completion_date'] != '1970-01-01' && new Date(user['training_completion_date']).getTime() < new Date().getTime() ) {
+let getEmployeeRHStats = async (userid, year, db) => {
+  let Return = {};
+  let rh_can_be_taken = 0;
+  let rh_config_default = await getConfigByType("rh_config", db);
+  let rh_per_quater = rh_config_default["rh_per_quater"];
+  let rh_extra = rh_config_default["rh_extra"];
+  let quarters = await getAllQuarters();
+  let no_of_quaters = quarters.length;
+  let rh_per_year = no_of_quaters * rh_per_quater + rh_extra;
+  let max_rh_can_be_taken_per_quarter = rh_per_quater;
+  let rh_approved =
+    (rh_rejected =
+    rh_left =
+    rh_compensation_used =
+    rh_compensation_pending =
+    rh_can_be_taken_this_quarter =
+      0);
+  let rh_approved_names = {};
+  let rh_rejected_names = [];
+  let rh_compensation_used_names = {};
+  let quarters_available = {};
+  let user = await getUserInfo(userid, db);
+  user = user[0];
+  // if(user['training_completion_date'] != null && user['training_completion_date'] != '0000-00-00' && user['training_completion_date'] != '1970-01-01' && new Date(user['training_completion_date']).getTime() < new Date().getTime() ) {
 
-       let current_year = new Date().getFullYear();
-       let confirm_date =user['training_completion_date'];
-       let confirm_year = new Date(confirm_date).getFullYear();
-       let confirm_month = new Date(user['training_completion_date']).getMonth()+1;
-       let confirm_quarter =await getQuarterByMonth(confirm_month,db);
-       let current_quarter =await getQuarterByMonth();
-       let slice_quarter = 0;
-      
-       if(confirm_year == year ){
- 
-        let remaining_quarters = no_of_quaters - confirm_quarter['quarter'];
-        let slice_quarter = confirm_quarter['quarter'];
-        let eligible_for_confirm_quarter_rh = false;
-        if( confirm_quarter['months'][0] == confirm_month ){
-            eligible_for_confirm_quarter_rh = true;
-        }
-        if( eligible_for_confirm_quarter_rh ){
-            rh_can_be_taken = (remaining_quarters + 1) * rh_per_quater;
-            slice_quarter = slice_quarter - 1;
-        } else {
-            rh_can_be_taken = remaining_quarters * rh_per_quater;
-        }    
+  let current_year = new Date().getFullYear();
+  let confirm_date = user["training_completion_date"];
+  let confirm_year = new Date(confirm_date).getFullYear();
+  let confirm_month = new Date(user["training_completion_date"]).getMonth() + 1;
+  let confirm_quarter = await getQuarterByMonth(confirm_month, db);
+  let current_quarter = await getQuarterByMonth();
+  let slice_quarter = 0;
 
-    } else if( confirm_year > year ) {
-      rh_can_be_taken = 0;
-
+  if (confirm_year == year) {
+    let remaining_quarters = no_of_quaters - confirm_quarter["quarter"];
+    let slice_quarter = confirm_quarter["quarter"];
+    let eligible_for_confirm_quarter_rh = false;
+    if (confirm_quarter["months"][0] == confirm_month) {
+      eligible_for_confirm_quarter_rh = true;
+    }
+    if (eligible_for_confirm_quarter_rh) {
+      rh_can_be_taken = (remaining_quarters + 1) * rh_per_quater;
+      slice_quarter = slice_quarter - 1;
+    } else {
+      rh_can_be_taken = remaining_quarters * rh_per_quater;
+    }
+  } else if (confirm_year > year) {
+    rh_can_be_taken = 0;
   } else {
-      rh_can_be_taken = rh_per_year;
+    rh_can_be_taken = rh_per_year;
   }
   // console.log(quarters.slice(4),121212)
   // quarters_available = quarters.slice(slice_quarter);
-  let rh_data_quaterly =await getPreviousTakenRHQuaterly(userid, year,db);                    
-  let rh_leaves =await getUserRHLeaves( userid, year ,db);
-  let rh_compensation_leaves =await getUserApprovedRHCompensationLeaves( userid, year,db);
-  let rh_approved_leaves =await getUserApprovedRHLeaves( userid, year,db);
-  let rh_list =await getMyRHLeaves(year,db);
-          // RH Approved Name
-          rh_approved_dates = await array_values(rh_approved_leaves.map(function(iter){ return iter['from_date']; }));
-          for( let date of rh_approved_dates){
-          names = array_values((rh_list.map(function(iter){
-          return date == iter['raw_date'] ? iter['name'] : false;
-          })).filter(await aFilter()));
-         
-          rh_approved_names =rh_approved_names.concat(names);
-          }
-          rh_approved =rh_approved_names.length;
-           // RH Rejected Leaves
-          rh_rejected_leaves =await (aFilter(rh_leaves, function(iter){
-            return iter['status'] == 'Rejected';
-        }
-        )); console.log(rh_list);
-                // RH Rejected Names
-                rh_rejected_dates =await  array_values(rh_rejected_leaves.map(function(iter){ return iter['from_date']; }));
-                for(let date of  rh_rejected_dates){
-                    names = await array_values(aFilter(rh_list.map(function(iter){
-                        return date == iter['raw_date'] ? iter['name'] : false;
-                    })));
-                    rh_rejected_names =rh_rejected_names.concat( names);
-                }   
-                rh_rejected = rh_rejected_names.length;
-                // get all approved compensation dates
+  let rh_data_quaterly = await getPreviousTakenRHQuaterly(userid, year, db);
+  let rh_leaves = await getUserRHLeaves(userid, year, db);
+  let rh_compensation_leaves = await getUserApprovedRHCompensationLeaves(
+    userid,
+    year,
+    db
+  );
+  let rh_approved_leaves = await getUserApprovedRHLeaves(userid, year, db);
+  let rh_list = await getMyRHLeaves(year, db);
+  // RH Approved Name
+  rh_approved_dates = await array_values(
+    rh_approved_leaves.map(function (iter) {
+      return iter["from_date"];
+    })
+  );
+  for (let date of rh_approved_dates) {
+    names = array_values(
+      rh_list
+        .map(function (iter) {
+          return date == iter["raw_date"] ? iter["name"] : false;
+        })
+        .filter(await aFilter())
+    );
 
-                rh_compensation_used_dates = await onlyUnique(await  _.merge( aFilter(rh_compensation_leaves.map(function(iter){
-                  return iter['rh_dates'] ? JSON.parse(iter['rh_dates']) : null;         
-              }))));
-              console.log(rh_compensation_used_dates)
-
-};
-
-let  onlyUnique=async(value, index, self)=>{
-  console.log(index)
-  return self.indexOf(value) === index;
-}
-
-let aFilter=async(i)=>{
-  return i;
-}
-let array_values=async(input)=>{
-  const tmpArr = []
-  let key = ''
-  for (key in input) {
-    tmpArr[tmpArr.length] = input[key]
+    rh_approved_names = rh_approved_names.concat(names);
   }
-  return tmpArr
-}
-let getPreviousTakenRHQuaterly=async(userid, year,db)=>
-{
-    let rh_data_quaterly = rh_dates = [];        
-    let rh_approved=await getUserApprovedRHLeaves(userid,year,db);
-    let rh_compensation_approved =await getUserApprovedRHCompensationLeaves( userid, year ,db);
-    let total_rh =(rh_approved.concat(rh_compensation_approved));
-    for( let rh of total_rh ){
-        let all_dates_btw_dates = await getDaysBetweenLeaves(rh['from_date'], $rh['to_date']);            
-        for(let day of  all_dates_btw_dates['data']['days']){
-            if( day['type'] == 'working' ){
-                rh_dates= day['full_date'];
-            }
-        }
-    }        
-    for(let date of rh_dates){
-        month = new Date(date);
-        let quarter =await getQuarterByMonth(month,db);            
-        if( array_key_exists(quarter['quarter'], rh_data_quaterly) ){
-            rh_data_quaterly[quarter['quarter']] += 1;
-        } else {
-            rh_data_quaterly[quarter['quarter']] = 1;
-        }
+  rh_approved = rh_approved_names.length;
+  // RH Rejected Leaves
+  rh_rejected_leaves = await aFilter(rh_leaves, function (iter) {
+    return iter["status"] == "Rejected";
+  });
+  console.log(rh_list);
+  // RH Rejected Names
+  rh_rejected_dates = await array_values(
+    rh_rejected_leaves.map(function (iter) {
+      return iter["from_date"];
+    })
+  );
+  for (let date of rh_rejected_dates) {
+    names = await array_values(
+      aFilter(
+        rh_list.map(function (iter) {
+          return date == iter["raw_date"] ? iter["name"] : false;
+        })
+      )
+    );
+    rh_rejected_names = rh_rejected_names.concat(names);
+  }
+  rh_rejected = rh_rejected_names.length;
+  // get all approved compensation dates
+
+  rh_compensation_used_dates = await onlyUnique(
+    await _.merge(
+      aFilter(
+        rh_compensation_leaves.map(function (iter) {
+          return iter["rh_dates"] ? JSON.parse(iter["rh_dates"]) : null;
+        })
+      )
+    )
+  );
+  console.log(rh_compensation_used_dates);
+};
+
+let onlyUnique = async (value, index, self) => {
+  console.log(index);
+  return self.indexOf(value) === index;
+};
+
+let aFilter = async (i) => {
+  return i;
+};
+let array_values = async (input) => {
+  const tmpArr = [];
+  let key = "";
+  for (key in input) {
+    tmpArr[tmpArr.length] = input[key];
+  }
+  return tmpArr;
+};
+let getPreviousTakenRHQuaterly = async (userid, year, db) => {
+  let rh_data_quaterly = (rh_dates = []);
+  let rh_approved = await getUserApprovedRHLeaves(userid, year, db);
+  let rh_compensation_approved = await getUserApprovedRHCompensationLeaves(
+    userid,
+    year,
+    db
+  );
+  let total_rh = rh_approved.concat(rh_compensation_approved);
+  for (let rh of total_rh) {
+    let all_dates_btw_dates = await getDaysBetweenLeaves(
+      rh["from_date"],
+      $rh["to_date"]
+    );
+    for (let day of all_dates_btw_dates["data"]["days"]) {
+      if (day["type"] == "working") {
+        rh_dates = day["full_date"];
+      }
     }
-    
-    return rh_data_quaterly;
-}
+  }
+  for (let date of rh_dates) {
+    month = new Date(date);
+    let quarter = await getQuarterByMonth(month, db);
+    if (array_key_exists(quarter["quarter"], rh_data_quaterly)) {
+      rh_data_quaterly[quarter["quarter"]] += 1;
+    } else {
+      rh_data_quaterly[quarter["quarter"]] = 1;
+    }
+  }
 
+  return rh_data_quaterly;
+};
 
-let getUserApprovedRHLeaves=async( userid, year,db)=>{   
-  let q = await db.sequelize.query(`SELECT * FROM leaves WHERE leave_type = 'Restricted' AND user_Id = '${userid}' AND status = 'Approved' AND from_date LIKE '${year}%'`,{type:QueryTypes.SELECT});
+let getUserApprovedRHLeaves = async (userid, year, db) => {
+  let q = await db.sequelize.query(
+    `SELECT * FROM leaves WHERE leave_type = 'Restricted' AND user_Id = '${userid}' AND status = 'Approved' AND from_date LIKE '${year}%'`,
+    { type: QueryTypes.SELECT }
+  );
   return q;
 };
-let getUserApprovedRHCompensationLeaves=async(userid, year,db)=>{
-  let q =await db.sequelize.query(`SELECT * FROM leaves WHERE leave_type = 'RH Compensation' AND user_Id = '${userid}' AND status = 'Approved' AND from_date LIKE '${year}%'`,{type:QueryTypes.SELECT});
+let getUserApprovedRHCompensationLeaves = async (userid, year, db) => {
+  let q = await db.sequelize.query(
+    `SELECT * FROM leaves WHERE leave_type = 'RH Compensation' AND user_Id = '${userid}' AND status = 'Approved' AND from_date LIKE '${year}%'`,
+    { type: QueryTypes.SELECT }
+  );
   return q;
-}
+};
 
-let getQuarterByMonth=async( month = false,db)=>{
-  month = month ? month :new Date().getMonth();
-  let  current_quarter = false;
-  let quarters =await getAllQuarters();
-  for(let[key,quarter] of Object.entries(quarters)){
-      if( quarter.includes(month) ) {
-        current_quarter={};
-        current_quarter["quarter"]=key
-        current_quarter["months"] = quarter;
-        break;
-      }
+let getQuarterByMonth = async (month = false, db) => {
+  month = month ? month : new Date().getMonth();
+  let current_quarter = false;
+  let quarters = await getAllQuarters();
+  for (let [key, quarter] of Object.entries(quarters)) {
+    if (quarter.includes(month)) {
+      current_quarter = {};
+      current_quarter["quarter"] = key;
+      current_quarter["months"] = quarter;
+      break;
+    }
   }
   return current_quarter;
-}
-let getAllQuarters=async()=>{
+};
+let getAllQuarters = async () => {
   let quarters = [];
 
-     quarters["1"]=[ 1, 2, 3 ]
-     quarters["2"] = [ 4, 5, 6 ]
-     quarters["3"] = [ 7, 8, 9 ]
-     quarters["4"] = [ 10, 11, 12]
+  quarters["1"] = [1, 2, 3];
+  quarters["2"] = [4, 5, 6];
+  quarters["3"] = [7, 8, 9];
+  quarters["4"] = [10, 11, 12];
   return quarters;
-}
-let  getConfigByType=async( type,db)=>{
-  let row =await db.sequelize.query (`select * from config where type='${type}' `,{type:QueryTypes.SELECT});
-  if( row.length == 0 ){
-      await insertDefaultConfigByType(type,db);
-      return await getConfigByType(type,db);
+};
+let getConfigByType = async (type, db) => {
+  let row = await db.sequelize.query(
+    `select * from config where type='${type}' `,
+    { type: QueryTypes.SELECT }
+  );
+  if (row.length == 0) {
+    await insertDefaultConfigByType(type, db);
+    return await getConfigByType(type, db);
   } else {
-      return JSON.parse(row[0]['value']);
+    return JSON.parse(row[0]["value"]);
   }
 };
 
-let insertDefaultConfigByType= async(type,db)=>{
+let insertDefaultConfigByType = async (type, db) => {
   let defaultConfigValue = "";
   switch (type) {
-      case ('attendance_csv'):
-          defaultConfigValue = JSON.stringify({
-              "user_id" : {},
-              "time" :{},
-          });
-          break;
-      case 'reset_password':
-          defaultConfigValue = JSON.stringify({
-              "days" : "",
-              "status" : 0,
-              "last_updated" : new Date()
-          });
-          break;
+    case "attendance_csv":
+      defaultConfigValue = JSON.stringify({
+        user_id: {},
+        time: {},
+      });
+      break;
+    case "reset_password":
+      defaultConfigValue = JSON.stringify({
+        days: "",
+        status: 0,
+        last_updated: new Date(),
+      });
+      break;
 
-      case 'web_show_salary':
-          defaultConfigValue = "0";
-          break;
+    case "web_show_salary":
+      defaultConfigValue = "0";
+      break;
 
-      case 'login_types':
-          defaultConfigValue = JSON.stringify({
-              "normal_login" : true,
-              "google_login" : false,
-              "google_auth_client_id" : ""
-          });
-          break;
+    case "login_types":
+      defaultConfigValue = JSON.stringify({
+        normal_login: true,
+        google_login: false,
+        google_auth_client_id: "",
+      });
+      break;
 
-      case 'alternate_saturday':
-          arr = {}
-          defaultConfigValue = JSON.stringify(arr);
-          break;
+    case "alternate_saturday":
+      arr = {};
+      defaultConfigValue = JSON.stringify(arr);
+      break;
 
-      case 'page_headings':
-          arr = {};
-          // // format
-          // // $arr 
-          // //   arr .reference = "",
-          // //    arr .value= ""
-          //  // );
-          defaultConfigValue = JSON.stringify(arr);
-          break;
+    case "page_headings":
+      arr = {};
+      // // format
+      // // $arr
+      // //   arr .reference = "",
+      // //    arr .value= ""
+      //  // );
+      defaultConfigValue = JSON.stringify(arr);
+      break;
 
-      case 'inventory_audit_comments':
-          defaultConfigValue = JSON.stringify({
-              "all_good" : "Nothing To Report (all good)",
-              "issue" : "Issue To Report",
-              "critical_issue" : "Critical Issue To Report"
-          });
-          break;
+    case "inventory_audit_comments":
+      defaultConfigValue = JSON.stringify({
+        all_good: "Nothing To Report (all good)",
+        issue: "Issue To Report",
+        critical_issue: "Critical Issue To Report",
+      });
+      break;
 
-      case 'attendance_late_days':
-          defaultConfigValue = "0";
-          break;
+    case "attendance_late_days":
+      defaultConfigValue = "0";
+      break;
 
-      case 'rh_config':
-          defaultConfigValue = JSON.stringify({                   
-              'rh_per_quater' : 1,
-              'rh_extra' : 1,
-              'rh_rejection_setting' : false,
-          });
-          break;
+    case "rh_config":
+      defaultConfigValue = JSON.stringify({
+        rh_per_quater: 1,
+        rh_extra: 1,
+        rh_rejection_setting: false,
+      });
+      break;
 
-      default:  
-          break;
-      }
-  if(defaultConfigValue != "" ){
-    let q =await db.sequelize.query(` INSERT INTO config( type, value ) VALUES( '${type}', '${defaultConfigValue}'`,{type:QueryTypes.INSERT});
+    default:
+      break;
   }
-}
+  if (defaultConfigValue != "") {
+    let q = await db.sequelize.query(
+      ` INSERT INTO config( type, value ) VALUES( '${type}', '${defaultConfigValue}'`,
+      { type: QueryTypes.INSERT }
+    );
+  }
+};
 
 let leaveDocRequest = async (leaveid, doc_request, comment, db) => {
   let leaveDetails = await getLeaveDetails(leaveid, db);
@@ -1399,7 +1487,7 @@ let updateLeaveStatus = async (leaveid, newstatus, messagetouser, db, req) => {
     emailData.templateData = templateData;
     // self::sendTemplateEmail(emailData);
 
-    r_message = `Leave status changes from ${old_status} to ${newstatus};`
+    r_message = `Leave status changes from ${old_status} to ${newstatus};`;
     console.log("end of function", 122332);
   } else {
     r_message = "No such leave found";
@@ -1713,7 +1801,6 @@ let deleteUserInOutTimeOfDay = async (userid, date, isadmin = true, db) => {
 let getDaysBetweenLeaves = async (startDate, endDate, db) => {
   // api calls
   let allDates = await _getDatesBetweenTwoDates(startDate, endDate, db);
-
   //extract year and month of b/w dates
   let yearMonth = [];
 
@@ -1994,14 +2081,14 @@ let _getNextMonth = async (year, month) => {
 let _beautyMonthSummary = async (monthAttendace, db) => {
   let r_actual_working_hours =
     (r_completed_working_hours =
-      r_pending_working_hours =
+    r_pending_working_hours =
       0);
 
   let WORKING_DAYS = (NON_WORKING_DAYS = LEAVE_DAYS = HALF_DAYS = 0);
 
   let r_actual_working_seconds =
     (r_completed_working_seconds =
-      r_pending_working_seconds =
+    r_pending_working_seconds =
       0);
 
   for (let [k, pp] of Object.entries(monthAttendace)) {
@@ -2201,7 +2288,7 @@ let _beautyMonthAttendance = async (monthAttendance) => {
   }
   return monthAttendance;
 };
-let getAllLeaves = async (req,db) => {
+let getAllLeaves = async (req, db) => {
   let currentDate = new Date();
   let month = currentDate.getMonth();
   month = month + 1 - 6;
@@ -2252,7 +2339,7 @@ let getAllLeaves = async (req,db) => {
           p["last_applied_leaves"] = lastLeaves;
         }
 
-        pendingLeaves.push(p)
+        pendingLeaves.push(p);
         delete rows[k];
       } else {
         rows[k]["last_applied_leaves"] = {};
@@ -2269,9 +2356,9 @@ let getAllLeaves = async (req,db) => {
     for (let [k, v] of Object.entries(newRows)) {
       newRows[k]["from_date"] = v["from_date"];
       newRows[k]["to_date"] = v["to_date"];
-      newRows[k]["applied_on"] = v["applied_on"]
+      newRows[k]["applied_on"] = v["applied_on"];
       /* get doc link */
-      newRows[k]["doc_link"] = await _getLeaveDocFullLink(v,db);
+      newRows[k]["doc_link"] = await _getLeaveDocFullLink(v, db);
     }
   }
 
@@ -2279,122 +2366,124 @@ let getAllLeaves = async (req,db) => {
   if (newRows.length > 0) {
     enabledUsersList = await getEnabledUsersList(req, db);
     for (let [k, p] of Object.entries(newRows)) {
-      let p_userid = p['user_Id'];
+      let p_userid = p["user_Id"];
       for (let [kkk, ev] of Object.entries(enabledUsersList)) {
-        if (p_userid == ev['user_Id']) {
-          newRows[k]['user_profile_name'] = ev['name'];
-          newRows[k]['user_profile_jobtitle'] = ev['jobtitle'];
+        if (p_userid == ev["user_Id"]) {
+          newRows[k]["user_profile_name"] = ev["name"];
+          newRows[k]["user_profile_jobtitle"] = ev["jobtitle"];
           // newRows[k]['user_profile_image'] = await _getEmployeeProfilePhoto(ev);
           break;
         }
       }
 
-      if (!p['rh_names']) {
+      if (!p["rh_names"]) {
         let names = [];
-        if (p['leave_type'] == 'RH Compensation') {
-          if (p['rh_dates']) {
-            dates = JSON.parse(p['rh_dates']);
+        if (p["leave_type"] == "RH Compensation") {
+          if (p["rh_dates"]) {
+            dates = JSON.parse(p["rh_dates"]);
             for (let date of dates) {
               for (let rh of rh_list) {
-                if (rh['raw_date'] == date) {
-                  names = rh['name'].trim();
+                if (rh["raw_date"] == date) {
+                  names = rh["name"].trim();
                 }
               }
             }
           }
         }
-        if (p['leave_type'] == 'Restricted') {
+        if (p["leave_type"] == "Restricted") {
           for (let rh of rh_list) {
-            if (rh['raw_date'] == p['from_date']) {
-              names = (rh['name']).trim();
+            if (rh["raw_date"] == p["from_date"]) {
+              names = rh["name"].trim();
             }
           }
         }
-        newRows[k]['rh_names'] = JSON.stringify(names);
+        newRows[k]["rh_names"] = JSON.stringify(names);
       }
     }
   }
-  newRows = newRows.filter(item => item);
+  newRows = newRows.filter((item) => item);
 
   let Return = {};
-  let r_data = {}
-  Return['error'] = 0;
-  r_data['message'] = '';
-  r_data['leaves'] = newRows;
-  Return['data'] = r_data;
+  let r_data = {};
+  Return["error"] = 0;
+  r_data["message"] = "";
+  r_data["leaves"] = newRows;
+  Return["data"] = r_data;
 
   return Return;
 };
 
-
-
-let  getUsersLeaves=async(userid,db)=>{
-    let list = [];
-       let year = new Date().getFullYear();
-    let rows = await db.sequelize.query(`SELECT * FROM leaves Where user_Id = ${userid} order by id DESC`,{type:QueryTypes.SELECT})
-    let rh_list = await getMyRHLeaves(year,db);
-    for(let [key,row] of Object.entries(rows)){
-        let names = [];
-        if(row['leave_type'] == 'RH Compensation' ){
-            if(row['rh_dates']) {                                    
-                let dates = JSON.parse(row['rh_dates']);                       
-                for(let date of dates ){
-                    for(let rh of rh_list){
-                        if( rh['raw_date'] == date ){
-                            names= rh['name'].trim();
-                        }                            
-                    }                  
-                }                    
+let getUsersLeaves = async (userid, db) => {
+  let list = [];
+  let year = new Date().getFullYear();
+  let rows = await db.sequelize.query(
+    `SELECT * FROM leaves Where user_Id = ${userid} order by id DESC`,
+    { type: QueryTypes.SELECT }
+  );
+  let rh_list = await getMyRHLeaves(year, db);
+  for (let [key, row] of Object.entries(rows)) {
+    let names = [];
+    if (row["leave_type"] == "RH Compensation") {
+      if (row["rh_dates"]) {
+        let dates = JSON.parse(row["rh_dates"]);
+        for (let date of dates) {
+          for (let rh of rh_list) {
+            if (rh["raw_date"] == date) {
+              names = rh["name"].trim();
             }
+          }
         }
-        if( row['leave_type'] == 'Restricted' ){                
-            for(let rh of rh_list){
-                if( rh['raw_date'] == row['from_date'] ){
-                    names= rh['name'].trim();
-                }                            
-            }
-        }            
-        rows[key]['rh_names'] = JSON.stringify(names);
-    }
-
-    return rows;
-}
-let API_getEmployeeRHStats=async(userid,year,db)=>{
-  let Return={};
-  year = year ? year :new Date().getFullYear();
-  let error = 0;
-  let stats =await getEmployeeRHStats(userid, year,db);
-  Return['error'] = error;
-  Return['data'] = stats;
-  return Return;
-}
-let  getMyLeaves=async(userid,db)=>{ 
-  let msg;
-  let userLeaves =await getUsersLeaves(userid,db);
-  if (userLeaves.length > 0) {
-      for(let [k,v] of Object.entries(userLeaves)) {
-          userLeaves[k]['from_date'] = new Date(v['from_date']);
-          userLeaves[k]['to_date'] = new Date(v['to_date']);
-          userLeaves[k]['applied_on'] = new Date(v['applied_on']);
-          userLeaves[k]['doc_link'] =await _getLeaveDocFullLink(v,db);
       }
-      msg="";
-  }else{
-  msg="no leave found"
+    }
+    if (row["leave_type"] == "Restricted") {
+      for (let rh of rh_list) {
+        if (rh["raw_date"] == row["from_date"]) {
+          names = rh["name"].trim();
+        }
+      }
+    }
+    rows[key]["rh_names"] = JSON.stringify(names);
+  }
+
+  return rows;
+};
+let API_getEmployeeRHStats = async (userid, year, db) => {
+  let Return = {};
+  year = year ? year : new Date().getFullYear();
+  let error = 0;
+  let stats = await getEmployeeRHStats(userid, year, db);
+  Return["error"] = error;
+  Return["data"] = stats;
+  return Return;
+};
+let getMyLeaves = async (userid, db) => {
+  let msg;
+  let userLeaves = await getUsersLeaves(userid, db);
+  if (userLeaves.length > 0) {
+    for (let [k, v] of Object.entries(userLeaves)) {
+      userLeaves[k]["from_date"] = new Date(v["from_date"]);
+      userLeaves[k]["to_date"] = new Date(v["to_date"]);
+      userLeaves[k]["applied_on"] = new Date(v["applied_on"]);
+      userLeaves[k]["doc_link"] = await _getLeaveDocFullLink(v, db);
+    }
+    msg = "";
+  } else {
+    msg = "no leave found";
   }
 
   let Return = {};
   let r_data = {};
   Return.error = 0;
-  r_data.message= msg;
+  r_data.message = msg;
   r_data.leaves = userLeaves;
   Return.data = r_data;
 
   return Return;
-}
+};
 
 module.exports = {
-  _secondsToTime,getGenericMonthSummary,
+  _secondsToTime,
+  getGenericMonthSummary,
   getDaysOfMonth,
   _getPreviousMonth,
   leaveDocRequest,
@@ -2411,6 +2500,8 @@ module.exports = {
   getDaysBetweenLeaves,
   getAllUsersPendingLeavesSummary,
   getUserMonthAttendace,
-  getAllLeaves,API_getEmployeeRHStats,
-  getMyLeaves,_getDatesBetweenTwoDates
+  getAllLeaves,
+  API_getEmployeeRHStats,
+  getMyLeaves,
+  _getDatesBetweenTwoDates,
 };
