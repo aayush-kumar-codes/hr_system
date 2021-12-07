@@ -11,5 +11,10 @@ router.post(
     attendanceControllers.month_attendance,
     handlers.responseForEmployee
   );
-
+  router.post(
+    "/get_all_user_previous_month_time",
+    middleware.AuthForHrEmployee,
+    attendanceControllers.get_all_user_previous_month_time,
+    handlers.responseForEmployee
+  );
 module.exports=router;

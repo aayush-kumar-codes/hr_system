@@ -1122,27 +1122,28 @@ let getRHListForUserCompensation=async(userid,year = false,db)=> {
           console.log(iter,1121)
         return (iter)
       }));
-  console.log("end of function",2121212)   
-//       // filter rh dates for compensation ( remove approved rh dates and get only rh dates before current date )
-//       final_dates = array_values(array_filter(array_diff(rh_list_dates, rh_approved_dates), function(iter) use (current_date) {            
-//           return strtotime(iter) < strtotime(current_date);
-//       }));
 
+      // filter rh dates for compensation ( remove approved rh dates and get only rh dates before current date )
+      final_dates =await  array_values(aFilter(rh_list_dates.filter(x => !rh_approved_dates.includes(x)), function(iter){            
+          iter1=new Date(iter).getTime()<new Date(current_date).getTime();
+         return (iter1);
+      }));
 //       // filter rh dates and remove approved compensated dates
-//       final_dates = !empty(rh_compensated_dates) ? array_values(array_diff(final_dates, rh_compensated_dates)) : final_dates;    
+      final_dates =_.isEmpty(rh_compensated_dates) ? array_values(final_dates.filter(x => !rh_compensated_dates.includes(x))) : final_dates;    
       
-//       // rh rejection setting        
-//       if( rh_rejection_setting ){
-//           rh_rejected_dates = array_filter(array_map(function(iter){
-//               return iter['status'] == 'Rejected' ? iter['from_date'] : false;
-//           }, self::getUserRHLeaves(userid, year)));                                 
-//           final_dates = !empty(rh_rejected_dates) ? array_values(array_intersect(final_dates, rh_rejected_dates)) : rh_rejected_dates;            
-//       }     
-
-//       // filter final dates according to confirmation date of user
-//       final_dates = array_values(array_map(function(iter) use (confirm_date){
-//           return strtotime(iter) > strtotime(confirm_date) ? iter : false;
-//       }, final_dates));
+      // rh rejection setting        
+      if( rh_rejection_setting ){
+          rh_rejected_dates = aFilter(await getUserRHLeaves(userid, year,db).map(function(iter){
+              return iter['status'] == 'Rejected' ? iter['from_date'] : false;
+          }));                                 
+          final_dates = !_.isEmpty(rh_rejected_dates) ? array_values(final_dates.filter(value => rh_rejected_dates.includes(value))) : rh_rejected_dates;            
+      }     
+console.log("end of function",2121212)   
+      // filter final dates according to confirmation date of user
+      final_dates = array_values(final_dates.map(function(iter){
+        let abcd= new Date(iter).getTime() > new Date(confirm_date).getTime() ? iter : false;
+          return abcd;
+      }, final_dates));
 
 //       // get final rh dates with details
 //       final_rh_list = array_values(array_filter(rh_list, function(iter) use (final_dates) {            
@@ -2477,9 +2478,30 @@ let  getMyLeaves=async(userid,db)=>{
 
   return Return;
 }
+let API_getAllEmployeesRHStats=async(year,db)=>{
+  let Return = {};
+  let stats = {};
+  year = year ? year : new Date().getFullYear();
+  let employees = await getEnabledUsersList('dateofjoining',db);
+  for( let employee of employees ){
+      let userid = employee['user_Id'];
+      let rh_stats =await getEmployeeRHStats(userid,year,db);
+      stats= {
+          'user_id': userid,
+          'name': employee['name'],
+          'designation': employee['jobtitle'],
+          'stats': rh_stats
+      };
+  }
+  Return['error'] = 0;
+  Return['data'] = stats;
+
+  return Return;
+}
 
 module.exports = {
   _secondsToTime,getGenericMonthSummary,
+  _getNextMonth,
   getDaysOfMonth,
   _getPreviousMonth,
   leaveDocRequest,
@@ -2497,5 +2519,7 @@ module.exports = {
   getAllUsersPendingLeavesSummary,
   getUserMonthAttendace,
   getAllLeaves,API_getEmployeeRHStats,
-  getMyLeaves,_getDatesBetweenTwoDates
+  getMyLeaves,_getDatesBetweenTwoDates,
+  API_getAllEmployeesRHStats,
+  _getCurrentMonth
 };
