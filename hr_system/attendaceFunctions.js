@@ -51,6 +51,32 @@ const getAllUserPrevMonthTime=async(year,month,db)=>{
     return Return;
 
 }
+
+let updateDayWorkingHours=async(date,time,db)=>{
+    let r_error=1;
+    let q =await db.sequelize.query(`SELECT * FROM working_hours WHERE date='${date}'`,{type:QueryTypes.SELECT});
+    let message = "";
+    if (Array.isArray(q)&& q.length > 0) {
+        q = await db.sequelize.query(`UPDATE working_hours set working_hours='${time}' WHERE date = '${date}'`,{type:QueryTypes.SELECT});
+        message = "Success Update";
+    } else {
+        q = await db.sequelize.query(`INSERT into working_hours ( working_hours, date  ) VALUES ( '${time}', '${date}' )`,{type:QueryTypes.INSERT});
+        message = "Success Insert";
+    }
+    let monthYear = {
+        'month' :new Date(date).getMonth+1,
+        'year' :new Date(date).getFullYear(),
+    }
+    r_error = 0;
+    Return = {};
+    let r_data = {};
+    Return['error'] = r_error;
+    r_data['message'] = message;
+    r_data['monthYear'] = monthYear;
+    Return['data'] = r_data;
+    return Return;
+
+}
 module.exports={
-   getAllUserPrevMonthTime
+   getAllUserPrevMonthTime,updateDayWorkingHours
 }

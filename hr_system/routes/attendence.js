@@ -17,4 +17,10 @@ router.post(
     attendanceControllers.get_all_user_previous_month_time,
     handlers.responseForEmployee
   );
+  router.post(
+    "/update_day_working_hours",
+    middleware.AuthForHrEmployee,
+    attendanceControllers.update_day_working_hours,
+    handlers.responseForEmployee
+  );
 module.exports=router;
