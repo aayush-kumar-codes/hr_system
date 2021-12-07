@@ -40,6 +40,7 @@ let responseForAddMachine = async (req, res) => {
     error: res.error,
     Data: {
       message: res.message,
+      data:res.data
     },
   });
 };
@@ -61,6 +62,12 @@ let addNewEmployeeResponseHandle = async (req, res) => {
     data: res.data,
   });
 };
+let responseForEmployee2 = async (req, res) => {
+  res.status(res.status_code).json({
+    error: res.error,
+    data: res.data,
+  });
+};
 let responseForLeaveApis = async (req, res) => {
   res.status(res.status_code).json({
     error: res.error,
@@ -77,5 +84,5 @@ module.exports = {
   responseForAddMachine,
   newResponse,
   resForList,
-  responseForLeaveApis,
+  responseForLeaveApis,responseForEmployee2
 };

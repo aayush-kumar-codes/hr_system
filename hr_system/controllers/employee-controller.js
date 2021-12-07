@@ -64,7 +64,6 @@ exports.getUserProfileDetailByIdConttroller = async (req, res, next) => {
     if (typeof req.body.user_id != "undefined" && req.body.user_id !== "") {
       user_id = req.body.user_id;
       response = await getUserDetailInfo(user_id, req, db);
-      console.log(response);
       if (
         typeof req.body.secret_key != "undefined" &&
         req.body.secret_key !== ""
@@ -345,7 +344,8 @@ exports.updateNewPassController = async (req, res, next) => {
     let userData = req.userData;
     let updatedPassword = await updatePassword(req, userData, db);
     res.status_code = 200;
-    res.message = updatedPassword;
+    res.error=updatedPassword.error;
+    res.data = updatedPassword.data;
     return next();
   } catch (error) {
     res.status_code = 500;

@@ -3,22 +3,8 @@ const providers = require("../providers/creation-provider");
 const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
-const {
-  _getPreviousMonth,
-  getEmployeeLastPresentDay,
-  API_deleteHoliday,
-  addHoliday,
-  API_getHolidayTypesList,
-  API_getYearHolidays,
-  cancelAppliedLeave,
-  applyLeave,
-  API_getMyRHLeaves,
-  leaveDocRequest,
-  updateLeaveStatus,
-  getDaysBetweenLeaves,
-  getAllUsersPendingLeavesSummary,
-  getAllLeaves,
-} = require("../leavesFunctions");
+const{_getPreviousMonth,getEmployeeLastPresentDay,API_deleteHoliday,addHoliday,API_getHolidayTypesList,API_getYearHolidays,cancelAppliedLeave,applyLeave
+    ,API_getMyRHLeaves,leaveDocRequest,updateLeaveStatus,getDaysBetweenLeaves,getAllUsersPendingLeavesSummary,getAllLeaves,API_getEmployeeRHStats,getMyLeaves}=require("../leavesFunctions")
 
 exports.adminUserApplyLeave = async (req, res, next) => {
   try {
@@ -55,32 +41,33 @@ exports.adminUserApplyLeave = async (req, res, next) => {
     if (req.body["rh_dates"]) {
       rh_dates = req.body["rh_dates"];
     }
-    // if (req.body['pending_id']) {
-    let date = new Date();
-    let currentDateDate = date.getDate();
-    let currentMonth = date.getMonth() + 1;
-    let currentYear = date.getFullYear();
-    let currentDate = `${currentYear}.${currentMonth}.${currentDateDate}.`;
+    if(req.body['reason'] ){
+        late_reason = req.body['late_reason'];    
+    }    
+    if(req.body['rh_dates'] ){
+        rh_dates = req.body['rh_dates'];    
+    } 
+    if (req.body['pending_id']) {
+        let date = new Date()
+        let currentDateDate = date.getDate();
+        let currentMonth = date.getMonth()+1;
+        let currentYear = date.getFullYear();
+        let currentDate = `${currentYear}.${currentMonth}.${currentDateDate}.`;
 
-    let previousMonth = await _getPreviousMonth(currentDate);
-    reason = "Previous month pending time is applied as leave!!";
-    // if( from_date == '' ){
-    let employeeLastPresentDay = await getEmployeeLastPresentDay(
-      userid,
-      previousMonth.year,
-      previousMonth.month,
-      db
-    );
-    from_date = employeeLastPresentDay["full_date"];
-    to_date = employeeLastPresentDay["full_date"];
+        let previousMonth = await _getPreviousMonth(currentDate);
+        reason = 'Previous month pending time is applied as leave!!';
+        if( from_date == '' ){
+            let employeeLastPresentDay = await getEmployeeLastPresentDay( userid, previousMonth.year, previousMonth.month,db);
+            from_date =  employeeLastPresentDay['full_date'];
+            to_date = employeeLastPresentDay['full_date'];
 
-    // }
-    //     res1 = await applyLeave(userid, from_date, to_date, no_of_days, reason, day_status, leave_type = "", late_reason = "", req.body['pending_id'], doc_link, rh_dates);
-    // }else{
-    //     res1 = await applyLeave(userid, from_date, to_date, no_of_days, reason, day_status, leave_type, late_reason, "", doc_link, rh_dates);
-    // }
-    res.status_code = 200;
-    res.message = res1;
+        }
+        res1 = await applyLeave(userid, from_date, to_date, no_of_days, reason, day_status, leave_type = "", late_reason = "", req.body['pending_id'], doc_link, rh_dates);
+    }else{
+        res1 = await applyLeave(userid, from_date, to_date, no_of_days, reason, day_status, leave_type, late_reason, "", doc_link, rh_dates);
+    }
+    res.status_code=200;
+    res.message=res1
     return next;
   } catch (error) {
     console.log(error);
@@ -234,34 +221,81 @@ exports.get_days_between_leaves = async (req, res, next) => {
     return next();
   }
 };
+exports.get_all_leaves_summary=async(req,res,next)=>{
+   try {
+       let year=req.body.year;
+       let month=req.body.month;
+       let resp = await getAllUsersPendingLeavesSummary(year, month,db,req);
+       res.status_code=200;
+       res.data=resp.data
+       res.error=resp.error;
+       return next();
+   } catch (error) {
+       console.log(error)
+       res.status_code = 500;
+        res.message = error.message;
+        return next();  
+   } 
+}
+exports.get_all_leaves=async(req,res,next)=>{
+    try {
+        let resp = await getAllLeaves(req,db);
+        res.status_code=200;
+        res.data=resp.data
+        res.error=resp.error;
+        return next();
+    } catch (error) {
+        console.log(error)
+        res.status_code = 500;
+         res.message = error.message;
+         return next();  
+    } 
+}
 
-exports.get_all_leaves_summary = async (req, res, next) => {
-  try {
-    let year = req.body.year;
-    let month = req.body.month;
-    let resp = await getAllUsersPendingLeavesSummary(year, month, db, req);
-    res.status_code = 200;
-    res.data = resp.data;
-    res.error = resp.error;
-    return next();
-  } catch (error) {
-    console.log(error);
-    res.status_code = 500;
-    res.message = error.message;
-    return next();
+exports.get_user_rh_stats=async(req,res,next)=>{
+    try{
+    let resp={};
+    if(!req.body['user_id'] || req.body['user_id'] == "" ){
+        resp.error = 1;
+        resp.data.message = "User id not found";
+    } else {
+        let userid =req.body['user_id'];
+        let year =req.body['year'];
+        resp = await API_getEmployeeRHStats( userid, year,db);
+    }
+        res.status_code=200;
+        res.data=resp.data
+        res.error=resp.error;
+        return next();
+  }catch(error){
+      console.log(error)
+      res.status_code = 500;
+      res.message = error.message;
+      return next()
   }
-};
-exports.get_all_leaves = async (req, res, next) => {
-  try {
-    let resp = await getAllLeaves(req, db);
-    res.status_code = 200;
-    res.data = resp.data;
-    res.error = resp.error;
-    return next();
-  } catch (error) {
-    console.log(error);
-    res.status_code = 500;
-    res.message = error.message;
-    return next();
-  }
-};
+}
+exports.get_my_leaves=async(req,res,next)=>{
+  try{
+    let resp={};
+//   if (slack_id != "") {
+//     let loggedUserInfo =await getUserInfofromSlack(slack_id);
+// }
+let loggedUserInfo=req.userData;
+if (loggedUserInfo['id']) {
+    let userid = loggedUserInfo['id'];
+    resp =await getMyLeaves(userid,db);
+} else {
+    resp['error'] = 1;
+    // resp['data']['message'] = "userid not found";
+}
+res.status_code=200;
+res.data=resp.data
+res.error=resp.error;
+return next();
+}catch(error){
+  console.log(error)
+  res.status_code = 500;
+  res.message = error.message;
+  return next();
+}
+}
