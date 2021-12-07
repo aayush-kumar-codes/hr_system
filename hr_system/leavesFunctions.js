@@ -1044,11 +1044,39 @@ let  getEmployeeRHStats=async(userid,year,db)=>{
                 rh_rejected = rh_rejected_names.length;
                 // get all approved compensation dates
 
-                rh_compensation_used_dates = await onlyUnique(await  _.merge( aFilter(rh_compensation_leaves.map(function(iter){
+                rh_compensation_used_dates = (await( aFilter(rh_compensation_leaves.map(function(iter){
                   return iter['rh_dates'] ? JSON.parse(iter['rh_dates']) : null;         
               }))));
-              console.log(rh_compensation_used_dates)
-
+              for(let dates of rh_compensation_used_dates){
+                names = array_values(aFilter(rh_list.map(function(iter){
+                    return date == iter['raw_date'] ? iter['name'] : false;
+                }, rh_list)));
+                rh_compensation_used_names = (rh_compensation_used_names.concat(names));
+            }  
+            rh_compensation_used = rh_compensation_used_names.length;
+            total_rh_taken = rh_approved + rh_compensation_used;
+            if(rh_can_be_taken >= total_rh_taken){
+              rh_left = rh_can_be_taken - total_rh_taken;
+            }
+            if( rh_rejected > rh_left ){
+              rejected_rh_for_compensation = rh_left;                
+          } else {
+              rejected_rh_for_compensation = rh_rejected;                
+          } 
+          rh_compensation_pending = await getRHListForUserCompensation(userid, year,db).length;
+          if( rh_compensation_pending < 0 ){
+              rh_compensation_pending = 0;
+          }
+          if( year < current_year ){
+            rh_compensation_pending = 0;
+            rh_left = 0;
+        }                        
+        if( rh_compensation_pending > rh_left ){
+            rh_compensation_pending = rh_left;
+        } 
+      //   let past_quarters = array_filter($quarters_available, function($iter) use ($current_quarter){
+      //     return $iter <= $current_quarter['quarter'];
+      // });
 };
 
 let  onlyUnique=async(value, index, self)=>{
@@ -1065,7 +1093,64 @@ let array_values=async(input)=>{
   for (key in input) {
     tmpArr[tmpArr.length] = input[key]
   }
-  return tmpArr
+  return tmpArr;
+}
+
+let getRHListForUserCompensation=async(userid,year = false,db)=> {
+
+  year = year ? year :new Date().getFullYear();     
+  let final_rh_list = {};   
+  let rh_config = await getConfigByType('rh_config',db);
+  let rh_rejection_setting = rh_config['rh_rejection_setting'];            
+  let current_date = new Date();               
+  let user = await getUserInfo(userid,db);   
+  let confirm_date = user[0]['training_completion_date'];           
+  // if( confirm_date ){
+      rh_list =await getMyRHLeaves(year,db);        
+      rh_approved = await getUserApprovedRHLeaves(userid, year,db);
+      rh_compensated =await getUserApprovedRHCompensationLeaves(userid, year,db);   
+           // get all approved compensation dates
+      rh_compensated_dates =await (('array_merge', aFilter(rh_compensated.map(function(iter){
+          return iter['rh_dates'] ? JSON.parse(iter['rh_dates'], true) : null;         
+      }))));
+      // get rh leaves for the year
+      rh_list_dates = rh_list.map(function(iter){ return iter['raw_date']; });
+        // get approved rh leaves
+      rh_approved_dates = rh_approved.map(function(iter){ return iter['from_date']; });    
+//       // filter rh dates for compensation ( remove approved rh dates and get only rh dates before current date )
+      final_dates = array_values(aFilter(rh_list_dates.filter(x => !rh_approved_dates.includes(x)), function(iter){            
+          console.log(iter,1121)
+        return (iter)
+      }));
+  console.log("end of function",2121212)   
+//       // filter rh dates for compensation ( remove approved rh dates and get only rh dates before current date )
+//       final_dates = array_values(array_filter(array_diff(rh_list_dates, rh_approved_dates), function(iter) use (current_date) {            
+//           return strtotime(iter) < strtotime(current_date);
+//       }));
+
+//       // filter rh dates and remove approved compensated dates
+//       final_dates = !empty(rh_compensated_dates) ? array_values(array_diff(final_dates, rh_compensated_dates)) : final_dates;    
+      
+//       // rh rejection setting        
+//       if( rh_rejection_setting ){
+//           rh_rejected_dates = array_filter(array_map(function(iter){
+//               return iter['status'] == 'Rejected' ? iter['from_date'] : false;
+//           }, self::getUserRHLeaves(userid, year)));                                 
+//           final_dates = !empty(rh_rejected_dates) ? array_values(array_intersect(final_dates, rh_rejected_dates)) : rh_rejected_dates;            
+//       }     
+
+//       // filter final dates according to confirmation date of user
+//       final_dates = array_values(array_map(function(iter) use (confirm_date){
+//           return strtotime(iter) > strtotime(confirm_date) ? iter : false;
+//       }, final_dates));
+
+//       // get final rh dates with details
+//       final_rh_list = array_values(array_filter(rh_list, function(iter) use (final_dates) {            
+//           return in_array(iter['raw_date'], final_dates); 
+//       }));                                                 
+//   }        
+                
+//   return final_rh_list;                
 }
 let getPreviousTakenRHQuaterly=async(userid, year,db)=>
 {
