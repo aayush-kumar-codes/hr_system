@@ -245,9 +245,61 @@ let getEmployeeCurrentMonthFirstWorkingDate=async(userid,db)=>{
     }
     Return = tempArray[0];
     return Return;
+};
+
+let geManagedUserWorkingHours=async(userid,db)=>{ // api call
+    let allWorkingHours = await getUserMangedHours1(userid,db);
+
+    let finalData = {};
+    if (Array.isArray(allWorkingHours) && allWorkingHours.length > 0) {
+        finalData = allWorkingHours;
+    }
+
+    let Return = {};
+    Return['error'] = 0;
+    r_data = {};
+    r_data['message'] = '';
+    r_data['list'] = finalData;
+    userInfo = await getUserInfo1(userid,db);
+    delete(userInfo['password']);
+    r_data['userInfo'] = userInfo;
+    Return['data'] = r_data;
+
+    return Return;
 }
+let getUserMangedHours1 = async (userid, db) => {
+    let rows =
+      (`SELECT * FROM user_working_hours WHERE user_Id = userid order by id DESC`,
+        { type: QueryTypes.SELECT });
+    return rows;
+  };
+  let getUserInfo1 = async (userid, models) => {
+    try {
+      let isAdmin;
+      let q = await models.sequelize.query(`SELECT users.*, user_profile.*, 
+      roles.id as role_id, 
+      roles.name as role_name FROM users 
+      LEFT JOIN user_profile ON users.id = user_profile.user_Id 
+      LEFT JOIN user_roles ON users.id = user_roles.user_id 
+      LEFT JOIN roles ON user_roles.role_id = roles.id where users.id = ${userid} `,{type: QueryTypes.SELECT});
+      if(isAdmin == null){
+        delete q.holding_comments;
+      }
+      // let userSlackInfo = await getSlackUserInfo(q.work_email);
+      // q.slack_profile = userSlackInfo;
+      return q;
+    } catch (error) {
+      console.log(error)
+      throw new Error(error);
+    }
+  };
+  let insertUserInOutTimeOfDay=async(userid, date, entry_time, exit_time,reason,db)=>{
+
+  }
+  
 module.exports={
    getAllUserPrevMonthTime,updateDayWorkingHours,
    multipleAddUserWorkingHours,getWorkingHoursSummary,
-   addUserWorkingHours
+   addUserWorkingHours,geManagedUserWorkingHours,
+   getEmployeeCurrentMonthFirstWorkingDate,insertUserInOutTimeOfDay
 }

@@ -41,4 +41,16 @@ router.post(
     attendanceControllers.add_user_working_hours,
     handlers.responseForEmployee
   );
+  router.post(
+    "/get_managed_user_working_hours",
+    middleware.AuthForHrEmployee,
+    attendanceControllers.get_managed_user_working_hours,
+    handlers.responseForEmployee
+  );
+  router.post(
+    "/update_user_day_summary",
+    middleware.AuthForHrEmployee,
+    attendanceControllers.update_user_day_summary,
+    handlers.responseForEmployee
+  );
 module.exports=router;
