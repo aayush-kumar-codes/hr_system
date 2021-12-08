@@ -23,4 +23,10 @@ router.post(
     attendanceControllers.update_day_working_hours,
     handlers.responseForEmployee
   );
+  router.post(
+    "/multiple_add_user_working_hours",
+    middleware.AuthForHrEmployee,
+    attendanceControllers.multiple_add_user_working_hours,
+    handlers.responseForEmployee
+  );
 module.exports=router;
