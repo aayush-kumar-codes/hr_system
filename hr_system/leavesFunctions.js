@@ -2262,6 +2262,7 @@ let _analyseCompensationTime = async (beautyAttendance) => {
   Return["compensation_break_up"] = compensation_break_up;
   return Return;
 };
+
 let _beautyMonthAttendance = async (monthAttendance) => {
   for (let [key, mp] of Object.entries(monthAttendance)) {
     //check for future working day
@@ -2521,5 +2522,6 @@ module.exports = {
   getAllLeaves,API_getEmployeeRHStats,
   getMyLeaves,_getDatesBetweenTwoDates,
   API_getAllEmployeesRHStats,
-  _getCurrentMonth
+  _getCurrentMonth,
+  getUserMonthAttendaceComplete
 };

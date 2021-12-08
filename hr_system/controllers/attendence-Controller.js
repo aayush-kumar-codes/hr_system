@@ -3,7 +3,10 @@ const providers = require("../providers/creation-provider");
 const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
-const {getAllUserPrevMonthTime,updateDayWorkingHours,multipleAddUserWorkingHours}=require("../attendaceFunctions");
+const{getUserMonthAttendaceComplete}=require("../leavesFunctions")
+const {getAllUserPrevMonthTime,updateDayWorkingHours,
+  multipleAddUserWorkingHours,getWorkingHoursSummary
+}=require("../attendaceFunctions");
 exports.month_attendance = async (req, res, next) => {
   try{
   let userid = req.body["userid"];
@@ -61,6 +64,24 @@ exports.multiple_add_user_working_hours = async (req, res, next) => {
   try{
     let resp = await multipleAddUserWorkingHours(req,db);
     console.log(resp)
+    res.status_code=200;
+    res.data=resp.data;
+    res.error=resp.error;
+    res.message=resp.message;
+    return next();
+  }catch(error){
+    console.log(error);
+    res.status_code=500;
+    res.message=error;
+    return next();
+  }
+};
+exports.working_hours_summary = async (req, res, next) => {
+  try{
+    let year = req.body['year'];
+    let month = req.body['month'];
+    let resp =await getWorkingHoursSummary(year, month,db);
+    console.log(` address complete`)
     res.status_code=200;
     res.data=resp.data;
     res.error=resp.error;

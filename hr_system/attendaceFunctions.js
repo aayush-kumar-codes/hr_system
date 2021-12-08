@@ -4,7 +4,7 @@ const secret = require("./config.json");
 const {Op,QueryTypes, json } = require("sequelize");
 const db = require("./db");
 const { sequelize } = require("./db");
-const{_getDatesBetweenTwoDates,_getNextMonth,_getPreviousMonth,_getCurrentMonth}=require('./leavesFunctions')
+const{_getDatesBetweenTwoDates,_getNextMonth,_getPreviousMonth,_getCurrentMonth,getGenericMonthSummary}=require('./leavesFunctions')
 // const{getUserMonthAttendace}=require("./leavesFunctions")
 
 const getAllUserPrevMonthTime=async(year,month,db)=>{
@@ -193,7 +193,34 @@ let addUserWorkingHours=async(userid, date,working_hours,reason,db,pending_id = 
 
         return Return;
 }
+let getWorkingHoursSummary=async(year,month,db)=>{
+    let r_data={};
+    let workingHoursSummary = await getGenericMonthSummary(year,month,userid=false,db);
+    let aa = [];
+    for (let p of workingHoursSummary ) {
+        aa.push(p);
+    }
+
+    let nextMonth = await _getNextMonth(year, month);
+    let previousMonth = await _getPreviousMonth(year, month);
+    let currentMonth = await _getCurrentMonth(year, month);
+    r_data['year'] = year;
+    r_data['month'] = month;
+    r_data['monthName'] = currentMonth['monthName'];
+    // r_data['monthSummary'] = monthSummary;
+    r_data['nextMonth'] = nextMonth;
+    r_data['previousMonth'] = previousMonth;
+    r_data['monthSummary'] = aa;
+
+    r_error = 0;
+    let Return = {};
+    Return['error'] = r_error;
+    r_data['message'] = '';
+    Return['data'] = r_data;
+
+    return Return;
+}
 module.exports={
    getAllUserPrevMonthTime,updateDayWorkingHours,
-   multipleAddUserWorkingHours
+   multipleAddUserWorkingHours,getWorkingHoursSummary
 }
