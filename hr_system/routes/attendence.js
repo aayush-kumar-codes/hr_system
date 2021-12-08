@@ -35,4 +35,10 @@ router.post(
     attendanceControllers.working_hours_summary,
     handlers.responseForEmployee
   );
+  router.post(
+    "/add_user_working_hours",
+    middleware.AuthForHrEmployee,
+    attendanceControllers.add_user_working_hours,
+    handlers.responseForEmployee
+  );
 module.exports=router;

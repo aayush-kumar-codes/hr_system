@@ -4,7 +4,9 @@ const secret = require("./config.json");
 const {Op,QueryTypes, json } = require("sequelize");
 const db = require("./db");
 const { sequelize } = require("./db");
-const{_getDatesBetweenTwoDates,_getNextMonth,_getPreviousMonth,_getCurrentMonth,getGenericMonthSummary}=require('./leavesFunctions')
+const{_getDatesBetweenTwoDates,_getNextMonth,_getPreviousMonth,
+    _getCurrentMonth,getGenericMonthSummary,
+    getUserMonthAttendace}=require('./leavesFunctions')
 // const{getUserMonthAttendace}=require("./leavesFunctions")
 
 const getAllUserPrevMonthTime=async(year,month,db)=>{
@@ -170,7 +172,8 @@ let multipleAddUserWorkingHours=async(req,db)=>{
     return Return;
 }
 let addUserWorkingHours=async(userid, date,working_hours,reason,db,pending_id = false)=>{
-    let insert = await insertUserWorkingHours(userid, date, working_hours, reason);
+    let insert = await insertUserWorkingHours(userid, date, working_hours, reason,db);
+    console.log(8888888)
     // let beautyDate = date('d-M-Y', strtotime($date));
     // /* send notification to user and hr*/
     // let messageBody = {
@@ -192,6 +195,10 @@ let addUserWorkingHours=async(userid, date,working_hours,reason,db,pending_id = 
         Return['data'] = r_data;
 
         return Return;
+}
+let insertUserWorkingHours=async(userid, date, working_hours, reason,db)=>{
+    let q =await db.sequelize.query(`INSERT INTO user_working_hours ( user_Id, date, working_hours, reason ) VALUES ( '${userid}', '${date}', '${working_hours}', '${reason}')`,{type:QueryTypes.INSERT});
+    return true;
 }
 let getWorkingHoursSummary=async(year,month,db)=>{
     let r_data={};
@@ -220,7 +227,27 @@ let getWorkingHoursSummary=async(year,month,db)=>{
 
     return Return;
 }
+let getEmployeeCurrentMonthFirstWorkingDate=async(userid,db)=>{
+    let Return = false;
+   let currentDate = new Date();
+   let currentYear = new Date().getFullYear();
+   let currentMonth = new Date().getMonth()+1;
+   let currentDateDate =new Date().getDate();
+
+    let monthDetails = await getUserMonthAttendace(userid, currentYear, currentMonth,db);
+    
+    let tempArray = [];
+    for( let md of monthDetails){
+        md_date = md['date'];
+        if( md['day_type'] == 'WORKING_DAY' ){
+            tempArray.push(md);
+        }
+    }
+    Return = tempArray[0];
+    return Return;
+}
 module.exports={
    getAllUserPrevMonthTime,updateDayWorkingHours,
-   multipleAddUserWorkingHours,getWorkingHoursSummary
+   multipleAddUserWorkingHours,getWorkingHoursSummary,
+   addUserWorkingHours
 }
