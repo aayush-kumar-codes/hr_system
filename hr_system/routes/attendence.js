@@ -27,10 +27,39 @@ router.post(
 );
 
 router.post(
-    "/month_attendance",
-    middleware.AuthForHrEmployee,
-    attendanceControllers.month_attendance,
-    handlers.responseForEmployee
-  );
+  "/pending_timesheets_per_month",
+  middleware.AuthForHrEmployee,
+  attendanceControllers.pending_timesheets_per_month,
+  handlers.responseForInventory
+);
+
+router.post(
+  "/get_user_submitted_timesheet",
+  middleware.AuthForHrEmployee,
+  attendanceControllers.get_user_submitted_timesheet,
+  handlers.responseForInventory
+);
+
+router.post(
+  "/update_user_timesheet_status",
+  middleware.AuthForHrEmployee,
+  attendanceControllers.update_user_timesheet_status,
+  handlers.responseForInventory
+);
+
+router.post(
+  "/update_user_full_timesheet_status",
+  middleware.AuthForHrEmployee,
+  attendanceControllers.update_user_full_timesheet_status,
+  handlers.responseForInventory
+);
+
+
+// router.post(
+//     "/month_attendance",
+//     middleware.AuthForHrEmployee,
+//     attendanceControllers.month_attendance,
+//     handlers.responseForEmployee
+//   );
 
 module.exports=router;
