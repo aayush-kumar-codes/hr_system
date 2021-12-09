@@ -9,7 +9,7 @@ const {getAllUserPrevMonthTime,updateDayWorkingHours,
   multipleAddUserWorkingHours,getWorkingHoursSummary,
   addUserWorkingHours,geManagedUserWorkingHours,
   getEmployeeCurrentMonthFirstWorkingDate,
-  insertUserInOutTimeOfDay }=require("../attendaceFunctions");
+  insertUserInOutTimeOfDay,addManualAttendance}=require("../attendaceFunctions");
 exports.month_attendance = async (req, res, next) => {
   try{
   let userid = req.body["userid"];
@@ -147,8 +147,42 @@ exports.update_user_day_summary = async (req, res, next) => {
    let entry_time =req.body['entry_time'];
    let exit_time =req.body['exit_time'];
    let reason =req.body['reason'];
-   let resp = await insertUserInOutTimeOfDay(userid, date, entry_time, exit_time,reason,db);
-    console.log(` address complete`)
+   let resp = await insertUserInOutTimeOfDay(userid, date, entry_time, exit_time,reason,db,req);
+    res.status_code=200;
+    res.data=resp.data;
+    res.error=resp.error;
+    res.message=resp.message;
+    return next();
+  }catch(error){
+    console.log(error);
+    res.status_code=500;
+    res.message=error;
+    return next();
+  }
+};
+
+exports.add_manual_attendance = async (req, res, next) => {
+  try{
+    console.log(1212)
+   let user_id =req.userData['id'];
+   let reason =req.body['reason'];
+   let date =req.body['date'];
+   let resMessageEntry = "";  
+   let resMessageExit = "";
+   let resMessage="";
+   let resp={};
+    if ( (!_.isSet(req.body['entry_time']) && !_.isEmpty(req.body['entry_time']) ) && ( !_.isSet(req.body['exit_time']) && !_.isEmpty(req.body['exit_time']) ) ){
+       let manual_time = [];
+        manual_time['entry_time'] =req.body['entry_time'];
+        manual_time['exit_time']=req.body['exit_time'];
+   
+      resMessage = await addManualAttendance(user_id, 'entry and exit',date,manual_time,reason,db);
+    } else {
+      resMessage = "Please select both entry and exit time.";
+    }
+   resp['error'] = 0;
+   resp['message'] = resMessage;
+   resp['data'] = {};
     res.status_code=200;
     res.data=resp.data;
     res.error=resp.error;

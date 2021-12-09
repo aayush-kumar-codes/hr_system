@@ -53,4 +53,10 @@ router.post(
     attendanceControllers.update_user_day_summary,
     handlers.responseForEmployee
   );
+  router.post(
+    "/add_manual_attendance",
+    middleware.AuthForHrEmployee,
+    attendanceControllers.add_manual_attendance,
+    handlers.responseForEmployee
+  );
 module.exports=router;

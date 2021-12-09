@@ -1,13 +1,14 @@
 const md5=require("md5")
+const moment =require("moment")
 const jwt = require("jsonwebtoken");
 const secret = require("./config.json");
 const {Op,QueryTypes, json } = require("sequelize");
 const db = require("./db");
 const { sequelize } = require("./db");
+const{_}=require("lodash")
 const{_getDatesBetweenTwoDates,_getNextMonth,_getPreviousMonth,
     _getCurrentMonth,getGenericMonthSummary,
-    getUserMonthAttendace}=require('./leavesFunctions')
-// const{getUserMonthAttendace}=require("./leavesFunctions")
+    getUserMonthAttendace,getUserDaySummary}=require('./leavesFunctions')
 
 const getAllUserPrevMonthTime=async(year,month,db)=>{
     let r_error = 1;
@@ -293,13 +294,259 @@ let getUserMangedHours1 = async (userid, db) => {
       throw new Error(error);
     }
   };
-  let insertUserInOutTimeOfDay=async(userid, date, entry_time, exit_time,reason,db)=>{
+  let insertUserInOutTimeOfDay=async(userid, date, inTime, outTime,reason,db,req)=>{
+     let extra_time = 0;
+    let newdate =new Date(date);
+    let isadmin;
+    if(req.userData.role.toLowerCase()=="admin"){
+        isadmin=true;
+    }else{
+        isadmin=false;
+    }
+    if (isadmin == false) {
+        let q =await db.sequelize.query(`select * from config where type='extra_time'`,{type:QueryTypes.SELECT});
+        if (q.length > 0) {
+            extra_time =row['value'];
+        }
+        let row2 =await db.sequelize.query(`select * from hr_data where user_id= '${userid}' AND date = '${newdate}'`,{type:QueryTypes.SELECT});
+        if (row2.length> 0) {
+            if (_.isEmpty(row2['entry_time'])) {
+                let timeStamp=await timetostamp(inTime,date);
+                timestamp=timestamp+(extra_time * 60)
+                let inTimeDate =new Date(timeStamp);
+                inTime=await getCurrentTime(inTimeDate)
+            }
+            if (_.Empty(row2['exit_time'])) {
+                let timeStamp=await timetostamp(outTime,date)
+                timeStamp=timeStamp-(extra_time * 60)
+                let outTimeDate =new Date(timeStamp);
+                outTime=await getCurrentTime(outTimeDate)
+            }
+        } else {
+            let timeStamp=await timetostamp(outTime,date);
+            timeStamp=timeStamp-(extra_time * 60);
+            let outTimeDate =new Date(timeStamp);
+            outTime=await getCurrentTime(outTimeDate)
+        }
+    }
+     //start -- first get existing time details
+     let previous_entry_time = "";
+     let previous_exit_time = "";
+     let existingDetails =await getUserDaySummary(userid, date,db);
+     if (_.isSet(existingDetails['data'])) {
+         previous_entry_time = existingDetails['data']['entry_time'];
+         previous_exit_time = existingDetails['data']['exit_time'];
+     }
+     let r_error = 1;
+     let r_message = "";
+     let r_data ={};
+     if (inTime != '') {
+        let inTime1 = date + ' ' +inTime;
+        let insertInTime = inTime1;
+        await insertUserPunchTime(userid,insertInTime,db);
+    }
+    if (outTime != '') {
+        let outTime1 = date + ' ' +outTime;
+        let insertOutTime =outTime1
+        await insertUserPunchTime(userid, insertOutTime);
+    }
+    if (inTime != '' && outTime != '') {
+        let h_date =new Date(date)
+        await insertUpdateHr_data(userid, h_date, inTime, outTime,db);
+        let punchInTimeMessage = "";
+        let punchOutTimeMessage = "";
+        if (previous_entry_time != '' && previous_entry_time != inTime) {
+            punchInTimeMessage = `Entry Time - From ${previous_entry_time} to ${inTime}`;
+        } else {
+            punchInTimeMessage = `Entry Time - ${inTime}`
+        }
+        if (previous_exit_time != '' && previous_exit_time != outTime) {
+            punchOutTimeMessage = `Exit Time - From ${previous_exit_time} to ${outTime}`;
+        } else {
+            punchOutTimeMessage = `Exit Time - ${outTime} `;
+        }
+        // $messageBody = array(
+        //     "date" => $h_date,
+        //     "punchInTime" => $punchInTimeMessage,
+        //     "punchOutTime" => $punchOutTimeMessage,
+        //     "reason" => $reason
+        // );
+        // $slackMessageStatus = self::sendNotification( "update_employee_punch_timings", $userid, $messageBody);
+    }
+    r_error = 0;
+        let Return = {};
+        Return['error'] = r_error;
+        r_data['message'] = r_message;
+        Return['data'] = r_data;
 
+        return Return;
+  };
+
+  let insertUpdateHr_data=async(userid, date, entry_time, exit_time,db)=> {
+    date=JSON.parse(JSON.stringify(date))
+    date=date.slice(0,10)
+    //d-m-Y
+    let q =await db.sequelize.query(`SELECT * FROM hr_data WHERE user_id = '${userid}' AND date= '${date}'`,{type:QueryTypes.SELECT});
+
+    if (q.length > 0) {
+        //update
+        q = await db.sequelize.query(`UPDATE hr_data set entry_time='${entry_time}', exit_time='${exit_time}' WHERE user_id = '${userid}' AND date = '${date}'`,{type:QueryTypes.UPDATE});
+    } else {
+        //insert
+        let userInfo = await getUserInfo1(userid,db);
+        let emailid = userInfo[0]['work_email'];
+        q = await db.sequelize.query(`INSERT into hr_data ( user_id, email, entry_time, exit_time, date  ) VALUES ( '${userid}', '${emailid}', '${entry_time}', '${exit_time}', '${date}' )`,{type:QueryTypes.INSERT});
+    }
+    return true;
+}
+
+  let insertUserPunchTime=async(user_id,timing)=>{
+    //   console.log(timing.sp)
+    // $q = "INSERT into attendance ( user_id, timing ) VALUES ( $user_id, '$timing')";
+    // self::DBrunQuery($q);
+    // return true;
+    let q =await db.sequelize.query(`SELECT * FROM attendance WHERE user_id = '${user_id}' AND timing = '${timing}'`,{type:QueryTypes.SELECT});
+    if( q.length < 1 ){
+        q = await db.sequelize.query(`INSERT into attendance ( user_id, timing ) VALUES ('${user_id}', '${timing}')`,{type:QueryTypes.INSERT});
+    }
+    return true;
+}
+
+  let getCurrentTime=async(date)=>{
+    var currentTime;
+    // here we can give our date
+    var currentDate = new Date(date);
+    // OR we can define like that also for current date
+    // var currentDate = new Date();
+    var hour = currentDate.getHours();
+    var meridiem = hour >= 12 ? "PM" : "AM";
+    currentTime = ((hour + 11) % 12 + 1) + ":" + currentDate.getMinutes() + meridiem;
+    return currentTime;
+}
+  let timetostamp=async(time,date=false)=>{
+      let hr=time.split(":")[0];
+      let min=time.split(":")[1];
+      min=min.split("A")[0];
+      let meridean=time.split(":")[1];
+      meridean=meridean.slice(2,4);
+    if(date==false){
+        date=new Date();
+        date=JSON.parse(JSON.stringify(date)).slice(0,10);
+    }
+    if(meridean.toLowerCase()=="am"){
+    }else{
+        hr=hr+12;
+    }
+    let dateToParse=date+" "+hr+":"+min+":"+00;
+    dateToParse=(dateToParse).toString()
+    let timestamp=Date.parse(dateToParse);
+    return timestamp;
   }
+  let addManualAttendance=async(user_id, time_type, date, manual_time, reason,db)=>{
+   let last_inserted_ids = {};
+   let dateTime = [];
+   let Return = {};
+   Return_msg=[]
+   let bodyActionButtons = {};
+   let exist = 0;
+   let hours = "";
+   entry_time=(new Date(date+" "+manual_time['entry_time']));
+   exit_time = (new Date(date+" "+manual_time['exit_time']));
+   let timediff={};
+   timediff.h=(moment(exit_time).hours()-moment(entry_time).hours());
+   timediff.i=(moment(exit_time).minutes()-moment(entry_time).minutes());       
+    timediff.h > 0 ? hours = timediff.h : hours  = false;
+    timediff.i > 0 ? hours =hours+":"+ timediff.i : minutes= false;
+    for(let [key,time] of Object.entries(manual_time)){
+        explodeTime =time.split(" ")
+        time=time.split(" ")[0]+time.split(" ")[1]
+        checkTime = date+' '+time;
+        checkIfTimingExits = await checkTimingExitsInAttendance( user_id, checkTime,db);
+        let final_date_time = date +' '+time;
+        let timeType =  key.split("_");
+        if( checkIfTimingExits == false ){
+            let reason_new =reason;
+            let q =await db.sequelize.query(`INSERT into attendance_manual ( user_id, manual_time, reason ) VALUES ( '${user_id}', '${final_date_time}', '${reason_new}')`,{type:QueryTypes.INSERT});
+            last_inserted_id =q[0];     
+            let timeType  =key.replace("_","")
+            let dateTime1=(timeType+":"+final_date_time);
+            let firstLetterLowerCase=dateTime1[0]
+            let firstLetterUpperCase=dateTime1[0].toUpperCase();
+            dateTime1=(dateTime1.replace(firstLetterLowerCase,firstLetterUpperCase))
+            dateTime.push(dateTime1);
+            Return_msg.push(timeType+`${final_date_time} - Sent For Approval!!`);     
+        }else {
+            timeType=timeType[0]+timeType[1];
+            exist++;
+            let dateTime1=timeType+":"+final_date_time+" which is already exist";
+            let firstLetterLowerCase=dateTime1[0]
+            let firstLetterUpperCase=dateTime1[0].toUpperCase();
+            dateTime1=dateTime1.replace(firstLetterLowerCase,firstLetterUpperCase) 
+            dateTime.push(dateTime1)            
+            Return_msg = (timeType + ` ${checkTime} already exists. No Need to update!!`);
+        } 
+    }
+    let date_time=dateTime.join(" and ")
+    if( exist == 0 ){
+        Return = `${date_time} - Sent For Approval!!`;
+    } else if( exist == (Object.entries(manual_time).length)) {
+        Return = `${date_time} . No Need to update!!`;
+    } else {
+        Return =Return_msg.join(" and ")
+    }
+
+        // /* send message to employee */
+        // $hours ? $date_time .= " \n *$hours* to be requested." : false;
+        // $messageBody = array(
+        //     "timeType" => $time_type,
+        //     "reason" => $reason,
+        //     "dateTime" => $date_time
+        // );
+        // $slackMessageStatus = self::sendNotification( "add_manual_punch_timings", $user_id, $messageBody);
+
+        // /* send message to admin/hr for approval*/
+        // $baseURL =  $_ENV['ENV_BASE_URL'];
+        // $last_inserted_ids = join(',', $last_inserted_id);
+        // $approveLink = $baseURL."attendance/API_HR/api.php?action=approve_manual_attendance&id=$last_inserted_ids";
+        // $approveLinkMinutesLess = $baseURL."attendance/API_HR/api.php?action=approve_manual_attendance&id=$last_inserted_ids&deductminutes=15";
+        // $rejectLink = $baseURL."attendance/API_HR/api.php?action=reject_manual_attendance&id=$last_inserted_ids";            
+
+        // $bodyActionButtons[] = array(
+        //     "type" => "button",
+        //     "text" => "Approve",
+        //     "url" => $approveLink,
+        //     "style" => "primary"
+        // );
+        // $bodyActionButtons[] = array(
+        //     "type" => "button",
+        //     "text" => "Reject",
+        //     "url" => $rejectLink,
+        //     "style" => "danger"
+        // );
+        // $bodyActionButtons[] = array(
+        //     "type" => "button",
+        //     "text" => "Approve With 15 Minutes Less",
+        //     "url" => $approveLinkMinutesLess,
+        //     "style" => "primary"
+        // );  
+
+        // $slackMessageStatus = self::sendNotification( "add_manual_punch_timings_admin", $user_id, $messageBody, $bodyActionButtons);
+
+        return Return;
+    
+  };
+
+  let  checkTimingExitsInAttendance=async( userid, timing,db )=>{
+    let q =await db.sequelize.query(`SELECT * FROM attendance WHERE user_id = '${userid}' AND timing LIKE '%${timing}%'`,{type:QueryTypes.SELECT});
+    if(q.length > 0 ){
+        return true;
+    }
+    return false;
+}
   
 module.exports={
    getAllUserPrevMonthTime,updateDayWorkingHours,
    multipleAddUserWorkingHours,getWorkingHoursSummary,
    addUserWorkingHours,geManagedUserWorkingHours,
-   getEmployeeCurrentMonthFirstWorkingDate,insertUserInOutTimeOfDay
+   getEmployeeCurrentMonthFirstWorkingDate,insertUserInOutTimeOfDay,addManualAttendance
 }
