@@ -941,17 +941,17 @@ let applyLeave = async (
   late_reason,
   pending_id = false,
   doc_link = false,
-  rh_dates = false
+  rh_dates = false,
+  db
 ) => {
   try {
     let Return = {};
     let r_message;
-    let r_error;
+    let r_error=0;
     let success;
     from_date = new Date(from_date);
     let from_date_year = from_date.getFullYear();
     let leave_dates = await _getDatesBetweenTwoDates(from_date, to_date);
-
     // Check for RH Quarterwise
     if (leave_type.toLowerCase() == "restricted") {
       let rh_check = await checkRHQuarterWise(userid, from_date, db);
@@ -982,7 +982,7 @@ let applyLeave = async (
           }
         }
       }
-      rh_dates = JSON.parse(rh_dates);
+      rh_dates = JSON.parse(JSON.stringify(rh_dates));
       if (!rh_compensation_check["check"]) {
         Return.error = 1;
         Return.data = {};
@@ -990,14 +990,8 @@ let applyLeave = async (
         return Return;
       }
     }
-
     let alert_message = "N/A";
-    let check = await checkLeavesClashOfSameTeamMember(
-      userid,
-      from_date,
-      to_date,
-      db
-    );
+    let check = await checkLeavesClashOfSameTeamMember(userid,from_date,to_date,db);
     if (check) {
       alert_message =
         "Another team member already has applied during this period so leave approve will depend on project.";
@@ -1027,7 +1021,7 @@ let applyLeave = async (
         if (
           await manipulatingPendingTimeWhenLeaveIsApplied(
             pending_id,
-            no_of_days
+            no_of_days,db
           )
         ) {
           q = await db.sequelize.query(
@@ -1085,14 +1079,57 @@ let applyLeave = async (
       r_data["message"] = r_message;
       r_data["leave_id"] = leave_id;
       Return["data"] = r_data;
-      console.log("????????????????");
-      console.log(Return);
+      console.log(Return)
     }
     return Return;
   } catch (error) {
+    console.log(error)
     throw new Error(error);
   }
 };
+
+let manipulatingPendingTimeWhenLeaveIsApplied=async(pending_id,leavesNumDays,db)=>{
+  let row = await db.sequelize.query(`Select * from users_previous_month_time where id = '${pending_id}'`,{type:QueryTypes.SELECT});
+  let newPendingHour = '00';
+  let newPendingMinutes = '00';
+
+  if( row.length != 0 ){
+      let pendingTime = row['extra_time'];
+      let pendingTimeExplode =pendingTime.split(":");
+      let pending_hour = pendingTimeExplode[0];
+      let pending_minute = pendingTimeExplode[1];
+
+      if( leavesNumDays === '0.5' ){
+          newPendingHour = (pending_hour * 1) - 4; // less 4 hrs as half day
+      }else{
+          newPendingHour = (pending_hour * 1) - ( leavesNumDays * 9 );
+      }
+
+      if( newPendingHour > 0 ){
+          if( newPendingHour < 10 ){
+              newPendingHour = '0'+newPendingHour;
+          }
+      }else {
+          newPendingHour = '00';
+      }
+      if( pending_minute > 0 ){
+          newPendingMinutes = pending_minute;
+      }
+
+      if( pending_hour == '00' ){
+          newPendingMinutes = '00';
+      }
+  }
+
+  let newPendingTime = newPendingHour+':'+newPendingMinutes;
+
+  // update new time pending time to db
+  if( newPendingTime != '00:00' ){
+      q1 =await db.sequelize.query(`UPDATE users_previous_month_time SET extra_time = '${newPendingTime}'  Where id = '${pending_id}'`,{type:QueryTypes.UPDATE});
+      return false; // means set status_merged will be 0
+  }
+  return true; // means set status_merged to 1
+}
 // let checkLeavesClashOfSameTeamMember=async()
 let checkRHQuarterWise = async (userid, from_date, db) => {
   let check = false;
@@ -1157,7 +1194,6 @@ let checkRHQuarterWise = async (userid, from_date, db) => {
       .reduce((a, b) => a + b, 0);
     let rh_stats = await getEmployeeRHStats(userid, current_year, db);
     max_rh_can_be_taken_per_quarter = rh_stats["rh_can_be_taken_this_quarter"];
-    console.log(231221213);
     if (confirm_year == current_year) {
       remaining_quarters = no_of_quaters - confirm_quarter["quarter"];
       eligible_for_confirm_quarter_rh = false;
@@ -1182,7 +1218,7 @@ let checkRHQuarterWise = async (userid, from_date, db) => {
       from_date_year,
       db
     );
-    if (sizeof(rh_leaves_all) > 0) {
+    if ((rh_leaves_all).length > 0) {
       for await (let rh_leave of rh_leaves_all) {
         if (rh_leave["status"].toLowerCase() == "pending") {
           apply_next_rh = false;
@@ -1241,6 +1277,7 @@ let checkRHQuarterWise = async (userid, from_date, db) => {
   return Return;
 };
 let getEmployeeRHStats = async (userid, year, db) => {
+  console.log(userid,year)
   let Return = {};
   let rh_can_be_taken = 0;
   let rh_config_default = await getConfigByType("rh_config", db);
@@ -2777,18 +2814,19 @@ let getMyLeaves = async (userid, db) => {
 }
 let API_getAllEmployeesRHStats=async(year,db)=>{
   let Return = {};
-  let stats = {};
+  let stats = [];
   year = year ? year : new Date().getFullYear();
   let employees = await getEnabledUsersList('dateofjoining',db);
   for( let employee of employees ){
       let userid = employee['user_Id'];
       let rh_stats =await getEmployeeRHStats(userid,year,db);
-      stats= {
+      stats1= {
           'user_id': userid,
           'name': employee['name'],
           'designation': employee['jobtitle'],
           'stats': rh_stats
       };
+      stats.push(stats1)
   }
   Return['error'] = 0;
   Return['data'] = stats;

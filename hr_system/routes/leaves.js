@@ -11,6 +11,12 @@ router.post(
     leavesControllers.adminUserApplyLeave,
     handlers.addNewEmployeeResponseHandle
   );
+  router.post(
+    "/apply_leave",
+    middleware.AuthForHrAdmin,
+    leavesControllers.apply_leave,
+    handlers.addNewEmployeeResponseHandle
+  );
 router.post(
   "/delete_holiday",
   middleware.AuthForHrAdmin,
