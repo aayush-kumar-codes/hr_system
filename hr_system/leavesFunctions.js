@@ -403,8 +403,8 @@ let getUserMonthLeaves = async (userid, year, month, db) => {
     let pp_end = pp["to_date"];
     let datesBetween = await _getDatesBetweenTwoDates(pp_start, pp_end);
     for (d of datesBetween) {
-      let h_month = d.getMonth();
-      let h_year = d.getFullYear();
+      let h_month = new Date(d).getMonth();
+      let h_year = new Date(d).getFullYear();
 
       if (h_year == year && h_month == month) {
         let h_full_date = new Date(d);
@@ -2557,6 +2557,7 @@ let _analyseCompensationTime = async (beautyAttendance) => {
   Return["compensation_break_up"] = compensation_break_up;
   return Return;
 };
+
 let _beautyMonthAttendance = async (monthAttendance) => {
   for (let [key, mp] of Object.entries(monthAttendance)) {
     //check for future working day
@@ -2773,9 +2774,30 @@ let getMyLeaves = async (userid, db) => {
   Return.data = r_data;
 
   return Return;
-};
+}
+let API_getAllEmployeesRHStats=async(year,db)=>{
+  let Return = {};
+  let stats = {};
+  year = year ? year : new Date().getFullYear();
+  let employees = await getEnabledUsersList('dateofjoining',db);
+  for( let employee of employees ){
+      let userid = employee['user_Id'];
+      let rh_stats =await getEmployeeRHStats(userid,year,db);
+      stats= {
+          'user_id': userid,
+          'name': employee['name'],
+          'designation': employee['jobtitle'],
+          'stats': rh_stats
+      };
+  }
+  Return['error'] = 0;
+  Return['data'] = stats;
+
+  return Return;
+}
 
 module.exports = {
+  _getNextMonth,
   _secondsToTime,
   getGenericMonthSummary,
   getDaysOfMonth,
@@ -2794,8 +2816,10 @@ module.exports = {
   getDaysBetweenLeaves,
   getAllUsersPendingLeavesSummary,
   getUserMonthAttendace,
-  getAllLeaves,
-  API_getEmployeeRHStats,
-  getMyLeaves,
-  _getDatesBetweenTwoDates,
+  getAllLeaves,API_getEmployeeRHStats,
+  getMyLeaves,_getDatesBetweenTwoDates,
+  API_getAllEmployeesRHStats,
+  _getCurrentMonth,
+  getUserMonthAttendaceComplete,getUserDaySummary,
+  getUserMonthLeaves,getUserMonthPunching
 };

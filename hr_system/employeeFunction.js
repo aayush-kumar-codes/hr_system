@@ -794,25 +794,25 @@ let getSalaryInfo= async(userid,models,sort=false,date=false)=>{
        }
   let applicable_month = 0;
   for(let[key,r] of Object.entries(q)){
-    if(typeof r.applicable_from !==undefinded && r.applicable_from !=="" && r.applicable_from !=="0000-00-00"){
+    if(typeof r.applicable_from !==undefined && r.applicable_from !=="" && r.applicable_from !=="0000-00-00"){
       applicable_from = r['applicable_from'];
     }
-    if(typeof r.applicable_from !==undefinded && r.applicable_till != "" && r.applicable_till!=="0000-00-00"){
+    if(typeof r.applicable_from !==undefined && r.applicable_till != "" && r.applicable_till!=="0000-00-00"){
     applicable_till = r.applicable_till;
     }
    if( typeof applicable_from !==undefined && typeof applicable_till){         
-    begin = new DateTime( applicable_from );
-    end = new DateTime( applicable_till );
-    interval =createFromDateString('1 month');
-    period = new DatePeriod($begin, $interval, $end);                                
-    applicable_month = iterator_count($period);
+    begin = new Date( applicable_from );
+    end = new Date( applicable_till );
+    // interval =createFromDateString('1 month');
+    // period = new DatePeriod($begin, $interval, $end);                                
+    // applicable_month = iterator_count($period);
 } 
 q[key]['applicable_month']=applicable_month;
 applicable_month=0;
   }
   if(date!=false){
     let arr=[];
-    for(let val of Object.entries(row) ){
+    for(let val of Object.entries(q) ){
       arr.push(val)
     }
     return arr;

@@ -1,22 +1,6 @@
 const db = require("../db");
-const {
-  _getPreviousMonth,
-  getEmployeeLastPresentDay,
-  API_deleteHoliday,
-  addHoliday,
-  API_getHolidayTypesList,
-  API_getYearHolidays,
-  cancelAppliedLeave,
-  applyLeave,
-  API_getMyRHLeaves,
-  leaveDocRequest,
-  updateLeaveStatus,
-  getDaysBetweenLeaves,
-  getAllUsersPendingLeavesSummary,
-  getAllLeaves,
-  API_getEmployeeRHStats,
-  getMyLeaves,
-} = require("../leavesFunctions");
+const{_getPreviousMonth,getEmployeeLastPresentDay,API_deleteHoliday,addHoliday,API_getHolidayTypesList,API_getYearHolidays,cancelAppliedLeave,applyLeave,API_getAllEmployeesRHStats
+    ,API_getMyRHLeaves,leaveDocRequest,updateLeaveStatus,getDaysBetweenLeaves,getAllUsersPendingLeavesSummary,getAllLeaves,API_getEmployeeRHStats,getMyLeaves}=require("../leavesFunctions")
 
 exports.adminUserApplyLeave = async (req, res, next) => {
   try {
@@ -348,4 +332,45 @@ exports.get_my_leaves = async (req, res, next) => {
     res.message = error.message;
     return next();
   }
-};
+}
+exports.get_all_users_rh_stats=async(req,res,next)=>{
+  try{
+    let year = req.body['year'];
+    let resp =await API_getAllEmployeesRHStats(year,db);
+      res.status_code=200;
+      res.data=resp.data
+      res.error=resp.error;
+      return next();
+}catch(error){
+    console.log(error)
+    res.status_code = 500;
+    res.message = error.message;
+    return next()
+}
+}
+
+exports.get_my_leaves=async(req,res,next)=>{
+  try{
+    let resp={};
+//   if (slack_id != "") {
+//     let loggedUserInfo =await getUserInfofromSlack(slack_id);
+// }
+let loggedUserInfo=req.userData;
+if (loggedUserInfo['id']) {
+    let userid = loggedUserInfo['id'];
+    resp =await getMyLeaves(userid,db);
+} else {
+    resp['error'] = 1;
+    // resp['data']['message'] = "userid not found";
+}
+res.status_code=200;
+res.data=resp.data
+res.error=resp.error;
+return next();
+}catch(error){
+  console.log(error)
+  res.status_code = 500;
+  res.message = error.message;
+  return next();
+}
+}

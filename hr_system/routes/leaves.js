@@ -85,6 +85,12 @@ router.post(
   handlers.responseForEmployee
 );
 router.post(
+  "/get_all_users_rh_stats",
+  middleware.AuthForHrAdmin,
+  leavesControllers.get_all_users_rh_stats,
+  handlers.responseForEmployee
+);
+router.post(
   "/get_my_leaves",
   middleware.AuthForHrAdmin,
   leavesControllers.get_my_leaves,

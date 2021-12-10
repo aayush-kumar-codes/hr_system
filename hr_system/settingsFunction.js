@@ -4,11 +4,10 @@ const {getAllPages}=require("./roles")
 const {
   getConfigByType,
   Inventory_insertDefaultStatuses,
-  _getDateTimeData,
+  _getDateTimeData,checkifPageEnabled
 } = require("./allFunctions");
 const db = require("./db");
 const { getEnabledUsersList } = require("./employeeFunction");
-const{checkifPageEnabled}=require("./allFunctions")
 
 const { getDaysOfMonth, _getDatesBetweenTwoDates, _secondsToTime,getGenericMonthSummary,getDaysBetweenLeaves} = require("./leavesFunctions");
 
