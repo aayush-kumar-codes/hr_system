@@ -10,4 +10,16 @@ router.post(
     salaryController.delete_salary,
     handlers.newResponse
   );
+  router.post(
+    "/get_user_manage_payslips_data",
+    middleware.AuthForHrEmployee,
+    salaryController.get_user_manage_payslips_data,
+    handlers.newResponse
+  );
+  router.post(
+    "/get_user_salary_info_by_id",
+    middleware.AuthForHrEmployee,
+    salaryController.get_user_salary_info_by_id,
+    handlers.newResponse
+  );
 module.exports = router;

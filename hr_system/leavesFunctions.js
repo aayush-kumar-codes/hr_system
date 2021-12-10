@@ -2523,5 +2523,6 @@ module.exports = {
   getMyLeaves,_getDatesBetweenTwoDates,
   API_getAllEmployeesRHStats,
   _getCurrentMonth,
-  getUserMonthAttendaceComplete,getUserDaySummary
+  getUserMonthAttendaceComplete,getUserDaySummary,
+  getUserMonthLeaves,getUserMonthPunching
 };

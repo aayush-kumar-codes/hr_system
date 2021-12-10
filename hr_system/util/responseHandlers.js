@@ -48,6 +48,7 @@ let newResponse = async (req, res) => {
   res.status(res.status_code).json({
     error: res.error,
     data: res.data,
+    message:res.message,
   });
 };
 
