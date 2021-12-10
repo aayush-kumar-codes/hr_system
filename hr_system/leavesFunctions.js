@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const _=require("lodash")
+const _ = require("lodash");
 const secret = require("./config.json");
 const { Op, QueryTypes, json } = require("sequelize");
 const db = require("./db");
@@ -16,6 +16,7 @@ const {
 } = require("./employeeFunction");
 // const{getUserMonthAttendaceComplete}=require("./attendaceFunctions")
 const { query } = require("express");
+const { inArray } = require("./settingsFunction");
 
 let _getPreviousMonth = async (year, month) => {
   let previousMonthDate = new Date(year + "-" + month + "-" + 01);
@@ -68,20 +69,17 @@ let getUserMonthAttendace = async (userid, year, month, db) => {
       v["extra_time_status"] = userMonthPunching[k]["extra_time_status"];
       v["extra_time"] = userMonthPunching[k]["extra_time"];
       v["orignal_total_time"] = userMonthPunching[k]["orignal_total_time"];
-
       v["seconds_actual_working_time"] =
         userMonthPunching[k]["seconds_actual_working_time"];
       v["seconds_actual_worked_time"] =
         userMonthPunching[k]["seconds_actual_worked_time"];
       v["seconds_extra_time"] = userMonthPunching[k]["seconds_extra_time"];
       v["office_time_inside"] = userMonthPunching[k]["office_time_inside"];
-
       Return[k] = v;
     } else {
       Return[k] = v;
     }
   }
-
   for (let [k, v] of Object.entries(Return)) {
     if (k in userMonthLeaves) {
       leave_number_of_days = userMonthLeaves[k]["no_of_days"];
@@ -194,6 +192,7 @@ let getDaysOfMonth = async (year, month) => {
   let list = [];
   for (d = 1; d <= 31; d++) {
     let date = new Date();
+    let newd = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
     date.setHours(12);
     date.setMinutes(0);
     date.setSeconds(0);
@@ -201,7 +200,7 @@ let getDaysOfMonth = async (year, month) => {
     date.setDate(d);
     date.setFullYear(year);
     if (date.getMonth() == month) {
-      let c_full_date = date;
+      let c_full_date = newd;
       let c_date = date.getDate();
       let days = [
         "Sunday",
@@ -239,9 +238,10 @@ let _addRequiredKeysForADay = async (days) => {
   return Return;
 };
 let getUserMangedHours = async (userid, db) => {
-  let rows =
-    (`SELECT * FROM user_working_hours WHERE user_Id = userid order by id DESC`,
-      { type: QueryTypes.SELECT });
+  let rows = await db.sequelize.query(
+    `SELECT * FROM user_working_hours WHERE user_Id = ${userid} order by id DESC`,
+    { type: QueryTypes.SELECT }
+  );
   return rows;
 };
 let getHolidaysOfMonth = async (year, month, models) => {
@@ -439,17 +439,28 @@ let getUserMonthLeaves = async (userid, year, month, db) => {
 // console.log(daylist)
 
 let _getDatesBetweenTwoDates = async (startDate, endDate) => {
-  let currentDate=new Date(startDate).getDate()+1
-  startDate=new Date(startDate).setDate(currentDate)
-  let getDaysArray = function(startDate, endDate) {
-    for(var arr=[],dt=new Date(startDate); dt<=endDate; dt.setDate(dt.getDate()+1)){
-        arr.push(new Date(dt));
-    }
-    return arr;
-  };
-  let Return = getDaysArray(new Date(startDate),new Date(endDate));
-  Return.map((v)=>v.toISOString().slice(0,10)).join("")
-  return Return;
+  try {
+    let currentDate = new Date(startDate).getDate() + 1;
+    startDate = new Date(startDate).setDate(currentDate);
+    let getDaysArray = function (startDate, endDate) {
+      for (
+        var arr = [], dt = new Date(startDate);
+        dt <= endDate;
+        dt.setDate(dt.getDate() + 1)
+      ) {
+        let d = new Date(dt);
+        let date = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+        arr.push(date);
+      }
+      return arr;
+    };
+    let Return = getDaysArray(new Date(startDate), new Date(endDate));
+    // Return.map((v) => v.toISOString().slice(0, 10)).join("");
+    return Return;
+  } catch (error) {
+    console.log(error);
+    throw new Error(error);
+  }
 };
 let API_deleteHoliday = async (holiday_id, db) => {
   let r_error = 0;
@@ -687,6 +698,238 @@ let getMyRHLeaves = async (year, db) => {
   }
   return rows;
 };
+
+let getRHListForUserCompensation = async (userid, year, db) => {
+  try {
+    let d = new Date();
+    year = year ? year : d.getFullYear();
+    let final_rh_list = {};
+    let rh_config = await getConfigByType("rh_config", db);
+    let rh_rejection_setting = rh_config.rh_rejection_setting;
+    let current_date = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    let user = await getUserInfo(userid, db);
+    let confirm_date = user.training_completion_date;
+    if (confirm_date) {
+      let rh_list = await getMyRHLeaves(year, db);
+      let rh_approved = await getUserApprovedRHLeaves(userid, year, db);
+      let rh_compensated = await getUserApprovedRHCompensationLeaves(
+        userid,
+        year,
+        db
+      );
+      let maped = _.filter(
+        _.map(rh_compensated, function (iter) {
+          return iter.rh_dates ? JSON.parse(iter.rh_dates, true) : null;
+        })
+      );
+      let uniqData = _.uniq(_.merge(maped, maped));
+      let rh_compensated_dates = uniqData;
+      let rh_list_dates = _.map(rh_list, function (iter) {
+        return iter.raw_date;
+      });
+      let rh_approved_dates = _.map(rh_approved, function (iter) {
+        return iter.from_date;
+      });
+      let final_dates = array_values(
+        _.filter(
+          _.difference(rh_list_dates, rh_approved_dates),
+          function (iter) {
+            return new Date(iter) < new Date(current_date);
+          }
+        )
+      );
+      final_dates = !_.isEmpty(rh_compensated_dates)
+        ? array_values(_.difference(final_dates, rh_rh_compensated_dates))
+        : final_dates;
+      if (rh_rejection_setting) {
+        let userLeaves = await getUserRHLeaves(userid, year, db);
+        let rh_rejected_dates = _.filter(
+          _.map(userLeaves, function (iter) {
+            return iter.status == "Rejected" ? iter.from_date : false;
+          })
+        );
+        final_dates = !_.isEmpty(rh_rejected_dates)
+          ? array_values(_.intersection(final_dates, rh_rejected_dates))
+          : rh_rejected_dates;
+      }
+      final_dates = array_values(
+        _.map(final_dates, function (iter) {
+          return new Date(iter) > new Date(confirm_date) ? iter : false;
+        })
+      );
+      final_rh_list = array_values(
+        _.filter(rh_list, function (iter) {
+          return inArray(iter.raw_date, final_dates);
+        })
+      );
+    }
+    return final_rh_list;
+  } catch (error) {
+    throw new Error(error);
+  }
+};
+
+let isEligibleForRHCompensation = async (
+  userid,
+  year,
+  no_of_days,
+  rh_dates,
+  db
+) => {
+  try {
+    let result;
+    let check = false;
+    let message = "";
+    let rh_stats = await getEmployeeRHStats(userid, year, db);
+    let total_rh_taken = rh_stats.rh_approved + rh_stats.rh_compensation_used;
+    if (total_rh_taken >= rh_stats.rh_can_be_taken) {
+      message = "You have reached the RH Quota this year.";
+    } else {
+      if (rh_stats.rh_can_be_taken_this_quarter > 0) {
+        if (rh_stats.rh_can_be_taken_this_quarter < no_of_days) {
+          message = `You can apply for only ${h_stats.rh_can_be_taken_this_quarter} days`;
+        } else {
+          if (_.isEmpty(rh_dates)) {
+            message = "Please select RH for which you want to apply.";
+          } else {
+            if (no_of_days != rh_dates.length) {
+              message = `Please select ${no_of_days} RH from the list`;
+            } else {
+              let rh_list = array_values(
+                _.map(
+                  await getRHListForUserCompensation(userid, year, db),
+                  function (iter) {
+                    return iter.raw_date;
+                  }
+                )
+              );
+              if (_.isEmpty(rh_list)) {
+                message = "You don't have any RH to apply";
+              } else {
+                let find_dates = _.intersectionWith(
+                  rh_dates,
+                  rh_list,
+                  _.isEqual
+                );
+                if (find_dates.length != no_of_days) {
+                  message = "The RH must be selected from the RH list";
+                } else {
+                  let maped = _.filter(
+                    _.map(
+                      await getUserPendingLeaves(userid, year, db),
+                      function (iter) {
+                        return iter.leave_type == "RH Compensation"
+                          ? JSON.parse(iter.rh_dates, true)
+                          : false;
+                      }
+                    )
+                  );
+                  let uniqFiltered = _.uniq(_.merge(maped, maped));
+                  let rh_comp_pending_dates = uniqFiltered;
+                  let is_applied_rh_comp_exist = _.intersectionWith(
+                    rh_comp_pending_dates,
+                    rh_list,
+                    _.isEqual
+                  );
+                  is_applied_rh_comp_exist = _.intersectionWith(
+                    is_applied_rh_comp_exist,
+                    rh_dates,
+                    _.isEqual
+                  );
+                  if (!_.isEmpty(is_applied_rh_comp_exist)) {
+                    let leaves = await getMyRHLeaves(year, db);
+                    let maped = _.filter(
+                      _.map(is_applied_rh_comp_exist, function (iter) {
+                        return _.filter(
+                          _.map(leaves, function (idx) {
+                            return idx.raw_date == $iter ? idx.name : false;
+                          })
+                        );
+                      })
+                    );
+                    let uniqFound = _.uniq(_.merge(maped, maped));
+                    let rh_names = uniqFound;
+                    message = `You have already applied compensation for ${_.join(
+                      rh_names,
+                      " ,"
+                    )} Please contact admin to update status.`;
+                  } else {
+                    check = true;
+                  }
+                }
+              }
+            }
+          }
+        }
+      } else {
+        message = "You can't apply any RH in this quarter.";
+      }
+    }
+    result = {
+      check: check,
+      message: message,
+    };
+    return result;
+  } catch (error) {
+    console.log(error);
+    throw new Error(error);
+  }
+};
+
+let getLeavesForYearMonth = async (year, month, db) => {
+  try {
+    let year_month = year + "-" + month;
+    let q = await db.sequelize.query(
+      `SELECT * FROM leaves WHERE from_date LIKE '${year_month}%'`,
+      { type: QueryTypes.SELECT }
+    );
+    return q;
+  } catch (error) {
+    throw new Error(error);
+  }
+};
+
+let checkLeavesClashOfSameTeamMember = async (
+  userid,
+  from_date,
+  to_date,
+  db
+) => {
+  try {
+    let check = false;
+    let team = "";
+    let d = new Date(from_date);
+    let year = d.getFullYear();
+    let month = d.getMonth() + 1;
+    let applied_days = await getDaysBetweenLeaves(from_date, to_date, db);
+    let applied_user_info = await getUserInfo(userid, db);
+    team = applied_user_info.team;
+    let leaves = await getLeavesForYearMonth(year, month, db);
+    for await (let leave of leaves) {
+      let userInfo = await getUserInfo(leave.user_Id, db);
+      if (userInfo.team.toLowerCase() == team.toLowerCase()) {
+        let check_days = await getDaysBetweenLeaves(
+          leave.from_date,
+          leave.to_date,
+          db
+        );
+        for await (let applied_day of applied_days.data.days) {
+          for await (let check_day of check_days.data.days) {
+            if (applied_day.type == "working") {
+              if (applied_day.full_date == check_day.full_date) {
+                check = true;
+              }
+            }
+          }
+        }
+      }
+    }
+    return check;
+  } catch (error) {
+    throw new Error(error);
+  }
+};
+
 let applyLeave = async (
   userid,
   from_date,
@@ -700,514 +943,653 @@ let applyLeave = async (
   doc_link = false,
   rh_dates = false
 ) => {
-  let Return = {};
-  let r_message;
-  let r_error;
-  let success;
-  from_date = new Date(from_date);
-  let from_date_year = from_date.getFullYear();
-  let leave_dates = await _getDatesBetweenTwoDates(from_date, to_date);
+  try {
+    let Return = {};
+    let r_message;
+    let r_error;
+    let success;
+    from_date = new Date(from_date);
+    let from_date_year = from_date.getFullYear();
+    let leave_dates = await _getDatesBetweenTwoDates(from_date, to_date);
 
-  // Check for RH Quarterwise
-  // if (leave_type.toLowerCase() == "restricted") {
-    let rh_check = await checkRHQuarterWise(userid, from_date,db);
-    if (rh_check["check"]) {
-      Return.error = 1;
-      Return.data = {};
-      Return.data.message = rh_check["message"];
-      return Return;
+    // Check for RH Quarterwise
+    if (leave_type.toLowerCase() == "restricted") {
+      let rh_check = await checkRHQuarterWise(userid, from_date, db);
+      if (!rh_check["check"]) {
+        Return.error = 1;
+        Return.data = {};
+        Return.data.message = rh_check["message"];
+        return Return;
+      }
     }
-  // }
 
-  // Check for RH Compensation
-  if (leave_type.toLowerCase() == "rh compensation") {
-    let rh_compensation_check = await isEligibleForRHCompensation(
-      userid,
-      from_date_year,
-      no_of_days,
-      rh_dates
-    );
-    for (let ld of leave_dates) {
-      for (let rh of rh_dates) {
-        if (rh.getTime() > ld.getTime()) {
-          Return.error = 1;
-          Return.data = {};
-          Return.data.message = `The RH selected on the RH Date: ${rh}  should be before the leave Date: ${ld} `;
-          return Return;
+    // Check for RH Compensation
+    if (leave_type.toLowerCase() == "rh compensation") {
+      let rh_compensation_check = await isEligibleForRHCompensation(
+        userid,
+        from_date_year,
+        no_of_days,
+        rh_dates,
+        db
+      );
+      for (let ld of leave_dates) {
+        for (let rh of rh_dates) {
+          if (rh.getTime() > ld.getTime()) {
+            Return.error = 1;
+            Return.data = {};
+            Return.data.message = `The RH selected on the RH Date: ${rh}  should be before the leave Date: ${ld} `;
+            return Return;
+          }
         }
       }
-    }
-    rh_dates = JSON.parse(rh_dates);
-    if (!rh_compensation_check["check"]) {
-      Return.error = 1;
-      Return.data = {};
-      Return.data.message = rh_compensation_check["message"];
-      return Return;
-    }
-  }
-
-  let alert_message = "N/A";
-  let check = await checkLeavesClashOfSameTeamMember(
-    userid,
-    from_date,
-    to_date
-  );
-  if (check) {
-    alert_message =
-      "Another team member already has applied during this period so leave approve will depend on project.";
-  }
-
-  let applied_date = new Date();
-  applied_date = JSON.stringify(applied_date).split("T")[0];
-  applied_date = applied_date.substr(1, 11);
-  let originalText_reason = reason;
-  let originalText_late_reason = late_reason;
-  from_date = JSON.stringify(from_date).split("T")[0];
-  from_date = from_date.substr(1, 11);
-  let q = await db.sequelize.query(
-    `INSERT into leaves ( user_Id, from_date, to_date, no_of_days, reason, status, applied_on, day_status,leave_type,late_reason, doc_link, rh_dates ) VALUES ( ${userid}, '${from_date}', '${to_date}', ${no_of_days}, '${reason}', 'Pending', '${applied_date}', '${day_status}','${leave_type}','${late_reason}', '${doc_link}', '${rh_dates}' )`,
-    { type: QueryTypes.INSERT }
-  );
-  if (q[0]) {
-    leave_id = q[0];
-    success = true;
-    r_message = "Leave applied.";
-  } else {
-    r_error = 1;
-    r_message = "Error in applying leave.";
-  }
-  if (r_error == 0) {
-    if (pending_id != false) {
-      if (
-        await manipulatingPendingTimeWhenLeaveIsApplied(pending_id, no_of_days)
-      ) {
-        q = await db.sequelize.query(
-          `Select * from users_previous_month_time where id = ${pending_id}`,
-          { type: QueryTypes.SELECT }
-        );
-        oldStatus = row[0]["status"];
-        q1 = await db.sequelize.query(
-          `UPDATE users_previous_month_time SET status = '${oldStatus} - Leave applied for previous month pending time', status_merged = 1  Where id = ${pending_id}`,
-          { type: QueryTypes.UPDATE }
-        );
+      rh_dates = JSON.parse(rh_dates);
+      if (!rh_compensation_check["check"]) {
+        Return.error = 1;
+        Return.data = {};
+        Return.data.message = rh_compensation_check["message"];
+        return Return;
       }
     }
 
-    //     $numberOfDays = "";
-    //     if ($day_status == "2") {
-    //         $numberOfDays = "second half day";
-    //     } elseif ($day_status == "1") {
-    //         $numberOfDays = "first half day";
-    //     } else {
-    //         $numberOfDays = "$no_of_days days";
-    //     }
-    //     if ($late_reason == "") {
-    //         $late_reason = "N/A";
-    //     }
+    let alert_message = "N/A";
+    let check = await checkLeavesClashOfSameTeamMember(
+      userid,
+      from_date,
+      to_date,
+      db
+    );
+    if (check) {
+      alert_message =
+        "Another team member already has applied during this period so leave approve will depend on project.";
+    }
 
-    //     /* send message to employee and admin/hr*/
-    //     $messageBody = array(
-    //         "numberOfDays" => $numberOfDays,
-    //         "fromDate" => $from_date,
-    //         "toDate" => $to_date,
-    //         "reason" => $originalText_reason,
-    //         "alertMessage" => $alert_message,
-    //         "lateReason" => $originalText_late_reason,
-    //         "docLink" => $doc_link,
-    //         "leave_type" => $leave_type
-    //     );
-    //     $slackMessageStatus = self::sendNotification( "apply_leave", $userid, $messageBody);
+    let applied_date = new Date();
+    applied_date = JSON.stringify(applied_date).split("T")[0];
+    applied_date = applied_date.substr(1, 11);
+    let originalText_reason = reason;
+    let originalText_late_reason = late_reason;
+    from_date = JSON.stringify(from_date).split("T")[0];
+    from_date = from_date.substr(1, 11);
+    let q = await db.sequelize.query(
+      `INSERT into leaves ( user_Id, from_date, to_date, no_of_days, reason, status, applied_on, day_status,leave_type,late_reason, doc_link, rh_dates ) VALUES ( ${userid}, '${from_date}', '${to_date}', ${no_of_days}, '${reason}', 'Pending', '${applied_date}', '${day_status}','${leave_type}','${late_reason}', '${doc_link}', '${rh_dates}' )`,
+      { type: QueryTypes.INSERT }
+    );
+    if (q[0]) {
+      leave_id = q[0];
+      success = true;
+      r_message = "Leave applied.";
+    } else {
+      r_error = 1;
+      r_message = "Error in applying leave.";
+    }
+    if (r_error == 0) {
+      if (pending_id != false) {
+        if (
+          await manipulatingPendingTimeWhenLeaveIsApplied(
+            pending_id,
+            no_of_days
+          )
+        ) {
+          q = await db.sequelize.query(
+            `Select * from users_previous_month_time where id = ${pending_id}`,
+            { type: QueryTypes.SELECT }
+          );
+          oldStatus = row[0]["status"];
+          q1 = await db.sequelize.query(
+            `UPDATE users_previous_month_time SET status = '${oldStatus} - Leave applied for previous month pending time', status_merged = 1  Where id = ${pending_id}`,
+            { type: QueryTypes.UPDATE }
+          );
+        }
+      }
+      let numberOfDays = "";
+      if (day_status == "2") {
+        numberOfDays = "second half day";
+      } else if (day_status == "1") {
+        numberOfDays = "first half day";
+      } else {
+        numberOfDays = "no_of_days days";
+      }
+      if (late_reason == "") {
+        late_reason = "N/A";
+      }
+      // for slack implementation
+      //     /* send message to employee and admin/hr*/
+      //     messageBody = array(
+      //         "numberOfDays" => numberOfDays,
+      //         "fromDate" => from_date,
+      //         "toDate" => to_date,
+      //         "reason" => originalText_reason,
+      //         "alertMessage" => alert_message,
+      //         "lateReason" => originalText_late_reason,
+      //         "docLink" => doc_link,
+      //         "leave_type" => leave_type
+      //     );
+      //     slackMessageStatus = self::sendNotification( "apply_leave", userid, messageBody);
 
-    //     /* send email */
-    //     $userInfo = self::getEmployeeCompleteInformation($userid);
-    //     $templateData = array_merge($messageBody, $userInfo);
-    //     $emailData = array();
-    //     $emailData['sendEmail'] = array(
-    //         "to" => array($userInfo['work_email']),
-    //         "cc" => self::getEmailCCList("Leave apply")
-    //     );
-    //     $emailData['templatekey'] = "Leave apply";
-    //     $emailData['templateSubject'] = "";
-    //     $emailData['templateData'] = $templateData;
-    //     self::sendTemplateEmail($emailData);
-    // }
-    // $return = array();
-    // $r_data = array();
-    // $return['error'] = $r_error;
-    // $r_data['message'] = $r_message;
-    // $r_data['leave_id'] = $leave_id;
-    // $return['data'] = $r_data;
-    // return $return;
+      //     /* send email */
+      //     userInfo = self::getEmployeeCompleteInformation(userid);
+      //     templateData = array_merge(messageBody, userInfo);
+      //     emailData = array();
+      //     $emailData['sendEmail'] = array(
+      //         "to" => array($userInfo['work_email']),
+      //         "cc" => self::getEmailCCList("Leave apply")
+      //     );
+      //     $emailData['templatekey'] = "Leave apply";
+      //     $emailData['templateSubject'] = "";
+      //     $emailData['templateData'] = $templateData;
+      //     self::sendTemplateEmail($emailData);
+      // }
+
+      r_data = {};
+      Return["error"] = r_error;
+      r_data["message"] = r_message;
+      r_data["leave_id"] = leave_id;
+      Return["data"] = r_data;
+      console.log("????????????????");
+      console.log(Return);
+    }
+    return Return;
+  } catch (error) {
+    throw new Error(error);
   }
 };
 // let checkLeavesClashOfSameTeamMember=async()
-let checkRHQuarterWise = async (userid, from_date,db) => {
+let checkRHQuarterWise = async (userid, from_date, db) => {
   let check = false;
   let Return = {};
-  let rh_config = await getConfigByType("rh_config",db);
-  let no_of_quaters =(Object.keys(await getAllQuarters()))
-  no_of_quaters=(no_of_quaters.length)
+  let rh_config = await getConfigByType("rh_config", db);
+  let no_of_quaters = Object.keys(await getAllQuarters());
+  no_of_quaters = no_of_quaters.length;
   let rh_extra = rh_config["rh_extra"];
   let rh_can_be_taken_per_quarter = rh_config["rh_per_quater"];
   let rh_can_be_taken = no_of_quaters * rh_can_be_taken_per_quarter;
   let max_rh_can_be_taken_per_quarter = rh_can_be_taken_per_quarter;
-  let user = await getUserInfo(userid,db);
-  user=user[0];
-  // if( user[0]['training_completion_date'] != null && user[0]['training_completion_date'] != '0000-00-00' && user[0]['training_completion_date'] != '1970-01-01' && new Date(user[0]['training_completion_date']) < new Date() ) {
-
-  
-    let from_date_year =new Date (from_date).getFullYear();
-    let from_date_month = new Date(from_date).getMonth()+1;
+  let user = await getUserInfo(userid, db);
+  console.log("+++++++++++++++");
+  console.log(user[0].id);
+  user = user[0];
+  if (
+    user.training_completion_date != null &&
+    user.training_completion_date != "0000-00-00" &&
+    user.training_completion_date != "1970-01-01" &&
+    new Date(user.training_completion_date) < new Date()
+  ) {
+    let from_date_year = new Date(from_date).getFullYear();
+    let from_date_month = new Date(from_date).getMonth() + 1;
     let current_date = new Date();
-    let current_year = new Date().getFullYear()
-    let current_month=new Date().getMonth();
+    let current_year = new Date().getFullYear();
+    let current_month = new Date().getMonth();
     let current_quarter = await getQuarterByMonth();
-    let confirm_year = new Date(user['training_completion_date']).getFullYear();
-    let confirm_month =new Date(user['training_completion_date']).getMonth();
-    let confirm_quarter = await getQuarterByMonth(confirm_month,db);
-    let from_date_quarter =await getQuarterByMonth(from_date_month,db);
-    let rh_leaves_all =await getUserRHLeaves(userid,current_year,db);
-    let rh_list =(await getMyRHLeaves(current_year,db)).map( function(iter)
-    {
-      return iter['raw_date']; 
-    })
-    let rh_leaves = rh_leaves_all.map( function(iter){ return iter['from_date']; });
-    let rh_approved = (await getUserApprovedRHLeaves(userid, current_year,db)).map( function(iter){ return iter['from_date']; });
-    let rh_approved_dates = (await getUserApprovedRHLeaves(userid, current_year,db)).map(function(iter){ return iter['from_date']; },)
-    let rh_approved_count =((await getUserApprovedRHLeaves(userid, current_year,db)).map( function(iter){ return iter['no_of_days']; },)).reduce((a, b) => a + b, 0);
-    let rh_compensated = ((await getUserApprovedRHCompensationLeaves(userid,current_year,db)).map( function(iter){
-       return iter['no_of_days']; 
-      })).reduce((a,b)=>a+b,0);
-    let rh_stats =await getEmployeeRHStats(userid,current_year,db);
-    max_rh_can_be_taken_per_quarter = rh_stats['rh_can_be_taken_this_quarter'];
-    console.log(231221213)
-  //     if( $confirm_year == $current_year ){
-
-  //         $remaining_quarters = $no_of_quaters - $confirm_quarter['quarter'];
-  //         $eligible_for_confirm_quarter_rh = false;
-  //         if( $confirm_quarter['months'][0] == $confirm_month ){
-  //             $eligible_for_confirm_quarter_rh = true;
-  //         }
-  //         if( $eligible_for_confirm_quarter_rh ){
-  //             $rh_can_be_taken = ($remaining_quarters + 1) * $rh_can_be_taken_per_quarter;
-  //         } else {
-  //             $rh_can_be_taken = $remaining_quarters * $rh_can_be_taken_per_quarter;
-  //         }
-
-  //     } else if( $confirm_year > $current_year ) {
-  //         $rh_can_be_taken = 0;
-  //     }
-
-  //     $total_rh_taken = $rh_approved_count + $rh_compensated;
-  //     $apply_next_rh = true;
-
-  //     // filter dates for calculating quarterly leave
-  //     $rh_taken_per_quarter = self::getPreviousTakenRHQuaterly($userid, $from_date_year);
-
-  //     if( sizeof($rh_leaves_all) > 0 ){
-  //         foreach( $rh_leaves_all as $rh_leave ){
-  //             if( strtolower($rh_leave['status']) == 'pending' ){
-  //                 $apply_next_rh = false;
-  //                 break;
-  //             }
-  //         }
-  //     }
-
-  //     if( strtotime($from_date) < strtotime($current_date) ){
-  //         $message = 'You cannot apply previous RH.';
-
-  //     } else {
-
-  //         if( in_array( $from_date, $rh_list ) ){
-
-  //             if( $apply_next_rh ){
-
-  //                 if( $total_rh_taken >= $rh_can_be_taken ){
-  //                     $message = 'You have reached the RH quota. You are not eligible for other RH this year.';
-
-  //                 } else {
-  //                     if( array_key_exists( $from_date_quarter['quarter'], $rh_taken_per_quarter ) ){
-  //                         if( $rh_taken_per_quarter[$from_date_quarter['quarter']] > 0 ) {
-  //                             if( $max_rh_can_be_taken_per_quarter > 0 ){
-  //                                 $check = true;
-  //                             } else {
-  //                                 $message = "You are not allowed take another RH this quarter.";
-  //                             }
-  //                         }
-  //                     } else {
-  //                         if( $confirm_year == $current_year && $from_date_quarter['quarter'] == $confirm_quarter['quarter'] ){
-  //                             if( $eligible_for_confirm_quarter_rh ){
-  //                                 $check = true;
-  //                             } else {
-  //                                 $message = "You are not eligible for current quarter RH.";
-  //                             }
-  //                         } else {
-  //                             $check = true;
-  //                         }
-  //                     }
-  //                 }
-
-  //             } else {
-  //                 $message = "Your previous RH status is pending. Contact admin.";
-  //             }
-
-  //         } else {
-  //             $message = "The date is not yet added in the RH list.";
-  //         }
-  //     }
-
-  // } else {
-  //     $message = 'You are not a confirm employee so you are not eligible for RH';
-  // }
-
-  // $return['check'] = $check;
-  // $return['message'] = $message;
-
-  // return $return;
-};
-let  getEmployeeRHStats=async(userid,year,db)=>{
-      let Return = {};
-      let rh_can_be_taken = 0;
-      let rh_config_default =await getConfigByType('rh_config',db);                
-      let rh_per_quater = rh_config_default['rh_per_quater'];
-      let rh_extra = rh_config_default['rh_extra'];
-      let quarters =await getAllQuarters();
-      let no_of_quaters = quarters.length;
-      let rh_per_year = (no_of_quaters * rh_per_quater ) + rh_extra;
-      let max_rh_can_be_taken_per_quarter = rh_per_quater;
-      let rh_approved =rh_rejected =rh_left =rh_compensation_used =rh_compensation_pending =rh_can_be_taken_this_quarter = 0;
-      let rh_approved_names = {};let rh_rejected_names=[] ;let rh_compensation_used_names ={};
-      let quarters_available ={};
-      let user =await getUserInfo(userid,db);
-      user=user[0];
-      // if(user['training_completion_date'] != null && user['training_completion_date'] != '0000-00-00' && user['training_completion_date'] != '1970-01-01' && new Date(user['training_completion_date']).getTime() < new Date().getTime() ) {
-
-       let current_year = new Date().getFullYear();
-       let confirm_date =user['training_completion_date'];
-       let confirm_year = new Date(confirm_date).getFullYear();
-       let confirm_month = new Date(user['training_completion_date']).getMonth()+1;
-       let confirm_quarter =await getQuarterByMonth(confirm_month,db);
-       let current_quarter =await getQuarterByMonth();
-       let slice_quarter = 0;
-      
-       if(confirm_year == year ){
- 
-        let remaining_quarters = no_of_quaters - confirm_quarter['quarter'];
-        let slice_quarter = confirm_quarter['quarter'];
-        let eligible_for_confirm_quarter_rh = false;
-        if( confirm_quarter['months'][0] == confirm_month ){
-            eligible_for_confirm_quarter_rh = true;
-        }
-        if( eligible_for_confirm_quarter_rh ){
-            rh_can_be_taken = (remaining_quarters + 1) * rh_per_quater;
-            slice_quarter = slice_quarter - 1;
-        } else {
-            rh_can_be_taken = remaining_quarters * rh_per_quater;
-        }    
-
-    } else if( confirm_year > year ) {
-      rh_can_be_taken = 0;
-
-  } else {
-      rh_can_be_taken = rh_per_year;
-  }
-  // console.log(quarters.slice(4),121212)
-  // quarters_available = quarters.slice(slice_quarter);
-  let rh_data_quaterly =await getPreviousTakenRHQuaterly(userid, year,db);                    
-  let rh_leaves =await getUserRHLeaves( userid, year ,db);
-  let rh_compensation_leaves =await getUserApprovedRHCompensationLeaves( userid, year,db);
-  let rh_approved_leaves =await getUserApprovedRHLeaves( userid, year,db);
-  let rh_list =await getMyRHLeaves(year,db);
-          // RH Approved Name
-          rh_approved_dates = await array_values(rh_approved_leaves.map(function(iter){ return iter['from_date']; }));
-          for( let date of rh_approved_dates){
-          names = array_values((rh_list.map(function(iter){
-          return date == iter['raw_date'] ? iter['name'] : false;
-          })).filter(await aFilter()));
-         
-          rh_approved_names =rh_approved_names.concat(names);
-          }
-          rh_approved =rh_approved_names.length;
-           // RH Rejected Leaves
-          rh_rejected_leaves =await (aFilter(rh_leaves, function(iter){
-            return iter['status'] == 'Rejected';
-        }
-        )); console.log(rh_list);
-                // RH Rejected Names
-                rh_rejected_dates =await  array_values(rh_rejected_leaves.map(function(iter){ return iter['from_date']; }));
-                for(let date of  rh_rejected_dates){
-                    names = await array_values(aFilter(rh_list.map(function(iter){
-                        return date == iter['raw_date'] ? iter['name'] : false;
-                    })));
-                    rh_rejected_names =rh_rejected_names.concat( names);
-                }   
-                rh_rejected = rh_rejected_names.length;
-                // get all approved compensation dates
-
-                rh_compensation_used_dates = await onlyUnique(await  _.merge( aFilter(rh_compensation_leaves.map(function(iter){
-                  return iter['rh_dates'] ? JSON.parse(iter['rh_dates']) : null;         
-              }))));
-              console.log(rh_compensation_used_dates)
-
-};
-
-let  onlyUnique=async(value, index, self)=>{
-  console.log(index)
-  return self.indexOf(value) === index;
-}
-
-let aFilter=async(i)=>{
-  return i;
-}
-let array_values=async(input)=>{
-  const tmpArr = []
-  let key = ''
-  for (key in input) {
-    tmpArr[tmpArr.length] = input[key]
-  }
-  return tmpArr
-}
-let getPreviousTakenRHQuaterly=async(userid, year,db)=>
-{
-    let rh_data_quaterly = rh_dates = [];        
-    let rh_approved=await getUserApprovedRHLeaves(userid,year,db);
-    let rh_compensation_approved =await getUserApprovedRHCompensationLeaves( userid, year ,db);
-    let total_rh =(rh_approved.concat(rh_compensation_approved));
-    for( let rh of total_rh ){
-        let all_dates_btw_dates = await getDaysBetweenLeaves(rh['from_date'], $rh['to_date']);            
-        for(let day of  all_dates_btw_dates['data']['days']){
-            if( day['type'] == 'working' ){
-                rh_dates= day['full_date'];
-            }
-        }
-    }        
-    for(let date of rh_dates){
-        month = new Date(date);
-        let quarter =await getQuarterByMonth(month,db);            
-        if( array_key_exists(quarter['quarter'], rh_data_quaterly) ){
-            rh_data_quaterly[quarter['quarter']] += 1;
-        } else {
-            rh_data_quaterly[quarter['quarter']] = 1;
-        }
-    }
-    
-    return rh_data_quaterly;
-}
-
-
-let getUserApprovedRHLeaves=async( userid, year,db)=>{   
-  let q = await db.sequelize.query(`SELECT * FROM leaves WHERE leave_type = 'Restricted' AND user_Id = '${userid}' AND status = 'Approved' AND from_date LIKE '${year}%'`,{type:QueryTypes.SELECT});
-  return q;
-};
-let getUserApprovedRHCompensationLeaves=async(userid, year,db)=>{
-  let q =await db.sequelize.query(`SELECT * FROM leaves WHERE leave_type = 'RH Compensation' AND user_Id = '${userid}' AND status = 'Approved' AND from_date LIKE '${year}%'`,{type:QueryTypes.SELECT});
-  return q;
-}
-
-let getQuarterByMonth=async( month = false,db)=>{
-  month = month ? month :new Date().getMonth();
-  let  current_quarter = false;
-  let quarters =await getAllQuarters();
-  for(let[key,quarter] of Object.entries(quarters)){
-      if( quarter.includes(month) ) {
-        current_quarter={};
-        current_quarter["quarter"]=key
-        current_quarter["months"] = quarter;
-        break;
+    let confirm_year = new Date(user["training_completion_date"]).getFullYear();
+    let confirm_month = new Date(user["training_completion_date"]).getMonth();
+    let confirm_quarter = await getQuarterByMonth(confirm_month, db);
+    let from_date_quarter = await getQuarterByMonth(from_date_month, db);
+    let rh_leaves_all = await getUserRHLeaves(userid, current_year, db);
+    let rh_list = (await getMyRHLeaves(current_year, db)).map(function (iter) {
+      return iter["raw_date"];
+    });
+    let rh_leaves = rh_leaves_all.map(function (iter) {
+      return iter["from_date"];
+    });
+    let rh_approved = (
+      await getUserApprovedRHLeaves(userid, current_year, db)
+    ).map(function (iter) {
+      return iter["from_date"];
+    });
+    let rh_approved_dates = (
+      await getUserApprovedRHLeaves(userid, current_year, db)
+    ).map(function (iter) {
+      return iter["from_date"];
+    });
+    let rh_approved_count = (
+      await getUserApprovedRHLeaves(userid, current_year, db)
+    )
+      .map(function (iter) {
+        return iter["no_of_days"];
+      })
+      .reduce((a, b) => a + b, 0);
+    let rh_compensated = (
+      await getUserApprovedRHCompensationLeaves(userid, current_year, db)
+    )
+      .map(function (iter) {
+        return iter["no_of_days"];
+      })
+      .reduce((a, b) => a + b, 0);
+    let rh_stats = await getEmployeeRHStats(userid, current_year, db);
+    max_rh_can_be_taken_per_quarter = rh_stats["rh_can_be_taken_this_quarter"];
+    console.log(231221213);
+    if (confirm_year == current_year) {
+      remaining_quarters = no_of_quaters - confirm_quarter["quarter"];
+      eligible_for_confirm_quarter_rh = false;
+      if (confirm_quarter["months"][0] == confirm_month) {
+        eligible_for_confirm_quarter_rh = true;
       }
+      if (eligible_for_confirm_quarter_rh) {
+        rh_can_be_taken =
+          (remaining_quarters + 1) * rh_can_be_taken_per_quarter;
+      } else {
+        rh_can_be_taken = remaining_quarters * rh_can_be_taken_per_quarter;
+      }
+    } else if (confirm_year > current_year) {
+      rh_can_be_taken = 0;
+    }
+    total_rh_taken = rh_approved_count + rh_compensated;
+    apply_next_rh = true;
+    // filter dates for calculating quarterly leave
+
+    rh_taken_per_quarter = await getPreviousTakenRHQuaterly(
+      userid,
+      from_date_year,
+      db
+    );
+    if (sizeof(rh_leaves_all) > 0) {
+      for await (let rh_leave of rh_leaves_all) {
+        if (rh_leave["status"].toLowerCase() == "pending") {
+          apply_next_rh = false;
+          break;
+        }
+      }
+    }
+    let fromTime = new Date(from_date);
+    let currentTime = new Date(current_date);
+    if (fromTime < currentTime) {
+      message = "You cannot apply previous RH.";
+    } else {
+      if (inArray(from_date, rh_list)) {
+        if (apply_next_rh) {
+          if (total_rh_taken >= rh_can_be_taken) {
+            message =
+              "You have reached the RH quota. You are not eligible for other RH this year.";
+          } else {
+            if (_.keysIn(from_date_quarter["quarter"], rh_taken_per_quarter)) {
+              if (rh_taken_per_quarter[from_date_quarter["quarter"]] > 0) {
+                if (max_rh_can_be_taken_per_quarter > 0) {
+                  check = true;
+                } else {
+                  message = "You are not allowed take another RH this quarter.";
+                }
+              }
+            } else {
+              if (
+                confirm_year == current_year &&
+                from_date_quarter["quarter"] == confirm_quarter["quarter"]
+              ) {
+                if (eligible_for_confirm_quarter_rh) {
+                  check = true;
+                } else {
+                  message = "You are not eligible for current quarter RH.";
+                }
+              } else {
+                check = true;
+              }
+            }
+          }
+        } else {
+          message = "Your previous RH status is pending. Contact admin.";
+        }
+      } else {
+        message = "The date is not yet added in the RH list.";
+      }
+    }
+  } else {
+    message = "You are not a confirm employee so you are not eligible for RH";
+  }
+
+  Return["check"] = check;
+  Return["message"] = message;
+
+  return Return;
+};
+let getEmployeeRHStats = async (userid, year, db) => {
+  let Return = {};
+  let rh_can_be_taken = 0;
+  let rh_config_default = await getConfigByType("rh_config", db);
+  let rh_per_quater = rh_config_default["rh_per_quater"];
+  let rh_extra = rh_config_default["rh_extra"];
+  let quarters = await getAllQuarters();
+  let no_of_quaters = quarters.length;
+  let rh_per_year = no_of_quaters * rh_per_quater + rh_extra;
+  let max_rh_can_be_taken_per_quarter = rh_per_quater;
+  let rh_approved,
+    rh_rejected,
+    rh_left,
+    rh_compensation_used,
+    rh_compensation_pending,
+    rh_can_be_taken_this_quarter = 0;
+  let rh_approved_names = {};
+  let rh_rejected_names = [];
+  let rh_compensation_used_names = {};
+  let quarters_available = {};
+  let user = await getUserInfo(userid, db);
+  user = user[0];
+  if (
+    user["training_completion_date"] != null &&
+    user["training_completion_date"] != "0000-00-00" &&
+    user["training_completion_date"] != "1970-01-01" &&
+    new Date(user["training_completion_date"]).getTime() < new Date().getTime()
+  ) {
+    let current_year = new Date().getFullYear();
+    let confirm_date = user["training_completion_date"];
+    let confirm_year = new Date(confirm_date).getFullYear();
+    let confirm_month =
+      new Date(user["training_completion_date"]).getMonth() + 1;
+    let confirm_quarter = await getQuarterByMonth(confirm_month, db);
+    let current_quarter = await getQuarterByMonth();
+    let slice_quarter = 0;
+
+    if (confirm_year == year) {
+      let remaining_quarters = no_of_quaters - confirm_quarter["quarter"];
+      let slice_quarter = confirm_quarter["quarter"];
+      let eligible_for_confirm_quarter_rh = false;
+      if (confirm_quarter["months"][0] == confirm_month) {
+        eligible_for_confirm_quarter_rh = true;
+      }
+      if (eligible_for_confirm_quarter_rh) {
+        rh_can_be_taken = (remaining_quarters + 1) * rh_per_quater;
+        slice_quarter = slice_quarter - 1;
+      } else {
+        rh_can_be_taken = remaining_quarters * rh_per_quater;
+      }
+    } else if (confirm_year > year) {
+      rh_can_be_taken = 0;
+    } else {
+      rh_can_be_taken = rh_per_year;
+    }
+    // console.log(quarters.slice(4),121212)
+    // quarters_available = quarters.slice(slice_quarter);
+    let rh_data_quaterly = await getPreviousTakenRHQuaterly(userid, year, db);
+    let rh_leaves = await getUserRHLeaves(userid, year, db);
+    let rh_compensation_leaves = await getUserApprovedRHCompensationLeaves(
+      userid,
+      year,
+      db
+    );
+    let rh_approved_leaves = await getUserApprovedRHLeaves(userid, year, db);
+    let rh_list = await getMyRHLeaves(year, db);
+    // RH Approved Name
+    rh_approved_dates = await array_values(
+      rh_approved_leaves.map(function (iter) {
+        return iter["from_date"];
+      })
+    );
+    for (let date of rh_approved_dates) {
+      names = array_values(
+        rh_list
+          .map(function (iter) {
+            return date == iter["raw_date"] ? iter["name"] : false;
+          })
+          .filter(await aFilter())
+      );
+
+      rh_approved_names = rh_approved_names.concat(names);
+    }
+    rh_approved = rh_approved_names.length;
+    // RH Rejected Leaves
+    rh_rejected_leaves = await aFilter(rh_leaves, function (iter) {
+      return iter["status"] == "Rejected";
+    });
+    console.log(rh_list);
+    // RH Rejected Names
+    rh_rejected_dates = await array_values(
+      rh_rejected_leaves.map(function (iter) {
+        return iter["from_date"];
+      })
+    );
+    for (let date of rh_rejected_dates) {
+      names = await array_values(
+        aFilter(
+          rh_list.map(function (iter) {
+            return date == iter["raw_date"] ? iter["name"] : false;
+          })
+        )
+      );
+      rh_rejected_names = rh_rejected_names.concat(names);
+    }
+    rh_rejected = rh_rejected_names.length;
+    // get all approved compensation dates
+    let maped = _.filter(
+      _.map(rh_compensation_leaves, function (iter) {
+        return iter["rh_dates"] ? JSON.parse(iter["rh_dates"]) : null;
+      })
+    );
+    let merged = _.merge(maped, maped);
+    rh_compensation_used_dates = _.uniq(merged);
+    console.log(rh_compensation_used_dates);
+    for await (let date of rh_compensation_used_dates) {
+      let name = array_values(
+        _.filter(
+          _.map(rh_list, function (iter) {
+            return date == iter["raw_date"] ? iter["name"] : false;
+          })
+        )
+      );
+      rh_compensation_used_names = _.merge(rh_compensation_used_names, names);
+    }
+    rh_compensation_used = rh_compensation_used_names.length;
+    total_rh_taken = rh_approved + rh_compensation_used;
+    if (rh_can_be_taken >= total_rh_taken) {
+      rh_left = rh_can_be_taken - total_rh_taken;
+    }
+    if (rh_rejected > rh_left) {
+      rejected_rh_for_compensation = rh_left;
+    } else {
+      rejected_rh_for_compensation = rh_rejected;
+    }
+    rh_compensation_pending = await getRHListForUserCompensation(
+      userid,
+      year,
+      db
+    );
+    rh_compensation_pending = rh_compensation_pending.length;
+    if (rh_compensation_pending < 0) {
+      rh_compensation_pending = 0;
+    }
+    if (year < current_year) {
+      rh_compensation_pending = 0;
+      rh_left = 0;
+    }
+    if (rh_compensation_pending > rh_left) {
+      rh_compensation_pending = rh_left;
+    }
+    past_quarters = _.filter(quarters_available, function (iter) {
+      return iter <= current_quarter["quarter"];
+    });
+    total_rh_taken_till_now = _.sum(rh_data_quaterly);
+    if (total_rh_taken_till_now < past_quarters.length) {
+      rh_can_be_taken_this_quarter =
+        past_quarters.length - total_rh_taken_till_now;
+    }
+    if (_.sum(array_values(rh_data_quaterly)) >= rh_can_be_taken) {
+      rh_can_be_taken_this_quarter = 0;
+    }
+    if (current_quarter.quarter == quarters_available.length - 1) {
+      rh_can_be_taken_this_quarter += rh_extra;
+    }
+  }
+
+  stats = {
+    rh_can_be_taken: rh_can_be_taken,
+    rh_can_be_taken_this_quarter: rh_can_be_taken_this_quarter,
+    rh_approved: rh_approved,
+    rh_approved_names: rh_approved_names,
+    rh_rejected: rh_rejected,
+    rh_rejected_names: rh_rejected_names,
+    rh_left: rh_left,
+    rh_compensation_used: rh_compensation_used,
+    rh_compensation_used_names: rh_compensation_used_names,
+    rh_compensation_pending: rh_compensation_pending,
+  };
+  return stats;
+};
+let aFilter = async (i) => {
+  return i;
+};
+let array_values = async (input) => {
+  const tmpArr = [];
+  let key = "";
+  for (key in input) {
+    tmpArr[tmpArr.length] = input[key];
+  }
+  return tmpArr;
+};
+let getPreviousTakenRHQuaterly = async (userid, year, db) => {
+  let rh_data_quaterly = (rh_dates = []);
+  let rh_approved = await getUserApprovedRHLeaves(userid, year, db);
+  let rh_compensation_approved = await getUserApprovedRHCompensationLeaves(
+    userid,
+    year,
+    db
+  );
+  let total_rh = rh_approved.concat(rh_compensation_approved);
+  for (let rh of total_rh) {
+    let all_dates_btw_dates = await getDaysBetweenLeaves(
+      rh["from_date"],
+      $rh["to_date"]
+    );
+    for (let day of all_dates_btw_dates["data"]["days"]) {
+      if (day["type"] == "working") {
+        rh_dates = day["full_date"];
+      }
+    }
+  }
+  for (let date of rh_dates) {
+    month = new Date(date);
+    let quarter = await getQuarterByMonth(month, db);
+    if (array_key_exists(quarter["quarter"], rh_data_quaterly)) {
+      rh_data_quaterly[quarter["quarter"]] += 1;
+    } else {
+      rh_data_quaterly[quarter["quarter"]] = 1;
+    }
+  }
+
+  return rh_data_quaterly;
+};
+
+let getUserApprovedRHLeaves = async (userid, year, db) => {
+  let q = await db.sequelize.query(
+    `SELECT * FROM leaves WHERE leave_type = 'Restricted' AND user_Id = '${userid}' AND status = 'Approved' AND from_date LIKE '${year}%'`,
+    { type: QueryTypes.SELECT }
+  );
+  return q;
+};
+let getUserApprovedRHCompensationLeaves = async (userid, year, db) => {
+  let q = await db.sequelize.query(
+    `SELECT * FROM leaves WHERE leave_type = 'RH Compensation' AND user_Id = '${userid}' AND status = 'Approved' AND from_date LIKE '${year}%'`,
+    { type: QueryTypes.SELECT }
+  );
+  return q;
+};
+
+let getQuarterByMonth = async (month = false, db) => {
+  month = month ? month : new Date().getMonth();
+  let current_quarter = false;
+  let quarters = await getAllQuarters();
+  for (let [key, quarter] of Object.entries(quarters)) {
+    if (quarter.includes(month)) {
+      current_quarter = {};
+      current_quarter["quarter"] = key;
+      current_quarter["months"] = quarter;
+      break;
+    }
   }
   return current_quarter;
-}
-let getAllQuarters=async()=>{
+};
+let getAllQuarters = async () => {
   let quarters = [];
 
-     quarters["1"]=[ 1, 2, 3 ]
-     quarters["2"] = [ 4, 5, 6 ]
-     quarters["3"] = [ 7, 8, 9 ]
-     quarters["4"] = [ 10, 11, 12]
+  quarters["1"] = [1, 2, 3];
+  quarters["2"] = [4, 5, 6];
+  quarters["3"] = [7, 8, 9];
+  quarters["4"] = [10, 11, 12];
   return quarters;
-}
-let  getConfigByType=async( type,db)=>{
-  let row =await db.sequelize.query (`select * from config where type='${type}' `,{type:QueryTypes.SELECT});
-  if( row.length == 0 ){
-      await insertDefaultConfigByType(type,db);
-      return await getConfigByType(type,db);
+};
+let getConfigByType = async (type, db) => {
+  let row = await db.sequelize.query(
+    `select * from config where type='${type}' `,
+    { type: QueryTypes.SELECT }
+  );
+  if (row.length == 0) {
+    await insertDefaultConfigByType(type, db);
+    return await getConfigByType(type, db);
   } else {
-      return JSON.parse(row[0]['value']);
+    return JSON.parse(row[0]["value"]);
   }
 };
 
-let insertDefaultConfigByType= async(type,db)=>{
+let insertDefaultConfigByType = async (type, db) => {
   let defaultConfigValue = "";
   switch (type) {
-      case ('attendance_csv'):
-          defaultConfigValue = JSON.stringify({
-              "user_id" : {},
-              "time" :{},
-          });
-          break;
-      case 'reset_password':
-          defaultConfigValue = JSON.stringify({
-              "days" : "",
-              "status" : 0,
-              "last_updated" : new Date()
-          });
-          break;
+    case "attendance_csv":
+      defaultConfigValue = JSON.stringify({
+        user_id: {},
+        time: {},
+      });
+      break;
+    case "reset_password":
+      defaultConfigValue = JSON.stringify({
+        days: "",
+        status: 0,
+        last_updated: new Date(),
+      });
+      break;
 
-      case 'web_show_salary':
-          defaultConfigValue = "0";
-          break;
+    case "web_show_salary":
+      defaultConfigValue = "0";
+      break;
 
-      case 'login_types':
-          defaultConfigValue = JSON.stringify({
-              "normal_login" : true,
-              "google_login" : false,
-              "google_auth_client_id" : ""
-          });
-          break;
+    case "login_types":
+      defaultConfigValue = JSON.stringify({
+        normal_login: true,
+        google_login: false,
+        google_auth_client_id: "",
+      });
+      break;
 
-      case 'alternate_saturday':
-          arr = {}
-          defaultConfigValue = JSON.stringify(arr);
-          break;
+    case "alternate_saturday":
+      arr = {};
+      defaultConfigValue = JSON.stringify(arr);
+      break;
 
-      case 'page_headings':
-          arr = {};
-          // // format
-          // // $arr 
-          // //   arr .reference = "",
-          // //    arr .value= ""
-          //  // );
-          defaultConfigValue = JSON.stringify(arr);
-          break;
+    case "page_headings":
+      arr = {};
+      // // format
+      // // $arr
+      // //   arr .reference = "",
+      // //    arr .value= ""
+      //  // );
+      defaultConfigValue = JSON.stringify(arr);
+      break;
 
-      case 'inventory_audit_comments':
-          defaultConfigValue = JSON.stringify({
-              "all_good" : "Nothing To Report (all good)",
-              "issue" : "Issue To Report",
-              "critical_issue" : "Critical Issue To Report"
-          });
-          break;
+    case "inventory_audit_comments":
+      defaultConfigValue = JSON.stringify({
+        all_good: "Nothing To Report (all good)",
+        issue: "Issue To Report",
+        critical_issue: "Critical Issue To Report",
+      });
+      break;
 
-      case 'attendance_late_days':
-          defaultConfigValue = "0";
-          break;
+    case "attendance_late_days":
+      defaultConfigValue = "0";
+      break;
 
-      case 'rh_config':
-          defaultConfigValue = JSON.stringify({                   
-              'rh_per_quater' : 1,
-              'rh_extra' : 1,
-              'rh_rejection_setting' : false,
-          });
-          break;
+    case "rh_config":
+      defaultConfigValue = JSON.stringify({
+        rh_per_quater: 1,
+        rh_extra: 1,
+        rh_rejection_setting: false,
+      });
+      break;
 
-      default:  
-          break;
-      }
-  if(defaultConfigValue != "" ){
-    let q =await db.sequelize.query(` INSERT INTO config( type, value ) VALUES( '${type}', '${defaultConfigValue}'`,{type:QueryTypes.INSERT});
+    default:
+      break;
   }
-}
+  if (defaultConfigValue != "") {
+    let q = await db.sequelize.query(
+      ` INSERT INTO config( type, value ) VALUES( '${type}', '${defaultConfigValue}'`,
+      { type: QueryTypes.INSERT }
+    );
+  }
+};
 
 let leaveDocRequest = async (leaveid, doc_request, comment, db) => {
   let leaveDetails = await getLeaveDetails(leaveid, db);
@@ -1399,7 +1781,7 @@ let updateLeaveStatus = async (leaveid, newstatus, messagetouser, db, req) => {
     emailData.templateData = templateData;
     // self::sendTemplateEmail(emailData);
 
-    r_message = `Leave status changes from ${old_status} to ${newstatus};`
+    r_message = `Leave status changes from ${old_status} to ${newstatus};`;
     console.log("end of function", 122332);
   } else {
     r_message = "No such leave found";
@@ -1713,7 +2095,6 @@ let deleteUserInOutTimeOfDay = async (userid, date, isadmin = true, db) => {
 let getDaysBetweenLeaves = async (startDate, endDate, db) => {
   // api calls
   let allDates = await _getDatesBetweenTwoDates(startDate, endDate, db);
-
   //extract year and month of b/w dates
   let yearMonth = [];
 
@@ -1994,14 +2375,14 @@ let _getNextMonth = async (year, month) => {
 let _beautyMonthSummary = async (monthAttendace, db) => {
   let r_actual_working_hours =
     (r_completed_working_hours =
-      r_pending_working_hours =
+    r_pending_working_hours =
       0);
 
   let WORKING_DAYS = (NON_WORKING_DAYS = LEAVE_DAYS = HALF_DAYS = 0);
 
   let r_actual_working_seconds =
     (r_completed_working_seconds =
-      r_pending_working_seconds =
+    r_pending_working_seconds =
       0);
 
   for (let [k, pp] of Object.entries(monthAttendace)) {
@@ -2201,7 +2582,7 @@ let _beautyMonthAttendance = async (monthAttendance) => {
   }
   return monthAttendance;
 };
-let getAllLeaves = async (req,db) => {
+let getAllLeaves = async (req, db) => {
   let currentDate = new Date();
   let month = currentDate.getMonth();
   month = month + 1 - 6;
@@ -2252,7 +2633,7 @@ let getAllLeaves = async (req,db) => {
           p["last_applied_leaves"] = lastLeaves;
         }
 
-        pendingLeaves.push(p)
+        pendingLeaves.push(p);
         delete rows[k];
       } else {
         rows[k]["last_applied_leaves"] = {};
@@ -2269,9 +2650,9 @@ let getAllLeaves = async (req,db) => {
     for (let [k, v] of Object.entries(newRows)) {
       newRows[k]["from_date"] = v["from_date"];
       newRows[k]["to_date"] = v["to_date"];
-      newRows[k]["applied_on"] = v["applied_on"]
+      newRows[k]["applied_on"] = v["applied_on"];
       /* get doc link */
-      newRows[k]["doc_link"] = await _getLeaveDocFullLink(v,db);
+      newRows[k]["doc_link"] = await _getLeaveDocFullLink(v, db);
     }
   }
 
@@ -2279,122 +2660,124 @@ let getAllLeaves = async (req,db) => {
   if (newRows.length > 0) {
     enabledUsersList = await getEnabledUsersList(req, db);
     for (let [k, p] of Object.entries(newRows)) {
-      let p_userid = p['user_Id'];
+      let p_userid = p["user_Id"];
       for (let [kkk, ev] of Object.entries(enabledUsersList)) {
-        if (p_userid == ev['user_Id']) {
-          newRows[k]['user_profile_name'] = ev['name'];
-          newRows[k]['user_profile_jobtitle'] = ev['jobtitle'];
+        if (p_userid == ev["user_Id"]) {
+          newRows[k]["user_profile_name"] = ev["name"];
+          newRows[k]["user_profile_jobtitle"] = ev["jobtitle"];
           // newRows[k]['user_profile_image'] = await _getEmployeeProfilePhoto(ev);
           break;
         }
       }
 
-      if (!p['rh_names']) {
+      if (!p["rh_names"]) {
         let names = [];
-        if (p['leave_type'] == 'RH Compensation') {
-          if (p['rh_dates']) {
-            dates = JSON.parse(p['rh_dates']);
+        if (p["leave_type"] == "RH Compensation") {
+          if (p["rh_dates"]) {
+            dates = JSON.parse(p["rh_dates"]);
             for (let date of dates) {
               for (let rh of rh_list) {
-                if (rh['raw_date'] == date) {
-                  names = rh['name'].trim();
+                if (rh["raw_date"] == date) {
+                  names = rh["name"].trim();
                 }
               }
             }
           }
         }
-        if (p['leave_type'] == 'Restricted') {
+        if (p["leave_type"] == "Restricted") {
           for (let rh of rh_list) {
-            if (rh['raw_date'] == p['from_date']) {
-              names = (rh['name']).trim();
+            if (rh["raw_date"] == p["from_date"]) {
+              names = rh["name"].trim();
             }
           }
         }
-        newRows[k]['rh_names'] = JSON.stringify(names);
+        newRows[k]["rh_names"] = JSON.stringify(names);
       }
     }
   }
-  newRows = newRows.filter(item => item);
+  newRows = newRows.filter((item) => item);
 
   let Return = {};
-  let r_data = {}
-  Return['error'] = 0;
-  r_data['message'] = '';
-  r_data['leaves'] = newRows;
-  Return['data'] = r_data;
+  let r_data = {};
+  Return["error"] = 0;
+  r_data["message"] = "";
+  r_data["leaves"] = newRows;
+  Return["data"] = r_data;
 
   return Return;
 };
 
-
-
-let  getUsersLeaves=async(userid,db)=>{
-    let list = [];
-       let year = new Date().getFullYear();
-    let rows = await db.sequelize.query(`SELECT * FROM leaves Where user_Id = ${userid} order by id DESC`,{type:QueryTypes.SELECT})
-    let rh_list = await getMyRHLeaves(year,db);
-    for(let [key,row] of Object.entries(rows)){
-        let names = [];
-        if(row['leave_type'] == 'RH Compensation' ){
-            if(row['rh_dates']) {                                    
-                let dates = JSON.parse(row['rh_dates']);                       
-                for(let date of dates ){
-                    for(let rh of rh_list){
-                        if( rh['raw_date'] == date ){
-                            names= rh['name'].trim();
-                        }                            
-                    }                  
-                }                    
+let getUsersLeaves = async (userid, db) => {
+  let list = [];
+  let year = new Date().getFullYear();
+  let rows = await db.sequelize.query(
+    `SELECT * FROM leaves Where user_Id = ${userid} order by id DESC`,
+    { type: QueryTypes.SELECT }
+  );
+  let rh_list = await getMyRHLeaves(year, db);
+  for (let [key, row] of Object.entries(rows)) {
+    let names = [];
+    if (row["leave_type"] == "RH Compensation") {
+      if (row["rh_dates"]) {
+        let dates = JSON.parse(row["rh_dates"]);
+        for (let date of dates) {
+          for (let rh of rh_list) {
+            if (rh["raw_date"] == date) {
+              names = rh["name"].trim();
             }
+          }
         }
-        if( row['leave_type'] == 'Restricted' ){                
-            for(let rh of rh_list){
-                if( rh['raw_date'] == row['from_date'] ){
-                    names= rh['name'].trim();
-                }                            
-            }
-        }            
-        rows[key]['rh_names'] = JSON.stringify(names);
-    }
-
-    return rows;
-}
-let API_getEmployeeRHStats=async(userid,year,db)=>{
-  let Return={};
-  year = year ? year :new Date().getFullYear();
-  let error = 0;
-  let stats =await getEmployeeRHStats(userid, year,db);
-  Return['error'] = error;
-  Return['data'] = stats;
-  return Return;
-}
-let  getMyLeaves=async(userid,db)=>{ 
-  let msg;
-  let userLeaves =await getUsersLeaves(userid,db);
-  if (userLeaves.length > 0) {
-      for(let [k,v] of Object.entries(userLeaves)) {
-          userLeaves[k]['from_date'] = new Date(v['from_date']);
-          userLeaves[k]['to_date'] = new Date(v['to_date']);
-          userLeaves[k]['applied_on'] = new Date(v['applied_on']);
-          userLeaves[k]['doc_link'] =await _getLeaveDocFullLink(v,db);
       }
-      msg="";
-  }else{
-  msg="no leave found"
+    }
+    if (row["leave_type"] == "Restricted") {
+      for (let rh of rh_list) {
+        if (rh["raw_date"] == row["from_date"]) {
+          names = rh["name"].trim();
+        }
+      }
+    }
+    rows[key]["rh_names"] = JSON.stringify(names);
+  }
+
+  return rows;
+};
+let API_getEmployeeRHStats = async (userid, year, db) => {
+  let Return = {};
+  year = year ? year : new Date().getFullYear();
+  let error = 0;
+  let stats = await getEmployeeRHStats(userid, year, db);
+  Return["error"] = error;
+  Return["data"] = stats;
+  return Return;
+};
+let getMyLeaves = async (userid, db) => {
+  let msg;
+  let userLeaves = await getUsersLeaves(userid, db);
+  if (userLeaves.length > 0) {
+    for (let [k, v] of Object.entries(userLeaves)) {
+      userLeaves[k]["from_date"] = new Date(v["from_date"]);
+      userLeaves[k]["to_date"] = new Date(v["to_date"]);
+      userLeaves[k]["applied_on"] = new Date(v["applied_on"]);
+      userLeaves[k]["doc_link"] = await _getLeaveDocFullLink(v, db);
+    }
+    msg = "";
+  } else {
+    msg = "no leave found";
   }
 
   let Return = {};
   let r_data = {};
   Return.error = 0;
-  r_data.message= msg;
+  r_data.message = msg;
   r_data.leaves = userLeaves;
   Return.data = r_data;
 
   return Return;
-}
+};
 
 module.exports = {
-  _secondsToTime,getGenericMonthSummary,
+  _secondsToTime,
+  getGenericMonthSummary,
   getDaysOfMonth,
   _getPreviousMonth,
   leaveDocRequest,
@@ -2411,6 +2794,8 @@ module.exports = {
   getDaysBetweenLeaves,
   getAllUsersPendingLeavesSummary,
   getUserMonthAttendace,
-  getAllLeaves,API_getEmployeeRHStats,
-  getMyLeaves,_getDatesBetweenTwoDates
+  getAllLeaves,
+  API_getEmployeeRHStats,
+  getMyLeaves,
+  _getDatesBetweenTwoDates,
 };
