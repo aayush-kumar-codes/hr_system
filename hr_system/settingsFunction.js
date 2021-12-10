@@ -1160,6 +1160,8 @@ r_data['attendance_rows'] = attendance_rows;
         return Return;
 }
 module.exports = {
+  inArray,
+  empty,
   API_getGenericConfiguration,
   API_updateConfig,
   api_getAverageWorkingHours,savePolicyDocument,API_deleteSecretKey,
