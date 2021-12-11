@@ -1319,8 +1319,7 @@ let getAllUserInfo=async(teamName = false,hideSecureInfo = false,req,db)=>{
         let userid = val['user_Id'];
         let emailid =val['work_email'];
         console.log(121212)
-        let sal = await getUserlatestSalary(767,false,db);
-        console.log(sal)
+        let sal = await getUserlatestSalary(userid,false,db);
         let salary_detail = 0;
         let previous_increment = 0;
         let next_increment_date = "";
@@ -1355,20 +1354,20 @@ let getAllUserInfo=async(teamName = false,hideSecureInfo = false,req,db)=>{
             end: new Date(date2)
           })
 
-        for (let s of allSlackUsers ) {
-            if (s['profile']['email'] == emailid) {
-                sl = s;
-                break;
-            }
-        }
+        // for (let s of allSlackUsers ) {
+        //     if (s['profile']['email'] == emailid) {
+        //         sl = s;
+        //         break;
+        //     }
+        // }
 
         // $sl = self::getSlackUserInfo($emailid);
-        if ((sl.length) > 0) {
-            val['slack_profile'] = sl; 
-            // slack_image = await _getEmployeeProfilePhoto($val);
-            slack_id = sl['id'];
-        }
-        let h = await getHoldingDetail(userid);
+        // if ((sl.length) > 0) {
+        //     val['slack_profile'] = sl; 
+        //     // slack_image = await _getEmployeeProfilePhoto($val);
+        //     slack_id = sl['id'];
+        // }
+        let h = await getHoldingDetail(userid,db);
         if ((h.length) > 0) {
             holding = end(h);
         }
@@ -1399,7 +1398,6 @@ let getAllUserInfo=async(teamName = false,hideSecureInfo = false,req,db)=>{
     Return['data'] = row2;
     console.log(Return,1211212)
     return Return;
-
 }
 module.exports = {
     deleteUserSalary, getUserManagePayslipBlockWise, createUserPayslip,getAllUserInfo
