@@ -34,4 +34,25 @@ router.post(
     salaryController.get_all_users_detail,
     handlers.newResponse
   );
+router.post(
+  "/get_user_salary_info",
+  middleware.AuthForHrEmployee,
+  salaryController.get_user_salary_info,
+  handlers.newResponse
+);
+
+router.post(
+  "/update_employee_allocated_leaves",
+  middleware.AuthForHrEmployee,
+  salaryController.update_employee_allocated_leaves,
+  handlers.newResponse
+);
+
+router.post(
+  "/update_employee_final_leave_balance",
+  middleware.AuthForHrEmployee,
+  salaryController.update_employee_final_leave_balance,
+  handlers.newResponse
+);
+
 module.exports = router;

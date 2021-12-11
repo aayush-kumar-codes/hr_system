@@ -408,7 +408,7 @@ let getUserMonthLeaves = async (userid, year, month, db) => {
 
       if (h_year == year && h_month == month) {
         let h_full_date = new Date(d);
-        let h_date = d.getDate();
+        let h_date = new Date(d).getDate();
         list[h_date] = pp;
       }
     }
