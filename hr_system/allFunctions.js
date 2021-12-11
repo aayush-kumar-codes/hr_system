@@ -683,9 +683,9 @@ let generateUserToken = async (userId, models,addOns = false) => {
       // eth_token : userInfo.users.eth_token,
     };
     let roleAction = [];
-    // if (userInfo[0].type.toLowerCase() == "admin") {
-    //   u.role_pages = await getRolePagesForSuperAdmin();
-    // } else {
+    if (userInfo[0].type.toLowerCase() == "admin") {
+      u.role_pages = await getRolePagesForSuperAdmin();
+    } else {
       let roleInfo = await getUserRole(userInfo[0].user_Id, models);
       if (roleInfo != null&&typeof roleInfo.role_pages!="undefined") {
         let role_pages = await getRolePagesForApiToken(
@@ -705,6 +705,7 @@ let generateUserToken = async (userId, models,addOns = false) => {
           roleAction.push(value.action_name);
         }
       }
+    }
     u.role_actions = roleAction;
     u.is_policy_documents_read_by_user = 1;
     u.is_inventory_audit_pending = 0;

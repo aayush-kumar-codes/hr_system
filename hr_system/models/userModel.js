@@ -31,6 +31,7 @@ function user(database, type) {
       let message;
       let data = {};
       let login_by_email = false;
+      console.log(username,password)
       let query = await models.sequelize.query(
         `select * from users where username = '${username}' and password = '${password}' AND status='Enabled' `,
         { type: QueryTypes.SELECT }
