@@ -4,7 +4,7 @@ const reqValidate = require("../providers/error-check");
 const jwt = require("jsonwebtoken");
 const secret = require("../config");
 const _=require("lodash")
-const {deleteUserSalary,getUserManagePayslipBlockWise}=require("../salaryFunctions")
+const {deleteUserSalary,getUserManagePayslipBlockWise,getAllUserInfo,createUserPayslip}=require("../salaryFunctions")
 exports.delete_salary=async(req,res,next)=>{
    try {
        let resp;
@@ -63,7 +63,7 @@ exports.get_user_manage_payslips_data=async(req,res,next)=>{
                 }
                 if ((!req.body['year']) && !(req.body['month']))  {
                     let currentYear = new Date().getFullYear();
-                    let currentMonth = new Date.toLocaleString('default', { month: 'long' })
+                    let currentMonth = new Date().toLocaleString('default', { month: 'long' })
                     if (currentMonth == "January") {
                         let date1=new Date();
                         year=(new Date(date1).getFullYear())-1;
@@ -96,7 +96,7 @@ exports.get_user_manage_payslips_data=async(req,res,next)=>{
 
  exports.get_user_salary_info_by_id=async(req,res,next)=>{
      try {
-         
+
         res.status_code=200;
         res.data=resp.data;
         res.message=resp.message;
@@ -109,3 +109,43 @@ exports.get_user_manage_payslips_data=async(req,res,next)=>{
         return next();  
      }
  }
+ exports.create_employee_salary_slip=async(req,res,next)=>{
+    try {
+        let resp={};
+        if ((req.body['user_id']) && req.body['user_id'] != "") {
+            resp = await createUserPayslip(req,db);
+        } else {
+            resp['message'] = 'Please give user_id ';
+        }
+       res.status_code=200;
+       res.data=resp.data;
+       res.message=resp.message;
+       res.error=resp.error
+       return next();
+    } catch (error) {
+       console.log(error)
+       res.status_code=500;
+       res.message=error.message;
+       return next();  
+    }
+};
+exports.get_all_users_detail=async(req,res,next)=>{
+    try {
+        let hideSecureInfo = true;
+        let loggedUserInfo=req.userData
+        if((loggedUserInfo['role']) && (loggedUserInfo['role'].toLowerCase) == 'admin' ){
+        hideSecureInfo = false;
+        }
+        let resp = await getAllUserInfo(false, hideSecureInfo,req,db);
+        res.status_code=200;
+        res.data=resp.data;
+        res.message=resp.message;
+        res.error=resp.error
+       return next();
+    } catch (error) {
+       console.log(error)
+       res.status_code=500;
+       res.message=error.message;
+       return next();  
+    }
+}

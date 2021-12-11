@@ -22,4 +22,16 @@ router.post(
     salaryController.get_user_salary_info_by_id,
     handlers.newResponse
   );
+  router.post(
+    "/create_employee_salary_slip",
+    middleware.AuthForHrEmployee,
+    salaryController.create_employee_salary_slip,
+    handlers.newResponse
+  );
+  router.post(
+    "/get_all_users_detail",
+    middleware.AuthForHrEmployee,
+    salaryController.get_all_users_detail,
+    handlers.newResponse
+  );
 module.exports = router;
