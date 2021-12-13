@@ -8,8 +8,10 @@ exports.get_generic_configuration = async (req, res, next) => {
   try {
     let user = req.userData;
     let showSecureData = false;
-    if (typeof user.role !== "undefined") {
-      showSecureData = true;
+    if (user) {
+      if (typeof user.role !== "undefined") {
+        showSecureData = true;
+      }
     }
     let result = await API_getGenericConfiguration(showSecureData, db);
     res.status_code = 200;
@@ -17,6 +19,7 @@ exports.get_generic_configuration = async (req, res, next) => {
     res.error = result.error;
     return next();
   } catch (error) {
+    console.log(error);
     res.status_code = 500;
     res.message = error.message;
     return next();

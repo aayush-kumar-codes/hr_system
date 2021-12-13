@@ -25,6 +25,7 @@ const elc_stages_step = require("./models/elc_stages_stepModel");
       user_bank_detail = await getUserBankDetail(userid,req,models);
       user_profile_detail =await getUserprofileDetail(userid,req,models);
       user_assign_machine = await getUserAssignMachines(userid,req,models);
+      console.log(user_profile_detail)
       Return={};
       r_error=0;
       Return.error=r_error;
@@ -41,7 +42,7 @@ const elc_stages_step = require("./models/elc_stages_stepModel");
   let getUserBankDetail= async (userid,req,models)=>{
   let query=await models.sequelize.query(`SELECT * FROM user_bank_details WHERE user_Id = ${userid}`,{type:QueryTypes.SELECT});
    let arr="";
-   arr=query;
+   arr=query[0];
    return arr;
   }
   let getUserprofileDetail = async (userid,req,models)=>{
@@ -67,7 +68,8 @@ const elc_stages_step = require("./models/elc_stages_stepModel");
       //  }
       //  $row['profileImage'] = HR::_getEmployeeProfilePhoto($row);
       let arr="";
-      arr = query;
+      arr = query[0]
+      console.log(arr)
       return arr;
 
   }
@@ -225,7 +227,7 @@ let getDisabledUser=async(req,models)=>{
 let getUserDocumentDetail=async(userid,req,models)=>{
   let r_error=1;
   let r_message="";
-  let r_data=[];
+  let r_data={};
   let q =await models.sequelize.query(`SELECT * FROM user_document_detail where user_id = ${userid}`,{type:QueryTypes.SELECT})
   JSON.parse(JSON.stringify(q))
  for (let [key,row] of Object.entries(q)){

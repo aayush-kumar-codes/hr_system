@@ -7,7 +7,7 @@ const middleware = require("../middleware/Auth");
 
 router.post(
   "/get_generic_configuration",
-  middleware.AuthForHrEmployee,
+  // middleware.AuthForHrEmployee,
   settignsController.get_generic_configuration,
   handlers.newResponse
 );

@@ -464,7 +464,7 @@ let getInvenoryAuditFullDetails = async (audit_id, models) => {
 
 
 let getInventoryAuditStatusforYearMonth = async (inventory_id, year,month, models) => {
-  let data = false;
+  let data = [];
   let q = await models.InventoryAuditMonthWise.findAll({
     where: {
       [Op.and]: [
@@ -557,7 +557,7 @@ let getInventoryFullDetails = async (id,hide_assigned_user_info = false,models) 
   ) {
     row.file_inventory_photo = `${process.env.ENV_BASE_URL}.'attendance/uploads/inventories/'.${row.file_inventory_photo}`;
   }
-  return row;
+  return row[0];
 };
 
 let isInventoryAuditPending = async (userid, models) => {
@@ -572,7 +572,8 @@ let isInventoryAuditPending = async (userid, models) => {
         hide_assigned_user_info,
         models
       );
-      if (i_details[0].audit_current_month_status.status == null) {
+      console.log(i_details,12112)
+      if (i_details.audit_current_month_status.status == null) {
         isAuditPending = true;
       }
     }
@@ -683,9 +684,9 @@ let generateUserToken = async (userId, models,addOns = false) => {
       // eth_token : userInfo.users.eth_token,
     };
     let roleAction = [];
-    // if (userInfo[0].type.toLowerCase() == "admin") {
-    //   u.role_pages = await getRolePagesForSuperAdmin();
-    // } else {
+    if (userInfo[0].type.toLowerCase() == "admin") {
+      u.role_pages = await getRolePagesForSuperAdmin();
+    } else {
       let roleInfo = await getUserRole(userInfo[0].user_Id, models);
       if (roleInfo != null&&typeof roleInfo.role_pages!="undefined") {
         let role_pages = await getRolePagesForApiToken(
@@ -705,6 +706,7 @@ let generateUserToken = async (userId, models,addOns = false) => {
           roleAction.push(value.action_name);
         }
       }
+    }
     u.role_actions = roleAction;
     u.is_policy_documents_read_by_user = 1;
     u.is_inventory_audit_pending = 0;
@@ -1860,13 +1862,12 @@ const api_getMyInventories = async (user_id,user_role,models) => {
       roleName = user_role;
     }
     roleName = roleName.toLowerCase();
-    let user_assign_machine = [];
+    let user_assign_machine =[];
     let hide_assigned_user_info = true;
     let inventoryData = await Promise.all(
     userInventories.map(async(userInventories)=>
      {
       let i_details = await getInventoryFullDetails(userInventories.dataValues.machine_id,hide_assigned_user_info,models)
-      
       if (typeof i_details.is_unassign_request != undefined &&
         i_details.is_unassign_request == 1) {
         if (roleName == "admin" ||roleName == "hr" ||roleName == "inventory manager") {
@@ -1883,11 +1884,12 @@ const api_getMyInventories = async (user_id,user_role,models) => {
           i_details.is_ownership_change_req_handler = 1;
         }
       }
-      user_assign_machine.push(i_details);
+      user_assign_machine.push(JSON.parse(JSON.stringify(i_details)));
       return i_details
     }))
+    // console.log(inventoryData,1212211)
+    // console.log(user_assign_machine)
     data.user_assign_machine = inventoryData;
- 
     let user_profile_detail = await getUserInfo(user_id, models);
     let upd = {};
     for(i=0;i<user_profile_detail.length;i++){
@@ -2058,7 +2060,7 @@ let getMachineTypeList = async (req,models) => {
     if(q1.length!==0){
       r_error=0
       let nextInventoryId=await getNextInternalSerialNumberOfInventory(req,models);
-      q1[0].nextInventoryId=nextInventoryId;
+      q1[0].nextInternalSerialNo=nextInventoryId;
       r_data=q1;
     }else{
         r_message="no machine type list found"

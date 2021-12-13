@@ -27,7 +27,7 @@ router.post(
   handlers.responseForInventory
 );
 
-router.get(
+router.post(
   "/get_my_inventories",
   middleware.AuthForHrEmployee,
   inventoryControllers.getMyInventoryController,
@@ -41,13 +41,13 @@ router.post(
   handlers.responseForInventory
 );
 
-router.get(
+router.post(
   "/get_office_machine",
   middleware.AuthForAdmin,
   inventoryControllers.inventoryGetController,
   handlers.responseForInventory
 );
-router.get(
+router.post(
   "/get_machine_status_list",
   middleware.AuthForHrAdmin,
   inventoryControllers.getMachineStatusController,
@@ -69,13 +69,13 @@ router.post(
   handlers.responseForInventory
 );
 
-router.get(
+router.post(
   "/get_machine_count",
   middleware.AuthForHrAdmin,
   inventoryControllers.getMachineCountController,
   handlers.responseForInventory
 );
-router.get(
+router.post(
   "/get_machine_type_list",
   middleware.AuthForHrAdmin,
   inventoryControllers.getMachineTypeController,
@@ -90,13 +90,13 @@ router.post(
   handlers.responseForAddMachine
 );
 
-router.get(
+router.post(
   "/get_machines_detail",
   middleware.AuthForHrAdmin,
   inventoryControllers.getMachinesDetailController,
   handlers.responseForInventory
 );
-router.get(
+router.post(
   "/get_unapproved_inventories",
   middleware.AuthForHrAdmin,
   inventoryControllers.getUnapprovedInventoryControllers,
@@ -111,19 +111,19 @@ router.post(
   handlers.responseForInventory
 );
 
-router.get(
+router.post(
   "/get_unassigned_inventories",
   middleware.AuthForAdmin,
   inventoryControllers.getUnassignedInventoryController,
   handlers.responseForInventory
 );
-router.get(
+router.post(
   "/get_inventory_audit_status_month_wise",
   middleware.AuthForAdmin,
   inventoryControllers.monthwiseAuditStatusController,
   handlers.responseForInventory
 );
-router.get(
+router.post(
   "/get_temp_uploaded_inventory_files",
   middleware.AuthForAdmin,
   inventoryControllers.getTempFilesController,

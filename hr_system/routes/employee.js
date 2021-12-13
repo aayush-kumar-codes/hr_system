@@ -15,11 +15,11 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-router.get(
+router.post(
   "/get_user_profile_detail",
   middleware.AuthForHrEmployee,
   employeeController.getUserProfileController,
-  handlers.responseForEmployee
+  handlers.responseForEmployee1
 ); //done
 router.post(
   "/get_user_profile_detail_by_id",
@@ -43,7 +43,7 @@ router.post(
   "/get_user_document",
   middleware.AuthForHrEmployee,
   employeeController.getUserDocument,
-  handlers.responseForEmployee
+  handlers.responseForEmployee2
 ); //done
 router.post(
   "/get_user_document_by_id",
@@ -104,7 +104,7 @@ router.post(
   middleware.AuthForHrEmployee,
   validators.updateBankDetailsValidator,
   employeeController.updateBankDetailsController,
-  handlers.responseForEmployee
+  handlers.responseForEmployee1
 );
 router.post(
   "/delete_role",
@@ -132,7 +132,7 @@ router.post(
   middleware.AuthForHrEmployee,
   validators.updateNewPassValidator,
   employeeController.updateNewPassController,
-  handlers.responseForEmployee
+  handlers.responseForEmployee2
 );
 router.post(
   "/update_employee_password",

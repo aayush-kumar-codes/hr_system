@@ -35,6 +35,13 @@ let responseForEmployee = async (req, res) => {
     },
   });
 };
+let responseForEmployee1 = async (req, res) => {
+  res.status(res.status_code).json({
+    error: res.error,
+    message: res.message,
+    data: res.data,
+  });
+};
 let responseForAddMachine = async (req, res) => {
   res.status(res.status_code).json({
     error: res.error,
@@ -68,6 +75,12 @@ let responseForLeaveApis = async (req, res) => {
     data: res.data,
   });
 };
+let responseForEmployee2 = async (req, res) => {
+  res.status(res.status_code).json({
+    error: res.error,
+    data: res.data,
+  });
+};
 module.exports = {
   responseHandle,
   responseForData,
@@ -77,5 +90,5 @@ module.exports = {
   responseForAddMachine,
   newResponse,
   resForList,
-  responseForLeaveApis,
+  responseForLeaveApis,responseForEmployee1,responseForEmployee2
 };

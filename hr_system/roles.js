@@ -281,7 +281,7 @@ let getAllPages = async () => {
     {
       baseCheck: "defaultForAllRoles",
       id: PAGE_holidays,
-      name: "holdays",
+      name: "holidays",
       description: "PAGE - For All - Holidays",
       actions_list: [
         {
@@ -294,7 +294,7 @@ let getAllPages = async () => {
     {
       baseCheck: "defaultForAllRoles",
       id: PAGE_salary,
-      name: "salry",
+      name: "salary",
       description: "PAGE - For All - My Salary",
       actions_list: [
         {
@@ -308,7 +308,7 @@ let getAllPages = async () => {
       baseCheck: "defaultForAllRoles",
       id: PAGE_apply_leave,
       secure_level: "",
-      name: "aply_leave",
+      name: "apply_leave",
       description: "PAGE - For All - Apply Leave",
       actions_list: [
         {
@@ -334,7 +334,7 @@ let getAllPages = async () => {
     {
       baseCheck: "defaultForAllRoles",
       id: PAGE_documents,
-      name: "docments",
+      name: "documents",
       description: "PAGE - For All - My Documents",
       actions_list: [
         {
@@ -347,7 +347,7 @@ let getAllPages = async () => {
     {
       baseCheck: "defaultForAllRoles",
       id: PAGE_my_inventory,
-      name: "my_nventory",
+      name: "my_inventory",
       description: "PAGE - For All - My Inventory",
       actions_list: [
         {
@@ -380,7 +380,7 @@ let getAllPages = async () => {
     {
       baseCheck: "defaultForAllRoles",
       id: PAGE_my_leaves,
-      name: "my_eaves",
+      name: "my_leaves",
       description: "PAGE - For All - My Leaves",
       actions_list: [
         {
@@ -413,7 +413,7 @@ let getAllPages = async () => {
     {
       baseCheck: "defaultForAllRoles",
       id: PAGE_my_profile,
-      name: "my_rofile",
+      name: "my_profile",
       description:
         "PAGE - For All - My Profile  Employee can view own profile details ",
       actions_list: [
@@ -481,7 +481,7 @@ let getAllPages = async () => {
     {
       baseCheck: "defaultForAllRoles",
       id: PAGE_monthly_attendance,
-      name: "monhly_attendance",
+      name: "monthly_attendance",
       description: "Employee can view month attendance / can add manual time",
       actions_list: [
         {
@@ -1405,7 +1405,7 @@ let getAllPages = async () => {
     {
       baseCheck: "defaultForAllRoles",
       id: ACTIONS_CATEGORY_default_actions_all_roles,
-      name: "Catgory Default Actions For all Roles",
+      name: "Category Default Actions For all Roles",
       description: "Category Default Actions For all Roles",
       actions_list: [
         {
@@ -1464,7 +1464,7 @@ let getAllPages = async () => {
     {
       baseCheck: "defaultForAllRoles",
       id: PAGE_user_timeSheet,
-      name: "use_timeSheet",
+      name: "user_timeSheet",
       description: "Page - User Time Sheet",
       actions_list: [
         {
