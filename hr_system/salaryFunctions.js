@@ -1,10 +1,10 @@
 const { QueryTypes } = require("sequelize");
+const md5 = require("md5")
+const db = require("./db");
+const {intervalToDuration} =require('date-fns')
 const createPeriod = require("date-period");
-const {
-  getSalaryInfo,
-  getEmployeeCompleteInformation,
-  getUserprofileDetail,
-} = require("./employeeFunction");
+const { getUserInfo } = require("./allFunctions")
+const { getSalaryInfo, getEmployeeCompleteInformation, getUserprofileDetail,getAllUserDetail,getUserlatestSalary } = require("./employeeFunction")
 const {
   getGenericMonthSummary,
   getUserMonthAttendaceComplete,
@@ -14,8 +14,8 @@ const {
   _getDatesBetweenTwoDates,
   getDaysOfMonth,
 } = require("./leavesFunctions");
-const db = require("./db");
 const { isArray, result } = require("lodash");
+
 let deleteUserSalary = async (userid, salaryid, db) => {
   let r_error = 1;
   let r_message = "";
@@ -36,38 +36,12 @@ let deleteUserSalary = async (userid, salaryid, db) => {
   Return["data"] = r_data;
   return Return;
 };
-let getUserManagePayslipBlockWise = async (
-  userid,
-  year,
-  month,
-  extra_arrear,
-  arrear_for_month,
-  db,
-  req,
-  checkPreviousMonthPayslip = false
-) => {
-  let salaryBlockWise = await getSalaryBlocks(
-    userid,
-    year,
-    month,
-    extra_arrear,
-    arrear_for_month,
-    checkPreviousMonthPayslip,
-    db,
-    req
-  );
+
+let getUserManagePayslipBlockWise = async (userid,year,month,extra_arrear,arrear_for_month, db,req,checkPreviousMonthPayslip = false) => {
+  let salaryBlockWise = await getSalaryBlocks(userid,year,month,extra_arrear,arrear_for_month,checkPreviousMonthPayslip,db,req);
   return salaryBlockWise;
 };
-let getSalaryBlocks = async (
-  userid,
-  year,
-  month,
-  extra_arrear,
-  arrear_for_month,
-  checkPreviousMonthPayslip,
-  db,
-  req
-) => {
+let getSalaryBlocks = async (userid,year,month,extra_arrear,arrear_for_month,checkPreviousMonthPayslip,db,req) => {
   let DEBUG = false;
   let debugData = {};
   let r_error = 1;
@@ -169,9 +143,10 @@ let getSalaryBlocks = async (
   let current_month_leave = 0;
   let current_month_leave_days = [];
   let c = await getUserMonthLeaves(userid, year, month, db);
-
+// console.log(c)
   if (c.length > 0) {
-    for (let v of c) {
+    for (let [key,v] of Object.entries(c)) {
+      console.log(v)
       let vStatus = v["status"].toLowerCase();
       if (vStatus == "approved" || vStatus == "pending") {
         if (
@@ -786,6 +761,7 @@ let getSalaryBlocks = async (
   Return["message"] = r_message;
   return Return;
 };
+
 let array_values = async (input) => {
   const tmpArr = [];
   let key = "";
@@ -794,6 +770,7 @@ let array_values = async (input) => {
   }
   return tmpArr;
 };
+
 let checkEmployeeLastMonthPayslipStatus = async (userid, year, month, db) => {
   let ret = false;
   let toCheckYear = year;
@@ -840,6 +817,7 @@ let checkEmployeeLastMonthPayslipStatus = async (userid, year, month, db) => {
   }
   return ret;
 };
+
 let getUserManagePayslip = async (
   userid,
   year,
@@ -849,7 +827,7 @@ let getUserManagePayslip = async (
   checkPreviousMonthPayslip = true,
   db
 ) => {
-  $r_error = 1;
+  r_error = 1;
   let r_message = "";
   let r_data = {};
   let date = year + "-" + month + "-01";
@@ -1197,6 +1175,226 @@ let getUserManagePayslip = async (
   Return["data"] = r_data;
   return Return;
 };
+let createUserPayslip = async (req, db) => {
+    let r_error = 1;
+    let r_message = "";
+    let r_exception = "";
+    let r_data = {};
+    let date = req.body['year'] + "-" + req.body['month'] + "-01";
+    let month_name = new Date(date).toLocaleString('default', { month: 'long' })
+    let ins = {
+        user_Id: req.body['user_id'],
+        month: req.body['month'],
+        year: req.body['year'],
+        total_leave_taken: req.body['total_leave_taken'],
+        leave_balance: req.body['leave_balance'],
+        allocated_leaves: req.body['allocated_leaves'],
+        paid_leaves: req.body['paid_leaves'],
+        unpaid_leaves: req.body['unpaid_leaves'],
+        final_leave_balance: req.body['final_leave_balance'],
+        misc_deduction_2: req.body['misc_deduction_2'],
+        bonus: req.body['bonus'],
+        payslip_url: 0,
+
+        total_working_days: req.body['total_working_days'],
+        total_earnings: req.body['total_earning'],
+        total_deductions: req.body['total_deduction'],
+        total_taxes: req.body['tds'],
+        total_net_salary: req.body['net_salary'],
+        payslip_file_id: 0// this is added for default value
+    }
+    // let check_google_drive_connection = await getGoogleDriveToken();
+    let check_google_drive_connection = [];
+    if (!Array.isArray(check_google_drive_connection) && (check_google_drive_connection.length) > 0) {
+        r_error = 1;
+        r_message = "Refresh token not found. Connect do google login first";
+        r_data['message'] = r_message;
+    }
+    else {
+        google_drive_file_url = [];
+        file_id = false;
+        url = "";
+        // g_token = check_google_drive_connection['value'];
+        parent_folder = "Employees Salary Payslips";
+        upload_path = '../uploads/payslips';
+        userid = req.body['user_id'];
+        userInfo = await getUserInfo(userid, db);
+        userInfo_name = userInfo['name'];
+        // html = '';
+        // html = ob_start();
+        let q = await db.sequelize.query(`SELECT * FROM payslips where user_Id ='${req.body['user_id']}' AND month ='${req.body['month']}' AND year ='${req.body['year']}'`, { type: QueryTypes.SELECT });
+        if (q.length > 0) {
+            q = await db.sequelize.query(`DELETE FROM payslips where user_Id ='${req.body['user_id']}' AND month ='${req.body['month']}' AND year ='${req.body['year']}'`, { type: QueryTypes.DELETE });
+        }
+        // console.log(ins.user_Id)
+        res = await db.sequelize.query(`INSERT INTO payslips 
+        (user_Id,month,year,total_leave_taken,leave_balance,allocated_leaves,paid_leaves,unpaid_leaves,final_leave_balance,payslip_url,payslip_file_id,misc_deduction_2,bonus,total_working_days,total_earnings,total_deductions,total_taxes,total_net_salary) 
+        Values
+        ( '${ins.user_Id}',${ins.month},${ins.year},${ins.total_leave_taken},${ins.leave_balance},${ins.allocated_leaves},${ins.paid_leaves},${ins.unpaid_leaves},${ins.final_leave_balance},${ins.payslip_url},${ins.payslip_file_id},${ins.misc_deduction_2},${ins.bonus},${ins.total_working_days},${ins.total_earnings},${ins.total_deductions},${ins.total_taxes},${ins.total_net_salary})`, { type: QueryTypes.INSERT });
+
+        if (res.length = 0) {
+            r_error = 1;
+            r_message = "Error occured while inserting data";
+            r_data['message'] = r_message;
+        } else {
+            let payslip_no = res[0];
+            let payslip_name = month_name;
+            let payslip_unique_name = userid + '_' + payslip_name + '_' + req['year'];
+            //create pdf of payslip template
+            //    suc = await createPDf(html,payslip_unique_name,path =upload_path);
+
+            // try {
+            //     // upload created payslip pdf file in google drive
+            //     // $payslip_name = $payslip_name.".pdf";
+            //     $payslip_name = $payslip_unique_name.".pdf";
+            //     $file_directory = $upload_path . "/" . $payslip_name;
+            //     $subfolder_year = date("Y") . "-" . $userid;
+            //     $google_drive_file_url = Document::saveFileToGoogleDrive( $g_token, $parent_folder, $file_directory, $userInfo_name, $subfolder_year);
+
+            // } catch( Exception $ex ) {
+            //     $error = json_decode($ex->getMessage(), true);
+            //     if( $error ){
+            //         $r_exception = $error['error']['message'];
+            //     } else {
+            //         $r_exception = $ex->getMessage();
+            //     }
+            // }
+
+            // // if google drive upload fails
+            // if (sizeof($google_drive_file_url) <= 0) {
+            //     $url = $_ENV['ENV_BASE_URL'] . 'attendance/uploads/payslips/' . $payslip_unique_name . '.pdf';
+            // } else {
+            //     $url = $google_drive_file_url['url'];
+            //     $file_id = $google_drive_file_url['file_id'];
+            // }
+
+            // $query = "UPDATE payslips SET payslip_url= '" . mysqli_real_escape_string($mysqli, $url) . "' , payslip_file_id = '" . $file_id . "' WHERE id = $payslip_no";
+            // self::DBrunQuery($query);
+            // // if send mail option is true
+            // if ($data['send_email'] == 1 || $data['send_email'] == '1') {
+            //     // send slack notification message 
+            //     self::sendPayslipMsgEmployee($payslip_no);
+            // }
+
+            // if ($data['send_slack_msg'] == 1 || $data['send_slack_msg'] == '1') {
+            //     // send slack notification message 
+            //     self::sendPayslipMsgEmployee($payslip_no, $data);
+            // }
+
+            r_error = 0;
+            r_message = "Salary slip generated successfully";
+            r_data['message'] = r_message;
+            r_data['exception'] = [];
+            // r_data['exception'] = r_exception;
+        }
+    }
+    let Return ={};
+       Return['error'] =r_error;
+       Return['data'] =r_data;
+        return Return;
+};
+let getAllUserInfo=async(teamName = false,hideSecureInfo = false,req,db)=>{
+  let start_increment_date;
+    let r_error = 1;
+    let r_message = "";
+    let r_data = {};
+    let a;
+    if (teamName ==false) {
+        a = await getAllUserDetail(data=false,req,db);
+    }
+    if (teamName != "") {
+        a = await getAllUserDetail(teamName);
+    }
+    let row2 = [];
+    // let allSlackUsers = await getSlackUsersList();
+    for (let val of a ) {
+        let userid = val['user_Id'];
+        let emailid =val['work_email'];
+        console.log(121212)
+        let sal = await getUserlatestSalary(767,false,db);
+        console.log(sal)
+        let salary_detail = 0;
+        let previous_increment = 0;
+        let next_increment_date = "";
+        let slack_image = "";
+        let holding = 0;
+
+        if((sal.length) > 0 ){
+            let latest_sal_id = sal[0]['id'];
+            let row =await db.sequelize.query(`SELECT * FROM salary_details WHERE salary_id= ${latest_sal_id} AND 'key' = 'Misc_Deductions'`,{type:QueryTypes.SELECT});
+            // $runQuery = self::DBrunQuery($q);
+            // $row = self::DBfetchRow($runQuery);
+            // $row['value'];
+         
+            if (sal.length >= 2) {
+                previous_increment = Math.abs(sal[0]['total_salary'] - sal[1]['total_salary']);
+                salary_detail = sal[0]['total_salary'] + row['value'];
+                next_increment_date = sal[0]['applicable_till'];
+                start_increment_date = sal[0]['applicable_from'];
+            }
+            if ((sal.length) >= 1 && (sal.length) < 2) {
+                salary_detail = sal[0]['total_salary'] + row['value'];
+                next_increment_date = sal[0]['applicable_till'];
+                start_increment_date = sal[0]['applicable_from'];
+            }
+        }
+        
+        let now = new Date(); // or your date as well
+        let your_date = val['dateofjoining'];
+        let date1 = new Date(your_date);
+        let date2 = new Date(now);
+        let interval = intervalToDuration({
+            start: new Date(date1),
+            end: new Date(date2)
+          })
+
+        // for (let s of allSlackUsers ) {
+        //     if (s['profile']['email'] == emailid) {
+        //         sl = s;
+        //         break;
+        //     }
+        // }
+
+        // $sl = self::getSlackUserInfo($emailid);
+        // if ((sl.length) > 0) {
+        //     val['slack_profile'] = sl; 
+        //     // slack_image = await _getEmployeeProfilePhoto($val);
+        //     slack_id = sl['id'];
+        // }
+        let h = await getHoldingDetail(userid,db);
+        if ((h.length) > 0) {
+            holding = (h.length-1);
+        }
+       val['slack_image'] =slack_image;
+      //  val['user_slack_id'] =slack_id;
+       val['salary_detail'] =salary_detail;
+       val['previous_increment'] =previous_increment;
+       val['next_increment_date'] =next_increment_date;
+       val['start_increment_date'] =start_increment_date;
+       val['no_of_days_join'] =interval.years + " years, " +interval.months + " months, " +interval.days + " days ";
+       val['holdin_amt_detail'] =holding;
+
+        if( hideSecureInfo ){
+            val['salary_detail'] = "No Access";
+            val['holdin_amt_detail'] = "No Access";
+            val['previous_increment'] = "No Access";
+            val['password'] = "No Access";
+            val['next_increment_date'] = "No Access";
+            val['holding_comments'] = "No Access";
+        }
+
+
+        row2.push(val);
+    }
+    let Return = {};
+    r_error = 0;
+    Return['error'] = r_error;
+    Return['data'] = row2;
+    console.log(Return,1211212)
+    return Return;
+
+}
+
 let getAllUserPayslip = async (userid, year, month, db) => {
   let row = await db.sequelize.query(
     `select * from payslips where month='${month}' AND year = '${year}'`,
@@ -1363,7 +1561,7 @@ let getUserPayslipInfo = async (userid, db, hidePayslip = false) => {
     { type: QueryTypes.SELECT }
   );
   if (hidePayslip == true) {
-    if (sizeof(row) > 0) {
+    if ((row.length) > 0) {
       for (let [key, value] of Object.entries(row)) {
         if (value["payslip_url"]) {
           delete row[key]["payslip_url"];
@@ -1526,11 +1724,14 @@ let getHoldingDetail = async (userid, db) => {
       ) {
         let begin = new Date(holding_start_date);
         let end = new Date(holding_end_date);
-        let interval = begin.setMonth(begin.getMonth() + 1);
-        let period = createPeriod({ begin, interval, end });
+        // let interval = begin.setMonth(begin.getMonth() + 1);
+        // console.log(begin,interval,end,11212)
+        let period= getDates(new Date(begin), (new Date(end)).addMonth(1));
+        // let period = createPeriod({ begin, interval, end });
+        // console.log(21)
         holding_month = period.length;
       }
-      row[key].holding_month = holding_month;
+      q[key].holding_month = holding_month;
       holding_month = 0;
     }
     ret = q;
@@ -1540,6 +1741,21 @@ let getHoldingDetail = async (userid, db) => {
     throw new Error(error);
   }
 };
+Date.prototype.addMonth = function(days) {
+  var dat = new Date(this.valueOf())
+  dat.setMonth(dat.getMonth() + days);
+  return dat;
+}
+function getDates(startDate, stopDate) {
+ var dateArray = new Array();
+ var currentDate = startDate;
+ while (currentDate <= stopDate) {
+   dateArray.push(currentDate)
+   currentDate = currentDate.addMonth(1);
+ }
+ return dateArray;
+}
+// var dateArray = getDates(new Date("2000-01-11"), (new Date()).addMonth(1));
 
 let API_updateEmployeeAllocatedLeaves = async (reqBody, db) => {
   try {
@@ -1621,6 +1837,7 @@ let API_updateEmployeeFinalLeaveBalance = async (reqBody, db) => {
 };
 
 module.exports = {
+    deleteUserSalary,getUserManagePayslipBlockWise,createUserPayslip,getAllUserInfo,
   API_updateEmployeeFinalLeaveBalance,
   API_updateEmployeeAllocatedLeaves,
   getUserPayslipInfo,

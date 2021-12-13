@@ -8,6 +8,7 @@
   "dependencies": {
     "cookie-parser": "~1.4.4",
     "cors": "^2.8.5",
+    "date-fns": "^2.27.0",
     "date-period": "^4.0.0",
     "debug": "~2.6.9",
     "dotenv": "^10.0.0",
