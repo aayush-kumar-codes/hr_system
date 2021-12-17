@@ -1377,7 +1377,7 @@ let api_getUnassignedInventories=async(userid,req,models)=>{
   }else{
     for(elem of unassignedInventoriesList){
       i_details=await getInventoryFullDetails(elem.id,req,models);
-      unassignedInventories= i_details;
+      unassignedInventories.push(i_details);
     }
   }
   let Return=[];

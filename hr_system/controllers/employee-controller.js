@@ -64,7 +64,6 @@ exports.getUserProfileDetailByIdConttroller = async (req, res, next) => {
     if (typeof req.body.user_id != "undefined" && req.body.user_id !== "") {
       user_id = req.body.user_id;
       response = await getUserDetailInfo(user_id, req, db);
-      console.log(response);
       if (
         typeof req.body.secret_key != "undefined" &&
         req.body.secret_key !== ""

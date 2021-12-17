@@ -11,6 +11,12 @@ router.post(
     leavesControllers.adminUserApplyLeave,
     handlers.addNewEmployeeResponseHandle
   );
+  router.post(
+    "/apply_leave",
+    middleware.AuthForHrAdmin,
+    leavesControllers.apply_leave,
+    handlers.addNewEmployeeResponseHandle
+  );
 router.post(
   "/delete_holiday",
   middleware.AuthForHrAdmin,
@@ -78,5 +84,22 @@ router.post(
   leavesControllers.get_all_leaves,
   handlers.responseForEmployee
 );
-
+router.post(
+  "/get_user_rh_stats",
+  middleware.AuthForHrAdmin,
+  leavesControllers.get_user_rh_stats,
+  handlers.responseForEmployee
+);
+router.post(
+  "/get_all_users_rh_stats",
+  middleware.AuthForHrAdmin,
+  leavesControllers.get_all_users_rh_stats,
+  handlers.responseForEmployee
+);
+router.post(
+  "/get_my_leaves",
+  middleware.AuthForHrAdmin,
+  leavesControllers.get_my_leaves,
+  handlers.responseForEmployee
+);
   module.exports = router;
