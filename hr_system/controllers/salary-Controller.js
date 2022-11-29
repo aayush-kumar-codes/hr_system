@@ -11,7 +11,9 @@ const {
   API_updateEmployeeAllocatedLeaves,
   API_updateEmployeeFinalLeaveBalance,
   getTeamSalaryDetails,
-}=require("../salaryFunctions")
+  getTeamPermissions,
+}=require("../salaryFunctions");
+const fs = require('fs');
 const { getSalaryInfo } = require("../employeeFunction");
 exports.delete_salary=async(req,res,next)=>{
    try {
@@ -294,7 +296,7 @@ exports.update_employee_final_leave_balance = async (req, res, next) => {
 };
 
 exports.team_salary_details = async (req, res, next) => {
-  const admins = [{username:"admin",teams:["react","vue"]}]
+  const admins = await getTeamPermissions()
   try {
     let returnArray = []
     for(admin of admins){

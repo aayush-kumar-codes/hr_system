@@ -1860,7 +1860,14 @@ const getTeamSalaryDetails = async (team) => {
     delete user.applicable_from
     delete user.applicable_till
   }
-  return data[0]
+  return data[0];
+}
+const getTeamPermissions = async () => {
+  const data = await db.sequelize.query(`SELECT value FROM config WHERE type = 'team_permissions';`)
+  if (!data.length) {
+    return [];
+  }
+  return JSON.parse(data[0][0].value);
 }
 
 module.exports = {
@@ -1874,4 +1881,5 @@ module.exports = {
   getHoldingDetail,
   getSalaryDetail,
   getTeamSalaryDetails,
+  getTeamPermissions,
 };
