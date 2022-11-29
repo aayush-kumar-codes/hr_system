@@ -55,4 +55,11 @@ router.post(
   handlers.newResponse
 );
 
+router.get(
+  "/team-salary-details",
+  middleware.AuthForHrEmployee,
+  salaryController.team_salary_details,
+  handlers.newResponse
+);
+
 module.exports = router;

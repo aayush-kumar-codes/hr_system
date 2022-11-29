@@ -9,7 +9,8 @@ const {
   getHoldingDetail,
   getUserPayslipInfo,
   API_updateEmployeeAllocatedLeaves,
-  API_updateEmployeeFinalLeaveBalance
+  API_updateEmployeeFinalLeaveBalance,
+  getTeamSalaryDetails,
 }=require("../salaryFunctions")
 const { getSalaryInfo } = require("../employeeFunction");
 exports.delete_salary=async(req,res,next)=>{
@@ -286,6 +287,30 @@ exports.update_employee_final_leave_balance = async (req, res, next) => {
     res.error = result.error;
     return next();
   } catch (error) {
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+};
+
+exports.team_salary_details = async (req, res, next) => {
+  const admins = [{username:"admin",teams:["react","vue"]}]
+  try {
+    let returnArray = []
+    for(admin of admins){
+      if(req.userData.username === admin.username){
+        for(team of admin.teams){
+          const data = await getTeamSalaryDetails(team)
+          returnArray =  returnArray.concat(data)
+        }
+      }
+    }
+   // const employeees = await getTeamSalaryDetails(employees[0].teams[0]);
+    res.status_code = 200;
+    res.data = returnArray;
+    return next();
+  } catch (error) {
+    console.log(error)
     res.status_code = 500;
     res.message = error.message;
     return next();
