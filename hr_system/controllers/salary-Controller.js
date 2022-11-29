@@ -299,15 +299,27 @@ exports.team_salary_details = async (req, res, next) => {
   const admins = await getTeamPermissions()
   try {
     let returnArray = []
+    const totalSalary = []
+    let totalAllTeamSalary = 0
     for(admin of admins){
       if(req.userData.username === admin.username){
         for(team of admin.teams){
           const data = await getTeamSalaryDetails(team)
+          teamSalary = {teamName:team, totalTeamSalary:0}
+          data.forEach(candidate=>{
+            teamSalary.totalTeamSalary += candidate.salary_info.total_salary;
+          })
+          totalAllTeamSalary += teamSalary.totalTeamSalary
+          if(teamSalary.totalTeamSalary){
+            totalSalary.push(teamSalary)
+          }
+          
           returnArray =  returnArray.concat(data)
         }
       }
     }
-   // const employeees = await getTeamSalaryDetails(employees[0].teams[0]);
+    totalSalary.push({totalAllTeamSalary:totalAllTeamSalary})
+    returnArray.push(totalSalary)
     res.status_code = 200;
     res.data = returnArray;
     return next();
