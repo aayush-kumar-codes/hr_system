@@ -1836,10 +1836,18 @@ let API_updateEmployeeFinalLeaveBalance = async (reqBody, db) => {
   }
 };
 
-const getTeamSalaryDetails = async (team) => {
+const getTeamSalaryDetails = async (teams) => {
+  let whereCond = ''
+  teams.forEach(team=>{
+    if(whereCond === ''){
+      whereCond = `team like "%${team}%"`;
+    }else{
+      whereCond += ` or team like "%${team}%"`;
+    }
+  })
   const data = await db.sequelize.query(`SELECT * FROM excellen_hr_test.user_profile
   INNER JOIN excellen_hr_test.salary ON excellen_hr_test.user_profile.id = excellen_hr_test.salary.user_id
-  WHERE team like "%${team}%"`)
+  WHERE ${whereCond}`);
   if (!data.length) {
     return [];
   }
@@ -1869,9 +1877,55 @@ const getTeamPermissions = async () => {
   }
   return JSON.parse(data[0][0].value);
 }
+const getTeamSalaryDetailsByRoles = async (roles) => {
+  roles = [
+    "hr",
+    "employee",
+    "admin",
+    "manager"
+  ]
+  let rolesStr = ''
+  roles.forEach(role=>{
+    if(rolesStr === ''){
+      rolesStr = `"${role}"`;
+    }else{
+      rolesStr += `, "${role}"`;
+    }
+  })
+  const data = await db.sequelize.query(`SELECT * FROM excellen_hr_test.user_profile
+  INNER JOIN excellen_hr_test.salary ON excellen_hr_test.user_profile.user_id = excellen_hr_test.salary.user_id
+  WHERE excellen_hr_test.user_profile.user_id in (SELECT distinct user_id from excellen_hr_test.user_roles
+WHERE role_id in (SELECT id as ids FROM excellen_hr_test.roles
+where description in (${rolesStr})));`);
+console.log(data)
+  if (!data.length) {
+    return [];
+  }
+  for (let user of data[0]) {
+    user.salary_info = {
+      total_salary: user.total_salary,
+      last_updated_on: user.last_updated_on,
+      updated_by: user.updated_by,
+      leaves_allocated: user.leaves_allocated,
+      applicable_from: user.applicable_from,
+      applicable_till: user.applicable_till,
+    }
+
+    delete user.total_salary
+    delete user.last_updated_on
+    delete user.updated_by
+    delete user.leaves_allocated
+    delete user.applicable_from
+    delete user.applicable_till
+  }
+  return data[0];
+}
 
 module.exports = {
-    deleteUserSalary,getUserManagePayslipBlockWise,createUserPayslip,getAllUserInfo,
+  deleteUserSalary,
+  getUserManagePayslipBlockWise,
+  createUserPayslip,
+  getAllUserInfo,
   API_updateEmployeeFinalLeaveBalance,
   API_updateEmployeeAllocatedLeaves,
   getUserPayslipInfo,
@@ -1882,4 +1936,6 @@ module.exports = {
   getSalaryDetail,
   getTeamSalaryDetails,
   getTeamPermissions,
+  getTeamSalaryDetailsByRoles,
 };
+
