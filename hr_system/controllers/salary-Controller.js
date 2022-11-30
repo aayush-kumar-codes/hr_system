@@ -302,7 +302,7 @@ exports.team_salary_details = async (req, res, next) => {
   const admins = await getTeamPermissions()
   try {
     let isSpecialUser = false;
-    let data;
+    let data = [];
     for (admin of admins) {
       if (req.userData.username === admin.username) {
         isSpecialUser = true;
@@ -310,19 +310,20 @@ exports.team_salary_details = async (req, res, next) => {
         break;
       }
     }
-    if(!isSpecialUser){
-      for (rolePage of req.userData.role_pages){
-        if (rolePage.page_name = 'salary'){
-          data = await getTeamSalaryDetailsByRoles(rolePage.roles);
-        }
-      }
-    }
+    // if(!isSpecialUser){
+    //   for (rolePage of req.userData.role_pages){
+    //     if (rolePage.page_name = 'salary'){
+    //       data = await getTeamSalaryDetailsByRoles(rolePage.roles);
+    //     }
+    //   }
+    // }
     const totalSalary = [];
     let totalAllTeamSalary = 0;
     data.forEach(candidate=>{
       let isIncluded = false;
       totalSalary.every(team=>{
         if(candidate.team === team.teamName){
+          isIncluded = true;
           team.totalTeamSalary += candidate.salary_info.total_salary;
           return false;
         }
