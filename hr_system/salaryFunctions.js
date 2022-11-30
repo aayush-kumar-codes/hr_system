@@ -1891,7 +1891,6 @@ const getTeamSalaryDetailsByRoles = async (roles) => {
   WHERE excellen_hr_test.user_profile.user_id in (SELECT distinct user_id from excellen_hr_test.user_roles
 WHERE role_id in (SELECT id as ids FROM excellen_hr_test.roles
 where description in (${rolesStr})));`);
-console.log(data)
   if (!data.length) {
     return [];
   }
