@@ -298,64 +298,6 @@ exports.update_employee_final_leave_balance = async (req, res, next) => {
   }
 };
 
-// exports.team_salary_details = async (req, res, next) => {
-//   const admins = await getTeamPermissions()
-//   try {
-//     let returnArray = []
-//     const totalSalary = []
-//     let totalAllTeamSalary = 0
-//     let isIncluded = false;
-//     for (admin of admins) {
-//       if (false && req.userData.username === admin.username) {
-//         isIncluded = true;
-//         for (team of admin.teams) {
-//           const data = await getTeamSalaryDetails(team)
-//           teamSalary = {
-//             teamName: team,
-//             totalTeamSalary: 0
-//           }
-//           data.forEach(candidate => {
-//             teamSalary.totalTeamSalary += candidate.salary_info.total_salary;
-//           })
-//           totalAllTeamSalary += teamSalary.totalTeamSalary
-//           if (teamSalary.totalTeamSalary) {
-//             totalSalary.push(teamSalary)
-//           }
-
-//           returnArray = returnArray.concat(data)
-//         }
-//       }
-//     }
-//     if (!isIncluded) {
-//       for (rolePage of req.userData.role_pages) {
-//         if (rolePage.page_name = 'salary') {
-//           const data = await getTeamSalaryDetailsByRoles(rolePage.roles)
-//           console.log(data)
-//           data.forEach(candidate=>{
-//             let isIncluded = false;
-//             totalSalary.forEach(//here )
-//           })
-//           res.status_code = 200;
-//           res.data = data;
-//           return next();
-//         }
-//       }
-//     }
-//     totalSalary.push({
-//       totalAllTeamSalary: totalAllTeamSalary
-//     })
-//     returnArray.push(totalSalary)
-//     res.status_code = 200;
-//     res.data = returnArray;
-//     return next();
-//   } catch (error) {
-//     console.log(error)
-//     res.status_code = 500;
-//     res.message = error.message;
-//     return next();
-//   }
-// };
-
 exports.team_salary_details = async (req, res, next) => {
   const admins = await getTeamPermissions()
   try {
