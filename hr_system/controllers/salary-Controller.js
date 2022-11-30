@@ -334,9 +334,9 @@ exports.team_salary_details = async (req, res, next) => {
       totalAllTeamSalary += candidate.salary_info.total_salary;
     })
     totalSalary.push({totalAllTeamSalary});
-    const returnArray = data.concat(totalSalary);
+    data.push(totalSalary);
     res.status_code = 200;
-    res.data = returnArray;
+    res.data = data;
     return next();
   } catch (error) {
     console.log(error)
