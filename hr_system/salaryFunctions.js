@@ -1878,12 +1878,6 @@ const getTeamPermissions = async () => {
   return JSON.parse(data[0][0].value);
 }
 const getTeamSalaryDetailsByRoles = async (roles) => {
-  roles = [
-    "hr",
-    "employee",
-    "admin",
-    "manager"
-  ]
   let rolesStr = ''
   roles.forEach(role=>{
     if(rolesStr === ''){
