@@ -1846,7 +1846,7 @@ const getTeamSalaryDetails = async (teams) => {
     }
   })
   const data = await db.sequelize.query(`SELECT * FROM excellen_hr_test.user_profile
-  INNER JOIN excellen_hr_test.salary ON excellen_hr_test.user_profile.id = excellen_hr_test.salary.user_id
+  INNER JOIN excellen_hr_test.salary ON excellen_hr_test.user_profile.user_id = excellen_hr_test.salary.user_id
   WHERE ${whereCond}`);
   if (!data.length) {
     return [];
