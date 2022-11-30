@@ -1,9 +1,10 @@
 const db = require("../db");
-const _=require("lodash")
+const _ = require("lodash")
 const {
   deleteUserSalary,
   getUserManagePayslipBlockWise,
-  getAllUserInfo,createUserPayslip, 
+  getAllUserInfo,
+  createUserPayslip,
   getUserDetail,
   getSalaryDetail,
   getHoldingDetail,
@@ -12,34 +13,37 @@ const {
   API_updateEmployeeFinalLeaveBalance,
   getTeamSalaryDetails,
   getTeamPermissions,
-}=require("../salaryFunctions");
+  getTeamSalaryDetailsByRoles,
+} = require("../salaryFunctions");
 const fs = require('fs');
-const { getSalaryInfo } = require("../employeeFunction");
-exports.delete_salary=async(req,res,next)=>{
-   try {
-       let resp;
-    let message,error;
-    if(req.body.user_id && req.body.salary_id){
-        let userid = req.body['user_id'];
-        let salaryid =req.body['salary_id'];
-        resp =await deleteUserSalary(userid,salaryid,db);
-        message=resp.data;
-        error=resp.error;
-    }else{
-        message="please provide userid and salary id "
-        error=1;
-      }
-      res.status_code = 200;
-      res.data = message;
-      res.error = resp.error;
-      return next();
-    } catch (error) {
-      console.log(error);
-      res.status_code = 500;
-      res.message = error.message;
-      return next();
+const {
+  getSalaryInfo
+} = require("../employeeFunction");
+exports.delete_salary = async (req, res, next) => {
+  try {
+    let resp;
+    let message, error;
+    if (req.body.user_id && req.body.salary_id) {
+      let userid = req.body['user_id'];
+      let salaryid = req.body['salary_id'];
+      resp = await deleteUserSalary(userid, salaryid, db);
+      message = resp.data;
+      error = resp.error;
+    } else {
+      message = "please provide userid and salary id "
+      error = 1;
     }
-  };
+    res.status_code = 200;
+    res.data = message;
+    res.error = resp.error;
+    return next();
+  } catch (error) {
+    console.log(error);
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
+};
 
 
 exports.get_user_manage_payslips_data = async (req, res, next) => {
@@ -94,7 +98,7 @@ exports.get_user_manage_payslips_data = async (req, res, next) => {
           arrear_for_month,
           db,
           req
-        );          /* this is added to notify employee about missing timings for days */
+        ); /* this is added to notify employee about missing timings for days */
       }
     }
     res.status_code = 200;
@@ -165,7 +169,7 @@ exports.get_user_salary_info_by_id = async (req, res, next) => {
           let startDate = new Date(joining_date);
           let numberOfMonths = Math.abs(
             (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-              (endDate.getMonth() + 1 - (startDate.getMonth() + 1))
+            (endDate.getMonth() + 1 - (startDate.getMonth() + 1))
           );
         }
       }
@@ -184,45 +188,45 @@ exports.get_user_salary_info_by_id = async (req, res, next) => {
     return next();
   }
 };
- exports.create_employee_salary_slip=async(req,res,next)=>{
-    try {
-        let resp={};
-        if ((req.body['user_id']) && req.body['user_id'] != "") {
-            resp = await createUserPayslip(req,db);
-        } else {
-            resp['message'] = 'Please give user_id ';
-        }
-       res.status_code=200;
-       res.data=resp.data;
-       res.message=resp.message;
-       res.error=resp.error
-       return next();
-    } catch (error) {
-       console.log(error)
-       res.status_code=500;
-       res.message=error.message;
-       return next();  
+exports.create_employee_salary_slip = async (req, res, next) => {
+  try {
+    let resp = {};
+    if ((req.body['user_id']) && req.body['user_id'] != "") {
+      resp = await createUserPayslip(req, db);
+    } else {
+      resp['message'] = 'Please give user_id ';
     }
+    res.status_code = 200;
+    res.data = resp.data;
+    res.message = resp.message;
+    res.error = resp.error
+    return next();
+  } catch (error) {
+    console.log(error)
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
 };
-exports.get_all_users_detail=async(req,res,next)=>{
-    try {
-        let hideSecureInfo = true;
-        let loggedUserInfo=req.userData
-        if((loggedUserInfo['role']) && (loggedUserInfo['role'].toLowerCase) == 'admin' ){
-        hideSecureInfo = false;
-        }
-        let resp = await getAllUserInfo(false, hideSecureInfo,req,db);
-        res.status_code=200;
-        res.data=resp.data;
-        res.message=resp.message;
-        res.error=resp.error
-       return next();
-    } catch (error) {
-       console.log(error)
-       res.status_code=500;
-       res.message=error.message;
-       return next();  
+exports.get_all_users_detail = async (req, res, next) => {
+  try {
+    let hideSecureInfo = true;
+    let loggedUserInfo = req.userData
+    if ((loggedUserInfo['role']) && (loggedUserInfo['role'].toLowerCase) == 'admin') {
+      hideSecureInfo = false;
     }
+    let resp = await getAllUserInfo(false, hideSecureInfo, req, db);
+    res.status_code = 200;
+    res.data = resp.data;
+    res.message = resp.message;
+    res.error = resp.error
+    return next();
+  } catch (error) {
+    console.log(error)
+    res.status_code = 500;
+    res.message = error.message;
+    return next();
+  }
 }
 exports.get_user_salary_info = async (req, res, next) => {
   try {
@@ -249,8 +253,7 @@ exports.get_user_salary_info = async (req, res, next) => {
       if (
         payslip.total_net_salary != "undefined" &&
         payslip.total_net_salary * 1 > 0
-      ) {
-      } else {
+      ) {} else {
         delete res4[key];
       }
     }
@@ -298,30 +301,42 @@ exports.update_employee_final_leave_balance = async (req, res, next) => {
 exports.team_salary_details = async (req, res, next) => {
   const admins = await getTeamPermissions()
   try {
-    let returnArray = []
-    const totalSalary = []
-    let totalAllTeamSalary = 0
-    for(admin of admins){
-      if(req.userData.username === admin.username){
-        for(team of admin.teams){
-          const data = await getTeamSalaryDetails(team)
-          teamSalary = {teamName:team, totalTeamSalary:0}
-          data.forEach(candidate=>{
-            teamSalary.totalTeamSalary += candidate.salary_info.total_salary;
-          })
-          totalAllTeamSalary += teamSalary.totalTeamSalary
-          if(teamSalary.totalTeamSalary){
-            totalSalary.push(teamSalary)
-          }
-          
-          returnArray =  returnArray.concat(data)
+    let isSpecialUser = false;
+    let data;
+    for (admin of admins) {
+      if (req.userData.username === admin.username) {
+        isSpecialUser = true;
+        data = await getTeamSalaryDetails(admin.teams);
+        break;
+      }
+    }
+    if(!isSpecialUser){
+      for (rolePage of req.userData.role_pages){
+        if (rolePage.page_name = 'salary'){
+          data = await getTeamSalaryDetailsByRoles(rolePage.roles);
         }
       }
     }
-    totalSalary.push({totalAllTeamSalary:totalAllTeamSalary})
-    returnArray.push(totalSalary)
+    const totalSalary = [];
+    let totalAllTeamSalary = 0;
+    data.forEach(candidate=>{
+      let isIncluded = false;
+      totalSalary.every(team=>{
+        if(candidate.team === team.teamName){
+          team.totalTeamSalary += candidate.salary_info.total_salary;
+          return false;
+        }
+        return true;
+      })
+      if(!isIncluded){
+        totalSalary.push({teamName:candidate.team, totalTeamSalary:candidate.salary_info.total_salary});
+      }
+      totalAllTeamSalary += candidate.salary_info.total_salary;
+    })
+    totalSalary.push({totalAllTeamSalary});
+    data.push(totalSalary);
     res.status_code = 200;
-    res.data = returnArray;
+    res.data = data;
     return next();
   } catch (error) {
     console.log(error)
